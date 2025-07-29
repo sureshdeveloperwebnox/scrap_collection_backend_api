@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?
+  password  String?
+  hashPassword String?
+  firstName String?
+  lastName  String?
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Add reverse relations
+  adminRoles   AdminRole[]
+  customers    Customer[]
+  employees    Employee[]
+  notifications Notification[]
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
+
+model AdminRole {
+  id            Int       @id @default(autoincrement())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  roleType      AdminRoleType
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum AdminRoleType {
+  SUPER_ADMIN
+  STAFF_ADMIN
+}
+
+model Organization {
+  id            Int       @id @default(autoincrement())
+  name          String
+  address       String?
+  phone         String?
+  email         String?
+  website       String?
+  logo          String?
+  description   String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  countryId     Int
+  country       Country @relation(fields: [countryId], references: [id])
+  
+  // Relations
+  users         User[]
+  customers     Customer[]
+  employees     Employee[]
+  leads         Lead[]
+  vehicleTypes  VehicleType[]
+  orders        Order[]
+  scrapYards    ScrapYard[]
+  payments      Payment[]
+  reviews       Review[]
+}
+
+model Customer {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  address       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  leads         Lead[]
+  orders        Order[]
+  payments      Payment[]
+  reviews       Review[]
+}
+
+model Employee {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  role          EmployeeRole
+  workZone      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  blocked       Boolean   @default(false)
+  orders        Order[]
+  reviews       Review[]
+  scrapYardId   Int?
+  scrapYard     ScrapYard? @relation(fields: [scrapYardId], references: [id])
+}
+
+enum EmployeeRole {
+  COLLECTOR
+  ADMIN_STAFF
+}
+
+model Lead {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customerId    Int
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  name          String
+  contact       String
+  vehicleTypeId Int
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id])
+  scrapCategory ScrapCategory
+  status        LeadStatus
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  order         Order?
+}
+
+enum LeadStatus {
+  PENDING
+  CONVERTED
+  REJECTED
+}
+
+enum ScrapCategory {
+  JUNK
+  ACCIDENT_DAMAGED
+  FULLY_SCRAP
+}
+
+enum ScrapVehicleType {
+  CAR
+  MOTORCYCLE
+  TRUCK
+  BUS
+  TRAILER
+}
+
+model VehicleType {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name          String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  leads         Lead[]
+  orders        Order[]
+  
+  @@unique([name, organizationId])
+}
+
+model Order {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customerId    Int
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  employeeId    Int?
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+  leadId        Int?      @unique
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+  vehicleTypeId Int
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id])
+  scrapYardId   Int
+  scrapYard     ScrapYard @relation(fields: [scrapYardId], references: [id])
+  pickupAddress String
+  pickupDateTime DateTime
+  status        OrderStatus
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  payment       Payment?
+  review        Review?
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ScrapYard {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  address       String
+  capacity      Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  employees     Employee[]
+  orders        Order[]
+}
+
+model Payment {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customerId    Int
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  orderId       Int       @unique
+  order         Order     @relation(fields: [orderId], references: [id])
+  amount        Float
+  status        PaymentStatus
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum PaymentStatus {
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+model Review {
+  id            Int       @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  customerId    Int
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  employeeId    Int
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  orderId       Int       @unique
+  order         Order     @relation(fields: [orderId], references: [id])
+  rating        Int
+  comment       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Notification {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  title         String
+  message       String
+  type          NotificationType
+  createdAt     DateTime  @default(now())
+}
+
+enum NotificationType {
+  PICKUP_REQUEST
+  PAYMENT_CONFIRMATION
+  STATUS_UPDATE
+}
+
+model Country {
+  id            Int       @id @default(autoincrement())
+  name          String
+  currency      String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  organizations Organization[]
+}

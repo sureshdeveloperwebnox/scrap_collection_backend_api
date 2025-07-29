@@ -1,1 +1,0 @@
-# scrap_collection_backend_api
