@@ -5,7 +5,7 @@ export * from './organization.interface';
 export * from './customer.interface';
 export * from './employee.interface';
 export * from './lead.interface';
-export * from './vehicle.interface';
+export * from './vehicle-type.interface';
 export * from './order.interface';
 export * from './scrapyard.interface';
 export * from './payment.interface';

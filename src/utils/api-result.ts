@@ -11,6 +11,7 @@ export class ApiResult {
     console.log('APIresult data', data);
     
     const response = ResponseGenerator.generate(statusCode, data, message);
+    console.log('Generated response:', response);
     return new ApiResult(response);
   }
 
@@ -20,6 +21,16 @@ export class ApiResult {
   }
 
   public send(res: any): void {
+    console.log('ApiResult.send called with apiResponse:', this.apiResponse);
+    if (!this.apiResponse) {
+      console.error('apiResponse is undefined!');
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error - ApiResult not properly initialized',
+        data: null
+      });
+      return;
+    }
     ResponseGenerator.send(res, this.apiResponse);
   }
 }

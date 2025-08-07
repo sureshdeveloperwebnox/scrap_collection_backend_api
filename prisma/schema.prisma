@@ -157,6 +157,8 @@ model VehicleType {
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id])
   name          String
+  description   String?
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   leads         Lead[]

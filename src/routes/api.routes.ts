@@ -58,7 +58,7 @@ export const attachControllers = (
       
       // Set up the route handler
       const routeHandler = (req: any, res: any) => {
-        Promise.resolve(method.call(instance, req))
+        Promise.resolve(method.call(instance, req, res))
           .then((result: any) => {
             if (result && typeof result.send === 'function') {
               result.send(res);

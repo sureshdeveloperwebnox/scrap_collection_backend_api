@@ -42,7 +42,7 @@ export class ResponseGenerator {
     customMessage?: string,
     validationErrors: object[] = []
   ): ApiResponse<T> {
-    const status = code >= 400 ? 'error' : 'success';
+    const status: 'success' | 'error' = code >= 400 ? 'error' : 'success';
     const message = customMessage || defaultMessages[code] || 'Unknown status';
     return {
       version: '1.0.0',
@@ -65,6 +65,7 @@ export class ResponseGenerator {
   
   // Send response to client
   static send(res: any, response: ApiResponse<any>): void {
+    console.log('ResponseGenerator.send called with response:', response);
     res.status(response.code).json(response);
   }
 }
