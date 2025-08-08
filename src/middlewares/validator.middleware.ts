@@ -37,7 +37,7 @@ export const ValidatorMiddleware = (
   
   // Validate params if params rule exists
   if (rule.params) {
-    const { error } = rule.params.validate(req.params, { abortEarly: false });
+    const { error, value } = rule.params.validate(req.params, { abortEarly: false });
     
     if (error) {
       const validationErrors = error.details.map((detail: any) => ({
@@ -49,11 +49,14 @@ export const ValidatorMiddleware = (
         ResponseGenerator.error('Validation error', 400, validationErrors)
       );
     }
+
+    // Assign coerced params back
+    (req as any).params = value;
   }
   
   // Validate query if query rule exists
   if (rule.query) {
-    const { error } = rule.query.validate(req.query, { abortEarly: false });
+    const { error, value } = rule.query.validate(req.query, { abortEarly: false });
     
     if (error) {
       const validationErrors = error.details.map((detail: any) => ({
@@ -65,6 +68,9 @@ export const ValidatorMiddleware = (
         ResponseGenerator.error('Validation error', 400, validationErrors)
       );
     }
+
+    // Assign coerced query back
+    (req as any).query = value;
   }
   
   // Store validated data in the request object

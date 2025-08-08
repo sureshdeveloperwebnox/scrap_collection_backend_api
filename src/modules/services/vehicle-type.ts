@@ -52,17 +52,39 @@ export class VehicleTypeService {
 
   public async getVehicleTypes(query: IVehicleTypeQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, isActive, organizationId } = query;
-      const skip = (page - 1) * limit;
+      const { page = 1, limit = 10, search, isActive, organizationId } = query as any;
+
+      // Coerce pagination to numbers
+      const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
+      const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
+      const skip = (parsedPage - 1) * parsedLimit;
 
       const where: any = {};
 
-      if (organizationId) {
-        where.organizationId = organizationId;
+      // Coerce organizationId to number if present
+      if (organizationId !== undefined && organizationId !== null && organizationId !== '') {
+        const parsedOrgId = typeof organizationId === 'string' ? parseInt(organizationId as any, 10) : Number(organizationId);
+        if (!Number.isNaN(parsedOrgId)) {
+          where.organizationId = parsedOrgId;
+        }
       }
 
-      if (isActive !== undefined) {
-        where.isActive = isActive;
+      // Coerce isActive to boolean if present
+      if (isActive !== undefined && isActive !== null && isActive !== '') {
+        let normalizedIsActive: boolean | undefined;
+        if (typeof isActive === 'boolean') {
+          normalizedIsActive = isActive;
+        } else if (typeof isActive === 'string') {
+          const lowered = isActive.toLowerCase().trim();
+          if (['true', '1', 'yes', 'y'].includes(lowered)) normalizedIsActive = true;
+          else if (['false', '0', 'no', 'n'].includes(lowered)) normalizedIsActive = false;
+        } else if (typeof isActive === 'number') {
+          normalizedIsActive = isActive === 1;
+        }
+
+        if (typeof normalizedIsActive === 'boolean') {
+          where.isActive = normalizedIsActive;
+        }
       }
 
       if (search) {
@@ -76,7 +98,7 @@ export class VehicleTypeService {
         prisma.vehicleType.findMany({
           where,
           skip,
-          take: limit,
+          take: parsedLimit,
           include: {
             organization: {
               select: {
@@ -91,13 +113,13 @@ export class VehicleTypeService {
         prisma.vehicleType.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(total / parsedLimit);
 
       return ApiResult.success({
         vehicleTypes,
         pagination: {
-          page,
-          limit,
+          page: parsedPage,
+          limit: parsedLimit,
           total,
           totalPages
         }

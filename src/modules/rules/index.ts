@@ -3,3 +3,4 @@ export * from './hello.rules';
 export * from './country.rules';
 export * from './lead.rules';
 export * from './vehicle-type.rules';
+export * from './customer.rules';

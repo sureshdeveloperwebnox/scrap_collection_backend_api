@@ -133,6 +133,9 @@ model Lead {
 }
 
 enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
   PENDING
   CONVERTED
   REJECTED

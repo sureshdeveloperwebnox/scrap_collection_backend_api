@@ -6,17 +6,6 @@ import { LeadStatus } from "../model/enum";
 export class LeadService {
   public async createLead(data: ICreateLeadRequest): Promise<ApiResult> {
     try {
-      // Check if customer exists
-      const customer = await prisma.customer.findFirst({
-        where: {
-          id: data.customerId,
-          organizationId: data.organizationId
-        }
-      });
-
-      if (!customer) {
-        return ApiResult.error("Customer not found", 404);
-      }
 
       // Check if vehicle type exists
       const vehicleType = await prisma.vehicleType.findFirst({
@@ -42,7 +31,6 @@ export class LeadService {
           status: LeadStatus.PENDING
         },
         include: {
-          
           vehicleType: true,
           organization: {
             select: {
@@ -62,17 +50,28 @@ export class LeadService {
 
   public async getLeads(query: ILeadQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, status, scrapCategory, organizationId, customerId } = query;
-      const skip = (page - 1) * limit;
+      const { page = 1, limit = 10, search, status, scrapCategory, organizationId, customerId } = query as any;
+
+      // Coerce pagination and IDs to numbers
+      const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
+      const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
+      const parsedOrgId = organizationId !== undefined && organizationId !== null && organizationId !== ''
+        ? (typeof organizationId === 'string' ? parseInt(organizationId, 10) : Number(organizationId))
+        : undefined;
+      const parsedCustomerId = customerId !== undefined && customerId !== null && customerId !== ''
+        ? (typeof customerId === 'string' ? parseInt(customerId, 10) : Number(customerId))
+        : undefined;
+
+      const skip = (parsedPage - 1) * parsedLimit;
 
       const where: any = {};
 
-      if (organizationId) {
-        where.organizationId = organizationId;
+      if (parsedOrgId !== undefined && !Number.isNaN(parsedOrgId)) {
+        where.organizationId = parsedOrgId;
       }
 
-      if (customerId) {
-        where.customerId = customerId;
+      if (parsedCustomerId !== undefined && !Number.isNaN(parsedCustomerId)) {
+        where.customerId = parsedCustomerId;
       }
 
       if (status) {
@@ -96,9 +95,9 @@ export class LeadService {
         prisma.lead.findMany({
           where,
           skip,
-          take: limit,
+          take: parsedLimit,
           include: {
-        
+          
             vehicleType: true,
             organization: {
               select: {
@@ -113,13 +112,13 @@ export class LeadService {
         prisma.lead.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(total / parsedLimit);
 
       return ApiResult.success({
         leads,
         pagination: {
-          page,
-          limit,
+          page: parsedPage,
+          limit: parsedLimit,
           total,
           totalPages
         }
@@ -185,7 +184,7 @@ export class LeadService {
         where: { id },
         data,
         include: {
-        
+          
           vehicleType: true,
           organization: {
             select: {

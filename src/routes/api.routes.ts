@@ -57,23 +57,40 @@ export const attachControllers = (
       const fullPath = `${basePath}${path}`;
       
       // Set up the route handler
-      const routeHandler = (req: any, res: any) => {
-        Promise.resolve(method.call(instance, req, res))
-          .then((result: any) => {
-            if (result && typeof result.send === 'function') {
-              result.send(res);
-            } else {
-              res.send(result);
-            }
-          })
-          .catch((error: any) => {
-            console.error('Route handler error:', error);
+      const routeHandler = async (req: any, res: any, next: any) => {
+        try {
+          const result = await Promise.resolve(method.call(instance, req, res, next));
+
+          // If the controller already sent a response, do nothing
+          if (res.headersSent || res.writableEnded) {
+            return;
+          }
+
+          // If the controller returned a custom responder object with a send method
+          if (result && typeof (result as any).send === 'function') {
+            (result as any).send(res);
+            return;
+          }
+
+          // If the controller returned a value, send it; otherwise end with 204
+          if (typeof result !== 'undefined') {
+            res.send(result);
+          } else {
+            res.status(204).end();
+          }
+        } catch (error: any) {
+          console.error('Route handler error:', error);
+          if (!res.headersSent && !res.writableEnded) {
             res.status(500).json({
               success: false,
               message: 'Internal server error',
-              error: error.message
+              error: error?.message ?? 'Unknown error'
             });
-          });
+          } else {
+            // If headers already sent, delegate to default error handler
+            next(error);
+          }
+        }
       };
       
       // Build middleware stack
