@@ -80,7 +80,9 @@ export class CustomerService {
   public async getCustomers(query: ICustomerQueryParams): Promise<ApiResult> {
     try {
       const { page = 1, limit = 10, search, organizationId, isActive } = query;
-      const skip = (page - 1) * limit;
+      const numericPage = Number(page);
+      const numericLimit = Number(limit);
+      const skip = (numericPage - 1) * numericLimit;
 
       const where: any = {};
 
@@ -126,7 +128,7 @@ export class CustomerService {
         prisma.customer.findMany({
           where,
           skip,
-          take: limit,
+          take: numericLimit,
           include: {
             organization: {
               select: {
@@ -159,13 +161,13 @@ export class CustomerService {
         prisma.customer.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(total / numericLimit);
 
       return ApiResult.success({
         customers,
         pagination: {
-          page,
-          limit,
+          page: numericPage,
+          limit: numericLimit,
           total,
           totalPages
         }
