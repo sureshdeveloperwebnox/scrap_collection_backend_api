@@ -1,50 +1,53 @@
 import { ICreateCustomerRequest, IUpdateCustomerRequest, ICustomerQueryParams, ICustomerStats } from "../model/customer.interface";
 import { prisma } from "../../config";
 import { ApiResult } from "../../utils/api-result";
-import { UserRole } from "../model/enum";
+import { CustomerStatus, ScrapCategory, UserRole } from "../model/enum";
 
 export class CustomerService {
   public async createCustomer(data: ICreateCustomerRequest): Promise<ApiResult> {
     try {
       // Check if organization exists
       const organization = await prisma.organization.findUnique({
-        where: { id: data.organizationId }
+        where: { id: Number(data.organizationId) }
       });
 
       if (!organization) {
         return ApiResult.error("Organization not found", 404);
       }
+      
 
-      // Check if user exists and is a customer
-      const user = await prisma.user.findUnique({
-        where: { id: data.userId }
-      });
-
-      if (!user) {
-        return ApiResult.error("User not found", 404);
-      }
-
-      if (user.role !== UserRole.CUSTOMER) {
-        return ApiResult.error("User must have CUSTOMER role", 400);
-      }
-
-      // Check if customer already exists for this user in this organization
+      // Check if customer already exists for this email in this organization
       const existingCustomer = await prisma.customer.findFirst({
         where: {
-          userId: data.userId,
-          organizationId: data.organizationId
+          email: data.email,
+          organizationId: Number(data.organizationId)
         }
       });
 
       if (existingCustomer) {
-        return ApiResult.error("Customer already exists for this user in this organization", 400);
+        return ApiResult.error("Customer already exists for this email in this organization", 400);
       }
+
+      const user = await prisma.user.create({
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          role: UserRole.CUSTOMER
+        }
+      });
 
       const customer = await prisma.customer.create({
         data: {
-          organizationId: data.organizationId,
-          userId: data.userId,
-          address: data.address
+          organizationId: Number(data.organizationId),
+          userId: user.id,
+          contact: data.contact,
+          email: data.email,
+          vehicleTypeId: Number(data.vehicleTypeId),
+          scrapCategory: data.scrapCategory as ScrapCategory,
+          address: data.address,
+          status: data.status as CustomerStatus
         },
         include: {
           organization: {
@@ -326,9 +329,19 @@ export class CustomerService {
         return ApiResult.error("Customer not found", 404);
       }
 
+      // Prepare update data, excluding the id field
+      const updateData: any = {};
+      if (data.organizationId) updateData.organizationId = Number(data.organizationId);
+      if (data.contact) updateData.contact = data.contact;
+      if (data.email) updateData.email = data.email;
+      if (data.vehicleTypeId) updateData.vehicleTypeId = Number(data.vehicleTypeId);
+      if (data.scrapCategory) updateData.scrapCategory = data.scrapCategory as ScrapCategory;
+      if (data.address) updateData.address = data.address;
+      if (data.status) updateData.status = data.status as CustomerStatus;
+
       const customer = await prisma.customer.update({
         where: { id },
-        data,
+        data: updateData,
         include: {
           organization: {
             select: {

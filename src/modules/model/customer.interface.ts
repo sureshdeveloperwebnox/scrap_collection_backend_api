@@ -1,4 +1,4 @@
-import { UserRole, AdminRoleType } from './enum';
+import { UserRole, AdminRoleType, ScrapCategory } from './enum';
 
 export interface ICustomer {
   id: number;
@@ -25,13 +25,27 @@ export interface ICustomer {
 }
 
 export interface ICreateCustomerRequest {
-  organizationId: number;
-  userId: string;
-  address?: string;
+  organizationId: string,
+  firstName: string,
+  lastName: string,
+  contact: string,
+  email: string,
+  password: string,
+  vehicleTypeId: number,
+  scrapCategory: string,
+  address?: string,
+  status?: string,
 }
 
 export interface IUpdateCustomerRequest {
+  id: string,
+  organizationId: string,
+  contact?: string;
+  email?: string;
+  vehicleTypeId?: number;
+  scrapCategory?: string;
   address?: string;
+  status?: string;
 }
 
 export interface ICustomerQueryParams {

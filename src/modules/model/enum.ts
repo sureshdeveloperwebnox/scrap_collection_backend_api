@@ -55,4 +55,9 @@ export enum NotificationType {
   STATUS_UPDATE = 'STATUS_UPDATE'
 }
 
+export enum CustomerStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE'
+}
+
 
