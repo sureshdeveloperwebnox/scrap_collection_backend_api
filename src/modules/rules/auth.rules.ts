@@ -46,3 +46,11 @@ export const forSignUp = {
     })
   })
 };
+
+export const forGoogleSignIn = {
+  body: Joi.object({
+    idToken: Joi.string().required().messages({
+      'any.required': 'Google ID token is required'
+    })
+  })
+};
