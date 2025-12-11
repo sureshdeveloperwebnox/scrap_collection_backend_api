@@ -14,7 +14,8 @@ import {
   ReviewController,
   ScrapYardController,
   UploadController,
-  CityController
+  CityController,
+  RoleController
 } from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
@@ -37,7 +38,8 @@ export const combineRouters = (app: Express) => {
       ReviewController,
       ScrapYardController,
       UploadController,
-      CityController
+      CityController,
+      RoleController
     ],
     {
       middleware: {

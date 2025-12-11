@@ -130,13 +130,29 @@ enum CustomerStatus {
 // EMPLOYEE/COLLECTOR MANAGEMENT
 // ============================================
 
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  employees Employee[]
+
+  @@map("roles")
+}
+
 model Employee {
   id               String       @id @default(uuid())
   fullName         String
   email            String
   phone            String
-  role             EmployeeRole
-  workZone         String? // City names or postal codes
+  roleId           Int
+  role             Role         @relation(fields: [roleId], references: [id])
+  cityId           Int?
+  city             City?        @relation(fields: [cityId], references: [id])
   passwordHash     String
   isActive         Boolean      @default(true)
   profilePhoto     String? // URL
@@ -584,6 +600,9 @@ model City {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Relations
+  employees Employee[]
 
   @@unique([name])
   @@map("cities")

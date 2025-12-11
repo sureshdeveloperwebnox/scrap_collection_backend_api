@@ -1,5 +1,4 @@
 import Joi from 'joi';
-import { EmployeeRole } from '../model/enum';
 import { phoneCustomValidation } from '../../utils/phone-validator';
 
 export const createEmployeeSchema = Joi.object({
@@ -10,11 +9,17 @@ export const createEmployeeSchema = Joi.object({
     'any.required': 'Phone number is required',
     'any.custom': '{{#error.message}}'
   }),
-  role: Joi.string().valid(...Object.values(EmployeeRole)).required(),
-  workZone: Joi.string().optional(),
-  password: Joi.string().min(6).required(),
-  profilePhoto: Joi.string().uri().optional(),
-  scrapYardId: Joi.string().uuid().optional()
+  roleId: Joi.number().integer().positive().required().messages({
+    'any.required': 'Role is required',
+    'number.positive': 'Role ID must be a positive number'
+  }),
+  cityId: Joi.number().integer().positive().optional().messages({
+    'number.positive': 'City ID must be a positive number'
+  }),
+  password: Joi.string().min(6).required().messages({
+    'any.required': 'Password is required',
+    'string.min': 'Password must be at least 6 characters long'
+  })
 });
 
 export const updateEmployeeSchema = Joi.object({
@@ -23,12 +28,14 @@ export const updateEmployeeSchema = Joi.object({
   phone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().messages({
     'any.custom': '{{#error.message}}'
   }),
-  role: Joi.string().valid(...Object.values(EmployeeRole)).optional(),
-  workZone: Joi.string().optional(),
+  roleId: Joi.number().integer().positive().optional().messages({
+    'number.positive': 'Role ID must be a positive number'
+  }),
+  cityId: Joi.number().integer().positive().optional().allow(null).messages({
+    'number.positive': 'City ID must be a positive number'
+  }),
   password: Joi.string().min(6).optional(),
   isActive: Joi.boolean().optional(),
-  profilePhoto: Joi.string().uri().optional(),
-  scrapYardId: Joi.string().uuid().optional(),
   deviceToken: Joi.string().optional()
 });
 
@@ -36,10 +43,10 @@ export const employeeQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(10),
   search: Joi.string().max(100).optional(),
-  role: Joi.string().valid(...Object.values(EmployeeRole)).optional(),
+  roleId: Joi.number().integer().positive().optional(),
+  cityId: Joi.number().integer().positive().optional(),
   isActive: Joi.boolean().optional(),
-  organizationId: Joi.number().integer().positive().optional(),
-  workZone: Joi.string().optional()
+  organizationId: Joi.number().integer().positive().optional()
 });
 
 export const employeeIdSchema = Joi.object({

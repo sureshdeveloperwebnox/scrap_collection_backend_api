@@ -12,3 +12,4 @@ export * from './review.controller';
 export * from './scrapyard.controller';
 export * from './upload.controller';
 export * from './city.controller';
+export * from './role.controller';

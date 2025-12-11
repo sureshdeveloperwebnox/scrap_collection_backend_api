@@ -198,11 +198,26 @@ export class CityService {
   public async deleteCity(id: number): Promise<ApiResult> {
     try {
       const existingCity = await prisma.city.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              employees: true
+            }
+          }
+        }
       });
 
       if (!existingCity) {
         return ApiResult.error("City not found", 404);
+      }
+
+      // Check if any employees are assigned to this city
+      if (existingCity._count.employees > 0) {
+        return ApiResult.error(
+          `Cannot delete city. There are ${existingCity._count.employees} employee(s) assigned to this workzone. Please reassign or remove those employees first.`,
+          400
+        );
       }
 
       await prisma.city.delete({

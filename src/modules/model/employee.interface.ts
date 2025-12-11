@@ -1,13 +1,24 @@
-import { EmployeeRole } from './enum';
-
 export interface IEmployee {
   id: string;
   fullName: string;
   email: string;
   phone: string;
   countryCode?: string;
-  role: EmployeeRole;
-  workZone?: string;
+  roleId: number;
+  role?: {
+    id: number;
+    name: string;
+    description?: string;
+    isActive: boolean;
+  };
+  cityId?: number;
+  city?: {
+    id: number;
+    name: string;
+    latitude: number;
+    longitude: number;
+    isActive: boolean;
+  };
   passwordHash: string;
   isActive: boolean;
   profilePhoto?: string;
@@ -27,11 +38,9 @@ export interface ICreateEmployeeRequest {
   email: string;
   phone: string;
   countryCode?: string;
-  role: EmployeeRole;
-  workZone?: string;
+  roleId: number;
+  cityId?: number;
   password: string;
-  profilePhoto?: string;
-  scrapYardId?: string;
 }
 
 export interface IUpdateEmployeeRequest {
@@ -39,12 +48,10 @@ export interface IUpdateEmployeeRequest {
   email?: string;
   phone?: string;
   countryCode?: string;
-  role?: EmployeeRole;
-  workZone?: string;
+  roleId?: number;
+  cityId?: number | null;
   password?: string;
   isActive?: boolean;
-  profilePhoto?: string;
-  scrapYardId?: string;
   deviceToken?: string;
 }
 
@@ -52,10 +59,10 @@ export interface IEmployeeQueryParams {
   page?: number;
   limit?: number;
   search?: string;
-  role?: EmployeeRole;
+  roleId?: number;
+  cityId?: number;
   isActive?: boolean;
   organizationId?: number;
-  workZone?: string;
 }
 
 export interface IEmployeePerformance {

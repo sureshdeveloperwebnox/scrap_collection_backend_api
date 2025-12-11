@@ -6,6 +6,34 @@ import bcrypt from 'bcrypt';
 export class EmployeeService {
   public async createEmployee(data: ICreateEmployeeRequest): Promise<ApiResult> {
     try {
+      // Verify role exists
+      const role = await prisma.role.findUnique({
+        where: { id: data.roleId }
+      });
+
+      if (!role) {
+        return ApiResult.error("Role not found", 404);
+      }
+
+      if (!role.isActive) {
+        return ApiResult.error("Cannot assign inactive role to employee", 400);
+      }
+
+      // Verify city exists if provided
+      if (data.cityId) {
+        const city = await prisma.city.findUnique({
+          where: { id: data.cityId }
+        });
+
+        if (!city) {
+          return ApiResult.error("City not found", 404);
+        }
+      }
+      // Validate password is provided
+      if (!data.password) {
+        return ApiResult.error("Password is required", 400);
+      }
+
       const passwordHash = await bcrypt.hash(data.password, 10);
 
       const employee = await prisma.employee.create({
@@ -14,18 +42,18 @@ export class EmployeeService {
           fullName: data.fullName,
           email: data.email,
           phone: data.phone,
-          role: data.role,
-          workZone: data.workZone,
+          roleId: data.roleId,
+          cityId: data.cityId,
           passwordHash,
-          profilePhoto: data.profilePhoto,
-          scrapYardId: data.scrapYardId,
           isActive: true,
           completedPickups: 0,
           rating: 0
         },
         include: {
           organization: true,
-          scrapYard: true
+          scrapYard: true,
+          role: true,
+          city: true
         }
       });
 
@@ -38,7 +66,7 @@ export class EmployeeService {
 
   public async getEmployees(query: IEmployeeQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, role, isActive, organizationId, workZone } = query as any;
+      const { page = 1, limit = 10, search, roleId, cityId, isActive, organizationId } = query as any;
 
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -50,8 +78,12 @@ export class EmployeeService {
         where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
       }
 
-      if (role) {
-        where.role = role;
+      if (roleId) {
+        where.roleId = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+      }
+
+      if (cityId) {
+        where.cityId = typeof cityId === 'string' ? parseInt(cityId, 10) : cityId;
       }
 
       if (isActive !== undefined) {
@@ -61,10 +93,6 @@ export class EmployeeService {
         } else {
           where.isActive = Boolean(isActive);
         }
-      }
-
-      if (workZone) {
-        where.workZone = workZone;
       }
 
       if (search) {
@@ -82,7 +110,9 @@ export class EmployeeService {
           take: parsedLimit,
           include: {
             organization: true,
-            scrapYard: true
+            scrapYard: true,
+            role: true,
+            city: true
           },
           orderBy: {
             createdAt: 'desc'
@@ -112,7 +142,9 @@ export class EmployeeService {
         where: { id },
         include: {
           organization: true,
-          scrapYard: true
+          scrapYard: true,
+          role: true,
+          city: true
         }
       });
 
@@ -137,6 +169,32 @@ export class EmployeeService {
         return ApiResult.error("Employee not found", 404);
       }
 
+      // Verify role exists if being updated
+      if (data.roleId) {
+        const role = await prisma.role.findUnique({
+          where: { id: data.roleId }
+        });
+
+        if (!role) {
+          return ApiResult.error("Role not found", 404);
+        }
+
+        if (!role.isActive) {
+          return ApiResult.error("Cannot assign inactive role to employee", 400);
+        }
+      }
+
+      // Verify city exists if being updated
+      if (data.cityId !== undefined && data.cityId !== null) {
+        const city = await prisma.city.findUnique({
+          where: { id: data.cityId }
+        });
+
+        if (!city) {
+          return ApiResult.error("City not found", 404);
+        }
+      }
+
       const updateData: any = { ...data };
       if (data.password) {
         updateData.passwordHash = await bcrypt.hash(data.password, 10);
@@ -148,7 +206,9 @@ export class EmployeeService {
         data: updateData,
         include: {
           organization: true,
-          scrapYard: true
+          scrapYard: true,
+          role: true,
+          city: true
         }
       });
 
