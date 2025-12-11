@@ -1,24 +1,27 @@
 import { ICreateVehicleTypeRequest, IUpdateVehicleTypeRequest, IVehicleTypeQueryParams } from "../model/vehicle-type.interface";
 import { prisma } from "../../config";
 import { ApiResult } from "../../utils/api-result";
+import { cacheService } from "../../utils/cache";
 
 export class VehicleTypeService {
   public async createVehicleType(data: ICreateVehicleTypeRequest): Promise<ApiResult> {
     try {
-      // Check if organization exists
-      const organization = await prisma.organization.findUnique({
-        where: { id: data.organizationId }
-      });
+      // Check if organization exists (if provided)
+      if (data.organizationId) {
+        const organization = await prisma.organization.findUnique({
+          where: { id: data.organizationId }
+        });
 
-      if (!organization) {
-        return ApiResult.error("Organization not found", 404);
+        if (!organization) {
+          return ApiResult.error("Organization not found", 404);
+        }
       }
 
       // Check if vehicle type name already exists for this organization
       const existingVehicleType = await prisma.vehicleType.findFirst({
         where: {
           name: data.name,
-          organizationId: data.organizationId
+          organizationId: data.organizationId || null
         }
       });
 
@@ -30,7 +33,7 @@ export class VehicleTypeService {
         data: {
           organizationId: data.organizationId,
           name: data.name,
-          description: data.description,
+          icon: data.icon,
           isActive: data.isActive ?? true
         },
         include: {
@@ -42,6 +45,10 @@ export class VehicleTypeService {
         }
       });
 
+      // Invalidate vehicle types cache and stats cache
+      cacheService.deletePattern('^vehicle-types:');
+      cacheService.deletePattern('^vehicle-type-stats:');
+
       return ApiResult.success(vehicleType, "Vehicle type created successfully", 201);
 
     } catch (error: any) {
@@ -52,12 +59,37 @@ export class VehicleTypeService {
 
   public async getVehicleTypes(query: IVehicleTypeQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, isActive, organizationId } = query as any;
+      const { page = 1, limit = 10, search, isActive, organizationId, sortBy = 'createdAt', sortOrder = 'desc' } = query as any;
 
-      // Coerce pagination to numbers
+      // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
+      
+      if (parsedPage < 1) {
+        return ApiResult.error("Page must be greater than 0", 400);
+      }
+      if (parsedLimit < 1 || parsedLimit > 100) {
+        return ApiResult.error("Limit must be between 1 and 100", 400);
+      }
+
       const skip = (parsedPage - 1) * parsedLimit;
+
+      // Generate cache key
+      const cacheKey = cacheService.generateKey('vehicle-types', {
+        page: parsedPage,
+        limit: parsedLimit,
+        search,
+        isActive,
+        organizationId,
+        sortBy,
+        sortOrder
+      });
+
+      // Try to get from cache
+      const cachedResult = cacheService.get<any>(cacheKey);
+      if (cachedResult) {
+        return ApiResult.success(cachedResult, "Vehicle types retrieved successfully (cached)");
+      }
 
       const where: any = {};
 
@@ -89,10 +121,18 @@ export class VehicleTypeService {
 
       if (search) {
         where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
+          { name: { contains: search, mode: 'insensitive' } }
         ];
       }
+
+      // Validate sort fields
+      const validSortFields = ['name', 'isActive', 'createdAt', 'updatedAt'];
+      const validSortOrder = ['asc', 'desc'];
+      const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+      const finalSortOrder = validSortOrder.includes(sortOrder.toLowerCase()) ? sortOrder.toLowerCase() : 'desc';
+
+      const orderBy: any = {};
+      orderBy[finalSortBy] = finalSortOrder;
 
       const [vehicleTypes, total] = await Promise.all([
         prisma.vehicleType.findMany({
@@ -106,24 +146,31 @@ export class VehicleTypeService {
               }
             }
           },
-          orderBy: {
-            createdAt: 'desc'
-          }
+          orderBy
         }),
         prisma.vehicleType.count({ where })
       ]);
 
       const totalPages = Math.ceil(total / parsedLimit);
+      const hasNextPage = parsedPage < totalPages;
+      const hasPreviousPage = parsedPage > 1;
 
-      return ApiResult.success({
+      const result = {
         vehicleTypes,
         pagination: {
           page: parsedPage,
           limit: parsedLimit,
           total,
-          totalPages
+          totalPages,
+          hasNextPage,
+          hasPreviousPage
         }
-      }, "Vehicle types retrieved successfully");
+      };
+
+      // Cache the result for 3 minutes
+      cacheService.set(cacheKey, result, 3 * 60 * 1000);
+
+      return ApiResult.success(result, "Vehicle types retrieved successfully");
 
     } catch (error: any) {
       console.log("Error in getVehicleTypes", error);
@@ -193,6 +240,10 @@ export class VehicleTypeService {
         }
       });
 
+      // Invalidate vehicle types cache and stats cache
+      cacheService.deletePattern('^vehicle-types:');
+      cacheService.deletePattern('^vehicle-type-stats:');
+
       return ApiResult.success(vehicleType, "Vehicle type updated successfully");
 
     } catch (error: any) {
@@ -211,27 +262,19 @@ export class VehicleTypeService {
         return ApiResult.error("Vehicle type not found", 404);
       }
 
-      // Check if vehicle type is being used in leads
-      const leadCount = await prisma.lead.count({
-        where: { vehicleTypeId: id }
-      });
-
-      if (leadCount > 0) {
-        return ApiResult.error("Cannot delete vehicle type that is being used in leads", 400);
-      }
-
-      // Check if vehicle type is being used in orders
-      const orderCount = await prisma.order.count({
-        where: { vehicleTypeId: id }
-      });
-
-      if (orderCount > 0) {
-        return ApiResult.error("Cannot delete vehicle type that is being used in orders", 400);
-      }
+      // Note: Since the schema changed:
+      // - Leads now use vehicleType enum (VehicleTypeEnum) which is independent of VehicleType table
+      // - Orders use vehicleDetails JSON which doesn't reference VehicleType table
+      // So we can't check if a VehicleType is being used in leads or orders
+      // VehicleType is now more of a master/reference table for UI purposes
 
       await prisma.vehicleType.delete({
         where: { id }
       });
+
+      // Invalidate vehicle types cache and stats cache
+      cacheService.deletePattern('^vehicle-types:');
+      cacheService.deletePattern('^vehicle-type-stats:');
 
       return ApiResult.success(null, "Vehicle type deleted successfully");
 
@@ -243,6 +286,15 @@ export class VehicleTypeService {
 
   public async getVehicleTypeStats(organizationId: number): Promise<ApiResult> {
     try {
+      // Build cache key for stats
+      const cacheKey = cacheService.generateKey('vehicle-type-stats', { organizationId });
+
+      // Try to get from cache
+      const cachedResult = cacheService.get<any>(cacheKey);
+      if (cachedResult) {
+        return ApiResult.success(cachedResult, "Vehicle type statistics retrieved successfully (cached)");
+      }
+
       const stats = await prisma.vehicleType.groupBy({
         by: ['isActive'],
         where: { organizationId },
@@ -268,6 +320,9 @@ export class VehicleTypeService {
           statsMap.inactive = stat._count.isActive;
         }
       });
+
+      // Cache the result for 2 minutes
+      cacheService.set(cacheKey, statsMap, 2 * 60 * 1000);
 
       return ApiResult.success(statsMap, "Vehicle type statistics retrieved successfully");
 

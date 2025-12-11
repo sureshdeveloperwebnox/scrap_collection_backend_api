@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { phoneCustomValidation } from '../../utils/phone-validator';
 
 export const forSignIn = {
   body: Joi.object({
@@ -30,8 +31,9 @@ export const forSignUp = {
     lastName: Joi.string().required().messages({
       'any.required': 'Last name is required'
     }),
-    phone: Joi.string().required().messages({
-      'any.required': 'Phone is required'
+    phone: Joi.string().custom(phoneCustomValidation, 'phone validation').required().messages({
+      'any.required': 'Phone is required',
+      'any.custom': '{{#error.message}}'
     }),
     email: Joi.string().email().required().messages({
       'string.email': 'Please provide a valid email address',

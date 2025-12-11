@@ -20,6 +20,12 @@ let AuthController = class AuthController {
     signUp(req) {
         return this.getInstance().signUp(req.body);
     }
+    signInWithGoogle(req) {
+        return this.getInstance().signInWithGoogle(req.body.idToken);
+    }
+    signOut(req) {
+        return this.getInstance().signOut();
+    }
     getInstance() {
         if (!this.auth)
             this.auth = new auth_1.Auth();
@@ -41,6 +47,19 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "signUp", null);
+__decorate([
+    (0, decorators_1.POST)('/google'),
+    (0, decorators_1.Validate)([rules_1.forGoogleSignIn]),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "signInWithGoogle", null);
+__decorate([
+    (0, decorators_1.POST)('/signout'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "signOut", null);
 exports.AuthController = AuthController = __decorate([
     (0, decorators_1.Controller)('/auth')
 ], AuthController);

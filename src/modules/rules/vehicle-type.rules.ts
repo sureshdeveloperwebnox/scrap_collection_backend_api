@@ -36,7 +36,9 @@ export const vehicleTypeQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   search: Joi.string().max(100).optional(),
   isActive: Joi.boolean().optional(),
-  organizationId: Joi.number().integer().positive().optional()
+  organizationId: Joi.number().integer().positive().optional(),
+  sortBy: Joi.string().valid('name', 'isActive', 'createdAt', 'updatedAt').optional().default('createdAt'),
+  sortOrder: Joi.string().valid('asc', 'desc').optional().default('desc')
 });
 
 export const vehicleTypeIdSchema = Joi.object({

@@ -1,6 +1,20 @@
 import { Express, Router } from 'express';
 import { attachControllers } from './api.routes';
-import { AuthController, CountryController, CustomerController, HelloController, LeadController, VehicleTypeController } from '../modules/controllers';
+import { 
+  AuthController, 
+  CountryController, 
+  CustomerController, 
+  HelloController, 
+  LeadController, 
+  VehicleTypeController,
+  EmployeeController,
+  OrderController,
+  PickupRequestController,
+  PaymentController,
+  ReviewController,
+  ScrapYardController,
+  UploadController
+} from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
 export const combineRouters = (app: Express) => {
@@ -14,7 +28,14 @@ export const combineRouters = (app: Express) => {
       CustomerController,
       CountryController,
       LeadController,
-      VehicleTypeController
+      VehicleTypeController,
+      EmployeeController,
+      OrderController,
+      PickupRequestController,
+      PaymentController,
+      ReviewController,
+      ScrapYardController,
+      UploadController
     ],
     {
       middleware: {

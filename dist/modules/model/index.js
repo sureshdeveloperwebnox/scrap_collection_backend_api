@@ -28,3 +28,7 @@ __exportStar(require("./payment.interface"), exports);
 __exportStar(require("./review.interface"), exports);
 __exportStar(require("./notification.interface"), exports);
 __exportStar(require("./country.interface"), exports);
+__exportStar(require("./pickup-request.interface"), exports);
+__exportStar(require("./email-template.interface"), exports);
+__exportStar(require("./chatbot.interface"), exports);
+__exportStar(require("./ai.interface"), exports);

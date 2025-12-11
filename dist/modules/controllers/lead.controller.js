@@ -42,7 +42,7 @@ let LeadController = class LeadController {
     }
     async getLeadById(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.leadService.getLeadById(id);
             result.send(res);
         }
@@ -53,7 +53,7 @@ let LeadController = class LeadController {
     }
     async updateLead(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.leadService.updateLead(id, req.body);
             result.send(res);
         }
@@ -64,7 +64,7 @@ let LeadController = class LeadController {
     }
     async deleteLead(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.leadService.deleteLead(id);
             result.send(res);
         }
@@ -75,13 +75,23 @@ let LeadController = class LeadController {
     }
     async convertLead(req, res) {
         try {
-            const id = parseInt(req.params.id);
-            const { status } = req.body;
-            const result = await this.leadService.convertLead(id, status);
+            const id = req.params.id;
+            const result = await this.leadService.convertLeadToOrder(id, req.body);
             result.send(res);
         }
         catch (error) {
             console.log("Error in convertLead", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
+    async getLeadTimeline(req, res) {
+        try {
+            const id = req.params.id;
+            const result = await this.leadService.getLeadTimeline(id);
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getLeadTimeline", error);
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
@@ -140,6 +150,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], LeadController.prototype, "convertLead", null);
+__decorate([
+    (0, method_decorator_1.GET)('/:id/timeline'),
+    (0, middleware_decorator_1.Validate)([lead_rules_1.leadIdSchema]),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], LeadController.prototype, "getLeadTimeline", null);
 __decorate([
     (0, method_decorator_1.GET)('/stats/:organizationId'),
     __metadata("design:type", Function),

@@ -7,18 +7,20 @@ class VehicleTypeService {
     async createVehicleType(data) {
         var _a;
         try {
-            // Check if organization exists
-            const organization = await config_1.prisma.organization.findUnique({
-                where: { id: data.organizationId }
-            });
-            if (!organization) {
-                return api_result_1.ApiResult.error("Organization not found", 404);
+            // Check if organization exists (if provided)
+            if (data.organizationId) {
+                const organization = await config_1.prisma.organization.findUnique({
+                    where: { id: data.organizationId }
+                });
+                if (!organization) {
+                    return api_result_1.ApiResult.error("Organization not found", 404);
+                }
             }
             // Check if vehicle type name already exists for this organization
             const existingVehicleType = await config_1.prisma.vehicleType.findFirst({
                 where: {
                     name: data.name,
-                    organizationId: data.organizationId
+                    organizationId: data.organizationId || null
                 }
             });
             if (existingVehicleType) {
@@ -28,7 +30,7 @@ class VehicleTypeService {
                 data: {
                     organizationId: data.organizationId,
                     name: data.name,
-                    description: data.description,
+                    icon: data.icon,
                     isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
                 },
                 include: {
@@ -83,8 +85,7 @@ class VehicleTypeService {
             }
             if (search) {
                 where.OR = [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { description: { contains: search, mode: 'insensitive' } }
+                    { name: { contains: search, mode: 'insensitive' } }
                 ];
             }
             const [vehicleTypes, total] = await Promise.all([
@@ -190,20 +191,11 @@ class VehicleTypeService {
             if (!existingVehicleType) {
                 return api_result_1.ApiResult.error("Vehicle type not found", 404);
             }
-            // Check if vehicle type is being used in leads
-            const leadCount = await config_1.prisma.lead.count({
-                where: { vehicleTypeId: id }
-            });
-            if (leadCount > 0) {
-                return api_result_1.ApiResult.error("Cannot delete vehicle type that is being used in leads", 400);
-            }
-            // Check if vehicle type is being used in orders
-            const orderCount = await config_1.prisma.order.count({
-                where: { vehicleTypeId: id }
-            });
-            if (orderCount > 0) {
-                return api_result_1.ApiResult.error("Cannot delete vehicle type that is being used in orders", 400);
-            }
+            // Note: Since the schema changed:
+            // - Leads now use vehicleType enum (VehicleTypeEnum) which is independent of VehicleType table
+            // - Orders use vehicleDetails JSON which doesn't reference VehicleType table
+            // So we can't check if a VehicleType is being used in leads or orders
+            // VehicleType is now more of a master/reference table for UI purposes
             await config_1.prisma.vehicleType.delete({
                 where: { id }
             });

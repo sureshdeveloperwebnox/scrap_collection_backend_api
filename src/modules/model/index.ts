@@ -12,3 +12,7 @@ export * from './payment.interface';
 export * from './review.interface';
 export * from './notification.interface';
 export * from './country.interface';
+export * from './pickup-request.interface';
+export * from './email-template.interface';
+export * from './chatbot.interface';
+export * from './ai.interface';

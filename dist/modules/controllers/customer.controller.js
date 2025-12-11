@@ -16,6 +16,7 @@ const middleware_decorator_1 = require("../../decorators/middleware.decorator");
 const customer_1 = require("../services/customer");
 const customer_rules_1 = require("../rules/customer.rules");
 const api_result_1 = require("../../utils/api-result");
+const config_1 = require("../../config");
 let CustomerController = class CustomerController {
     constructor() {
         this.customerService = new customer_1.CustomerService();
@@ -42,7 +43,7 @@ let CustomerController = class CustomerController {
     }
     async getCustomerById(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.customerService.getCustomerById(id);
             result.send(res);
         }
@@ -54,8 +55,18 @@ let CustomerController = class CustomerController {
     async getCustomerByUserId(req, res) {
         try {
             const { userId } = req.params;
-            const result = await this.customerService.getCustomerByUserId(userId);
-            result.send(res);
+            const customer = await config_1.prisma.customer.findFirst({
+                where: { userId },
+                include: {
+                    organization: true,
+                    user: true
+                }
+            });
+            if (!customer) {
+                api_result_1.ApiResult.error("Customer not found", 404).send(res);
+                return;
+            }
+            api_result_1.ApiResult.success(customer, "Customer retrieved successfully").send(res);
         }
         catch (error) {
             console.log("Error in getCustomerByUserId", error);
@@ -64,7 +75,7 @@ let CustomerController = class CustomerController {
     }
     async updateCustomer(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.customerService.updateCustomer(id, req.body);
             result.send(res);
         }
@@ -75,7 +86,7 @@ let CustomerController = class CustomerController {
     }
     async deleteCustomer(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = req.params.id;
             const result = await this.customerService.deleteCustomer(id);
             result.send(res);
         }
@@ -97,9 +108,19 @@ let CustomerController = class CustomerController {
     }
     async getCustomerOrders(req, res) {
         try {
-            const id = parseInt(req.params.id);
-            const result = await this.customerService.getCustomerOrders(id);
-            result.send(res);
+            const id = req.params.id;
+            const orders = await config_1.prisma.order.findMany({
+                where: { customerId: id },
+                include: {
+                    assignedCollector: true,
+                    yard: true,
+                    payment: true
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+            api_result_1.ApiResult.success(orders, "Customer orders retrieved successfully").send(res);
         }
         catch (error) {
             console.log("Error in getCustomerOrders", error);
@@ -108,9 +129,19 @@ let CustomerController = class CustomerController {
     }
     async getCustomerPayments(req, res) {
         try {
-            const id = parseInt(req.params.id);
-            const result = await this.customerService.getCustomerPayments(id);
-            result.send(res);
+            const id = req.params.id;
+            const payments = await config_1.prisma.payment.findMany({
+                where: { customerId: id },
+                include: {
+                    order: true,
+                    collector: true,
+                    refund: true
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+            api_result_1.ApiResult.success(payments, "Customer payments retrieved successfully").send(res);
         }
         catch (error) {
             console.log("Error in getCustomerPayments", error);
@@ -119,9 +150,18 @@ let CustomerController = class CustomerController {
     }
     async getCustomerReviews(req, res) {
         try {
-            const id = parseInt(req.params.id);
-            const result = await this.customerService.getCustomerReviews(id);
-            result.send(res);
+            const id = req.params.id;
+            const reviews = await config_1.prisma.review.findMany({
+                where: { customerId: id },
+                include: {
+                    order: true,
+                    collector: true
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+            api_result_1.ApiResult.success(reviews, "Customer reviews retrieved successfully").send(res);
         }
         catch (error) {
             console.log("Error in getCustomerReviews", error);
@@ -153,7 +193,6 @@ __decorate([
 ], CustomerController.prototype, "getCustomerById", null);
 __decorate([
     (0, method_decorator_1.GET)('/user/:userId'),
-    (0, middleware_decorator_1.Validate)([customer_rules_1.customerUserIdSchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)

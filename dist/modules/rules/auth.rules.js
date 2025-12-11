@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.forSignUp = exports.forSignIn = void 0;
+exports.forGoogleSignIn = exports.forSignUp = exports.forSignIn = void 0;
 const joi_1 = __importDefault(require("joi"));
+const phone_validator_1 = require("../../utils/phone-validator");
 exports.forSignIn = {
     body: joi_1.default.object({
         email: joi_1.default.string().email().required().messages({
@@ -34,8 +35,9 @@ exports.forSignUp = {
         lastName: joi_1.default.string().required().messages({
             'any.required': 'Last name is required'
         }),
-        phone: joi_1.default.string().required().messages({
-            'any.required': 'Phone is required'
+        phone: joi_1.default.string().custom(phone_validator_1.phoneCustomValidation, 'phone validation').required().messages({
+            'any.required': 'Phone is required',
+            'any.custom': '{{#error.message}}'
         }),
         email: joi_1.default.string().email().required().messages({
             'string.email': 'Please provide a valid email address',
@@ -47,6 +49,13 @@ exports.forSignUp = {
         }),
         countryId: joi_1.default.number().required().messages({
             'any.required': 'Country is required'
+        })
+    })
+};
+exports.forGoogleSignIn = {
+    body: joi_1.default.object({
+        idToken: joi_1.default.string().required().messages({
+            'any.required': 'Google ID token is required'
         })
     })
 };

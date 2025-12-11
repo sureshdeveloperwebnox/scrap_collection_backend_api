@@ -48,7 +48,7 @@ export class LeadController {
   @Validate([leadIdSchema])
   public async getLeadById(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.leadService.getLeadById(id);
       result.send(res);
     } catch (error) {
@@ -61,7 +61,7 @@ export class LeadController {
   @Validate([leadIdSchema, updateLeadSchema])
   public async updateLead(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.leadService.updateLead(id, req.body);
       result.send(res);
     } catch (error) {
@@ -74,7 +74,7 @@ export class LeadController {
   @Validate([leadIdSchema])
   public async deleteLead(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.leadService.deleteLead(id);
       result.send(res);
     } catch (error) {
@@ -87,12 +87,24 @@ export class LeadController {
   @Validate([leadIdSchema, convertLeadSchema])
   public async convertLead(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-      const result = await this.leadService.convertLead(id, status);
+      const id = req.params.id;
+      const result = await this.leadService.convertLeadToOrder(id, req.body);
       result.send(res);
     } catch (error) {
       console.log("Error in convertLead", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
+  }
+
+  @GET('/:id/timeline')
+  @Validate([leadIdSchema])
+  public async getLeadTimeline(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id;
+      const result = await this.leadService.getLeadTimeline(id);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getLeadTimeline", error);
       ApiResult.error((error as any).message, 500).send(res);
     }
   }

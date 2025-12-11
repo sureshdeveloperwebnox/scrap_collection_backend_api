@@ -1,65 +1,65 @@
 import Joi from 'joi';
-import { LeadStatus, ScrapCategory } from '../model/enum';
+import { LeadStatus, VehicleTypeEnum, VehicleConditionEnum, LeadSourceEnum } from '../model/enum';
+import { phoneCustomValidation } from '../../utils/phone-validator';
 
 export const createLeadSchema = Joi.object({
   organizationId: Joi.number().integer().positive().required().messages({
     'number.positive': 'Organization ID must be a positive number',
     'any.required': 'Organization ID is required'
   }),
-  customerId: Joi.number().integer().positive().required().messages({
-    'number.positive': 'Customer ID must be a positive number',
-    'any.required': 'Customer ID is required'
+  fullName: Joi.string().min(2).max(100).required().messages({
+    'string.min': 'Full name must be at least 2 characters long',
+    'string.max': 'Full name cannot exceed 100 characters',
+    'any.required': 'Full name is required'
   }),
-  name: Joi.string().min(2).max(100).required().messages({
-    'string.min': 'Lead name must be at least 2 characters long',
-    'string.max': 'Lead name cannot exceed 100 characters',
-    'any.required': 'Lead name is required'
-  }),
-  contact: Joi.string().min(10).max(20).required().messages({
-    'string.min': 'Contact number must be at least 10 characters long',
-    'string.max': 'Contact number cannot exceed 20 characters',
-    'any.required': 'Contact number is required'
+  phone: Joi.string().custom(phoneCustomValidation, 'phone validation').required().messages({
+    'any.required': 'Phone number is required',
+    'any.custom': '{{#error.message}}'
   }),
   email: Joi.string().email().optional().messages({
     'string.email': 'Please provide a valid email address'
   }),
-  location: Joi.string().max(255).optional().messages({
-    'string.max': 'Location cannot exceed 255 characters'
+  vehicleType: Joi.string().valid(...Object.values(VehicleTypeEnum)).required().messages({
+    'any.only': 'Vehicle type must be one of: CAR, BIKE, TRUCK, BOAT, VAN, SUV',
+    'any.required': 'Vehicle type is required'
   }),
-  vehicleTypeId: Joi.number().integer().positive().required().messages({
-    'number.positive': 'Vehicle type ID must be a positive number',
-    'any.required': 'Vehicle type ID is required'
+  vehicleMake: Joi.string().max(50).optional(),
+  vehicleModel: Joi.string().max(50).optional(),
+  vehicleYear: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional(),
+  vehicleCondition: Joi.string().valid(...Object.values(VehicleConditionEnum)).required().messages({
+    'any.only': 'Vehicle condition must be one of: JUNK, DAMAGED, WRECKED, ACCIDENTAL, FULLY_SCRAP',
+    'any.required': 'Vehicle condition is required'
   }),
-  scrapCategory: Joi.string().valid(...Object.values(ScrapCategory)).required().messages({
-    'any.only': 'Scrap category must be one of: JUNK, ACCIDENT_DAMAGED, FULLY_SCRAP',
-    'any.required': 'Scrap category is required'
-  })
+  locationAddress: Joi.string().optional(),
+  latitude: Joi.number().min(-90).max(90).optional(),
+  longitude: Joi.number().min(-180).max(180).optional(),
+  leadSource: Joi.string().valid(...Object.values(LeadSourceEnum)).required().messages({
+    'any.only': 'Lead source must be one of: WEBFORM, CHATBOT, CALL, MANUAL',
+    'any.required': 'Lead source is required'
+  }),
+  photos: Joi.array().items(Joi.string().uri()).optional(),
+  notes: Joi.string().optional(),
+  customerId: Joi.string().uuid().optional()
 });
 
 export const updateLeadSchema = Joi.object({
-  name: Joi.string().min(2).max(100).optional().messages({
-    'string.min': 'Lead name must be at least 2 characters long',
-    'string.max': 'Lead name cannot exceed 100 characters'
+  fullName: Joi.string().min(2).max(100).optional(),
+  phone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().messages({
+    'any.custom': '{{#error.message}}'
   }),
-  contact: Joi.string().min(10).max(20).optional().messages({
-    'string.min': 'Contact number must be at least 10 characters long',
-    'string.max': 'Contact number cannot exceed 20 characters'
-  }),
-  email: Joi.string().email().optional().messages({
-    'string.email': 'Please provide a valid email address'
-  }),
-  location: Joi.string().max(255).optional().messages({
-    'string.max': 'Location cannot exceed 255 characters'
-  }),
-  vehicleTypeId: Joi.number().integer().positive().optional().messages({
-    'number.positive': 'Vehicle type ID must be a positive number'
-  }),
-  scrapCategory: Joi.string().valid(...Object.values(ScrapCategory)).optional().messages({
-    'any.only': 'Scrap category must be one of: JUNK, ACCIDENT_DAMAGED, FULLY_SCRAP'
-  }),
-  status: Joi.string().valid(...Object.values(LeadStatus)).optional().messages({
-    'any.only': 'Status must be one of: PENDING, CONVERTED, REJECTED'
-  })
+  email: Joi.string().email().optional(),
+  vehicleType: Joi.string().valid(...Object.values(VehicleTypeEnum)).optional(),
+  vehicleMake: Joi.string().max(50).optional(),
+  vehicleModel: Joi.string().max(50).optional(),
+  vehicleYear: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional(),
+  vehicleCondition: Joi.string().valid(...Object.values(VehicleConditionEnum)).optional(),
+  locationAddress: Joi.string().optional(),
+  latitude: Joi.number().min(-90).max(90).optional(),
+  longitude: Joi.number().min(-180).max(180).optional(),
+  leadSource: Joi.string().valid(...Object.values(LeadSourceEnum)).optional(),
+  photos: Joi.array().items(Joi.string().uri()).optional(),
+  notes: Joi.string().optional(),
+  status: Joi.string().valid(...Object.values(LeadStatus)).optional()
 });
 
 export const leadQuerySchema = Joi.object({
@@ -67,21 +67,28 @@ export const leadQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   search: Joi.string().max(100).optional(),
   status: Joi.string().valid(...Object.values(LeadStatus)).optional(),
-  scrapCategory: Joi.string().valid(...Object.values(ScrapCategory)).optional(),
+  vehicleType: Joi.string().valid(...Object.values(VehicleTypeEnum)).optional(),
+  vehicleCondition: Joi.string().valid(...Object.values(VehicleConditionEnum)).optional(),
+  leadSource: Joi.string().valid(...Object.values(LeadSourceEnum)).optional(),
   organizationId: Joi.number().integer().positive().optional(),
-  customerId: Joi.number().integer().positive().optional()
+  dateFrom: Joi.string().isoDate().optional(),
+  dateTo: Joi.string().isoDate().optional(),
+  sortBy: Joi.string().valid('fullName', 'phone', 'email', 'status', 'createdAt', 'updatedAt').optional().default('createdAt'),
+  sortOrder: Joi.string().valid('asc', 'desc').optional().default('desc')
 });
 
 export const leadIdSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.positive': 'Lead ID must be a positive number',
+  id: Joi.string().uuid().required().messages({
+    'string.guid': 'Lead ID must be a valid UUID',
     'any.required': 'Lead ID is required'
   })
 });
 
 export const convertLeadSchema = Joi.object({
-  status: Joi.string().valid(LeadStatus.CONVERTED, LeadStatus.REJECTED).required().messages({
-    'any.only': 'Status must be either CONVERTED or REJECTED',
-    'any.required': 'Status is required'
-  })
-}); 
+  quotedPrice: Joi.number().positive().optional(),
+  pickupTime: Joi.date().optional(),
+  assignedCollectorId: Joi.string().uuid().optional(),
+  yardId: Joi.string().uuid().optional(),
+  customerNotes: Joi.string().optional(),
+  adminNotes: Joi.string().optional()
+});

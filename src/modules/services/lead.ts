@@ -1,47 +1,68 @@
-import { ICreateLeadRequest, IUpdateLeadRequest, ILeadQueryParams } from "../model/lead.interface";
+import { ICreateLeadRequest, IUpdateLeadRequest, ILeadQueryParams, IConvertLeadToOrderRequest } from "../model/lead.interface";
 import { prisma } from "../../config";
 import { ApiResult } from "../../utils/api-result";
 import { LeadStatus } from "../model/enum";
+import { cacheService } from "../../utils/cache";
+import { storageService } from "../../utils/storage.service";
 
 export class LeadService {
+  /**
+   * Normalize photo paths - convert full URLs to relative paths
+   */
+  private normalizePhotoPaths(photos: string[] | undefined): string[] {
+    if (!photos || !Array.isArray(photos)) return [];
+    return photos.map(photo => storageService.getRelativePath(photo));
+  }
+
   public async createLead(data: ICreateLeadRequest): Promise<ApiResult> {
     try {
-
-      // Check if vehicle type exists
-      const vehicleType = await prisma.vehicleType.findFirst({
-        where: {
-          id: data.vehicleTypeId,
-          organizationId: data.organizationId
-        }
-      });
-
-      if (!vehicleType) {
-        return ApiResult.error("Vehicle type not found", 404);
-      }
+      // Normalize photo paths before saving
+      const normalizedPhotos = this.normalizePhotoPaths(data.photos);
 
       const lead = await prisma.lead.create({
         data: {
           organizationId: data.organizationId,
-          name: data.name,
-          contact: data.contact,
+          fullName: data.fullName,
+          phone: data.phone,
           email: data.email,
-          location: data.location,
-          vehicleTypeId: data.vehicleTypeId,
-          scrapCategory: data.scrapCategory,
-          status: LeadStatus.PENDING
+          vehicleType: data.vehicleType,
+          vehicleMake: data.vehicleMake,
+          vehicleModel: data.vehicleModel,
+          vehicleYear: data.vehicleYear,
+          vehicleCondition: data.vehicleCondition,
+          locationAddress: data.locationAddress,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          leadSource: data.leadSource,
+          photos: normalizedPhotos,
+          notes: data.notes,
+          status: LeadStatus.NEW,
+          ...(data.customerId && { customerId: data.customerId })
         },
         include: {
-          vehicleType: true,
           organization: {
             select: {
               name: true
             }
-          }
+          },
+          customer: true
         }
       });
 
-      return ApiResult.success(lead, "Lead created successfully", 201);
+      // Create timeline entry
+      await prisma.leadTimeline.create({
+        data: {
+          leadId: lead.id,
+          activity: 'Lead created',
+          performedBy: 'system'
+        }
+      });
 
+      // Invalidate leads cache and stats cache
+      cacheService.deletePattern('^leads:');
+      cacheService.deletePattern('^lead-stats:');
+
+      return ApiResult.success(lead, "Lead created successfully", 201);
     } catch (error: any) {
       console.log("Error in createLead", error);
       return ApiResult.error(error.message);
@@ -50,44 +71,42 @@ export class LeadService {
 
   public async getLeads(query: ILeadQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, status, scrapCategory, organizationId, customerId } = query as any;
+      const { page = 1, limit = 10, search, status, vehicleType, leadSource, organizationId, dateFrom, dateTo } = query as any;
 
-      // Coerce pagination and IDs to numbers
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
-      const parsedOrgId = organizationId !== undefined && organizationId !== null && organizationId !== ''
-        ? (typeof organizationId === 'string' ? parseInt(organizationId, 10) : Number(organizationId))
-        : undefined;
-      const parsedCustomerId = customerId !== undefined && customerId !== null && customerId !== ''
-        ? (typeof customerId === 'string' ? parseInt(customerId, 10) : Number(customerId))
-        : undefined;
-
       const skip = (parsedPage - 1) * parsedLimit;
 
       const where: any = {};
 
-      if (parsedOrgId !== undefined && !Number.isNaN(parsedOrgId)) {
-        where.organizationId = parsedOrgId;
-      }
-
-      if (parsedCustomerId !== undefined && !Number.isNaN(parsedCustomerId)) {
-        where.customerId = parsedCustomerId;
+      if (organizationId) {
+        where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
       }
 
       if (status) {
         where.status = status;
       }
 
-      if (scrapCategory) {
-        where.scrapCategory = scrapCategory;
+      if (vehicleType) {
+        where.vehicleType = vehicleType;
+      }
+
+      if (leadSource) {
+        where.leadSource = leadSource;
+      }
+
+      if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+        if (dateTo) where.createdAt.lte = new Date(dateTo);
       }
 
       if (search) {
         where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { contact: { contains: search, mode: 'insensitive' } },
+          { fullName: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
-          { location: { contains: search, mode: 'insensitive' } }
+          { locationAddress: { contains: search, mode: 'insensitive' } }
         ];
       }
 
@@ -97,13 +116,12 @@ export class LeadService {
           skip,
           take: parsedLimit,
           include: {
-          
-            vehicleType: true,
             organization: {
               select: {
                 name: true
               }
-            }
+            },
+            customer: true
           },
           orderBy: {
             createdAt: 'desc'
@@ -112,35 +130,33 @@ export class LeadService {
         prisma.lead.count({ where })
       ]);
 
-      const totalPages = Math.ceil(total / parsedLimit);
-
       return ApiResult.success({
         leads,
         pagination: {
           page: parsedPage,
           limit: parsedLimit,
           total,
-          totalPages
+          totalPages: Math.ceil(total / parsedLimit)
         }
       }, "Leads retrieved successfully");
-
     } catch (error: any) {
       console.log("Error in getLeads", error);
       return ApiResult.error(error.message);
     }
   }
 
-  public async getLeadById(id: number): Promise<ApiResult> {
+  public async getLeadById(id: string): Promise<ApiResult> {
     try {
       const lead = await prisma.lead.findUnique({
         where: { id },
         include: {
-          vehicleType: true,
           organization: {
             select: {
               name: true
             }
-          }
+          },
+          customer: true,
+          order: true
         }
       });
 
@@ -149,14 +165,13 @@ export class LeadService {
       }
 
       return ApiResult.success(lead, "Lead retrieved successfully");
-
     } catch (error: any) {
       console.log("Error in getLeadById", error);
       return ApiResult.error(error.message);
     }
   }
 
-  public async updateLead(id: number, data: IUpdateLeadRequest): Promise<ApiResult> {
+  public async updateLead(id: string, data: IUpdateLeadRequest): Promise<ApiResult> {
     try {
       const existingLead = await prisma.lead.findUnique({
         where: { id }
@@ -166,43 +181,92 @@ export class LeadService {
         return ApiResult.error("Lead not found", 404);
       }
 
-      // If vehicle type is being updated, check if it exists
-      if (data.vehicleTypeId) {
-        const vehicleType = await prisma.vehicleType.findFirst({
-          where: {
-            id: data.vehicleTypeId,
-            organizationId: existingLead.organizationId
-          }
-        });
-
-        if (!vehicleType) {
-          return ApiResult.error("Vehicle type not found", 404);
+      // Build update data object, including all provided fields
+      const updateData: any = {};
+      
+      // Always update fullName and phone if provided (they are required fields)
+      // These should always be provided in update requests
+      if (data.fullName !== undefined && data.fullName !== null) {
+        const trimmedName = String(data.fullName).trim();
+        if (trimmedName !== '') {
+          updateData.fullName = trimmedName;
         }
+      }
+      if (data.phone !== undefined && data.phone !== null) {
+        const trimmedPhone = String(data.phone).trim();
+        if (trimmedPhone !== '' && trimmedPhone !== '+') {
+          updateData.phone = trimmedPhone;
+        }
+      }
+      
+      // Include optional fields
+      if (data.email !== undefined) updateData.email = data.email;
+      if (data.vehicleType !== undefined) updateData.vehicleType = data.vehicleType;
+      if (data.vehicleMake !== undefined) updateData.vehicleMake = data.vehicleMake;
+      if (data.vehicleModel !== undefined) updateData.vehicleModel = data.vehicleModel;
+      if (data.vehicleYear !== undefined) updateData.vehicleYear = data.vehicleYear;
+      if (data.vehicleCondition !== undefined) updateData.vehicleCondition = data.vehicleCondition;
+      if (data.locationAddress !== undefined) updateData.locationAddress = data.locationAddress;
+      if (data.latitude !== undefined) updateData.latitude = data.latitude;
+      if (data.longitude !== undefined) updateData.longitude = data.longitude;
+      if (data.leadSource !== undefined) updateData.leadSource = data.leadSource;
+      if (data.photos !== undefined) {
+        // Normalize photo paths before saving
+        updateData.photos = this.normalizePhotoPaths(data.photos);
+      }
+      if (data.notes !== undefined) updateData.notes = data.notes;
+      if (data.status !== undefined) updateData.status = data.status;
+      
+      // Log for debugging
+      console.log('Update lead - received data:', JSON.stringify(data, null, 2));
+      console.log('Update lead - updateData:', JSON.stringify(updateData, null, 2));
+      
+      // Ensure we have at least one field to update
+      if (Object.keys(updateData).length === 0) {
+        return ApiResult.error("No fields provided for update", 400);
+      }
+      
+      // Ensure fullName and phone are present if they're being updated
+      if (updateData.fullName === undefined && updateData.phone === undefined) {
+        console.warn('Warning: Neither fullName nor phone provided in update');
       }
 
       const lead = await prisma.lead.update({
         where: { id },
-        data,
+        data: updateData,
         include: {
-          
-          vehicleType: true,
           organization: {
             select: {
               name: true
             }
-          }
+          },
+          customer: true
+        }
+      });
+      
+      console.log('Update lead - updated lead:', lead);
+
+      // Create timeline entry
+      await prisma.leadTimeline.create({
+        data: {
+          leadId: id,
+          activity: 'Lead updated',
+          performedBy: 'system'
         }
       });
 
-      return ApiResult.success(lead, "Lead updated successfully");
+      // Invalidate leads cache and stats cache
+      cacheService.deletePattern('^leads:');
+      cacheService.deletePattern('^lead-stats:');
 
+      return ApiResult.success(lead, "Lead updated successfully");
     } catch (error: any) {
       console.log("Error in updateLead", error);
       return ApiResult.error(error.message);
     }
   }
 
-  public async deleteLead(id: number): Promise<ApiResult> {
+  public async deleteLead(id: string): Promise<ApiResult> {
     try {
       const existingLead = await prisma.lead.findUnique({
         where: { id }
@@ -225,15 +289,18 @@ export class LeadService {
         where: { id }
       });
 
-      return ApiResult.success(null, "Lead deleted successfully");
+      // Invalidate leads cache and stats cache
+      cacheService.deletePattern('^leads:');
+      cacheService.deletePattern('^lead-stats:');
 
+      return ApiResult.success(null, "Lead deleted successfully");
     } catch (error: any) {
       console.log("Error in deleteLead", error);
       return ApiResult.error(error.message);
     }
   }
 
-  public async convertLead(id: number, status: LeadStatus): Promise<ApiResult> {
+  public async convertLeadToOrder(id: string, data: IConvertLeadToOrderRequest): Promise<ApiResult> {
     try {
       const existingLead = await prisma.lead.findUnique({
         where: { id }
@@ -243,37 +310,101 @@ export class LeadService {
         return ApiResult.error("Lead not found", 404);
       }
 
-      if (existingLead.status !== LeadStatus.PENDING) {
-        return ApiResult.error("Lead is already processed", 400);
+      if (existingLead.status === LeadStatus.CONVERTED) {
+        return ApiResult.error("Lead is already converted", 400);
       }
 
-      const lead = await prisma.lead.update({
-        where: { id },
-        data: { status },
-        include: {
-          vehicleType: true,
-          organization: {
-            select: {
-              name: true
-            }
-          }
+      // Create order from lead
+      const order = await prisma.order.create({
+        data: {
+          organizationId: existingLead.organizationId,
+          leadId: id,
+          customerName: existingLead.fullName,
+          customerPhone: existingLead.phone,
+          address: existingLead.locationAddress || '',
+          latitude: existingLead.latitude,
+          longitude: existingLead.longitude,
+          vehicleDetails: {
+            make: existingLead.vehicleMake,
+            model: existingLead.vehicleModel,
+            year: existingLead.vehicleYear,
+            condition: existingLead.vehicleCondition
+          },
+          assignedCollectorId: data.assignedCollectorId,
+          pickupTime: data.pickupTime,
+          quotedPrice: data.quotedPrice,
+          yardId: data.yardId,
+          customerNotes: data.customerNotes,
+          adminNotes: data.adminNotes,
+          customerId: existingLead.customerId,
+          orderStatus: 'PENDING',
+          paymentStatus: 'UNPAID'
         }
       });
 
-      const message = status === LeadStatus.CONVERTED 
-        ? "Lead converted successfully" 
-        : "Lead rejected successfully";
+      // Update lead status
+      await prisma.lead.update({
+        where: { id },
+        data: { status: LeadStatus.CONVERTED }
+      });
 
-      return ApiResult.success(lead, message);
+      // Invalidate leads cache and stats cache
+      cacheService.deletePattern('^leads:');
+      cacheService.deletePattern('^lead-stats:');
 
+      // Create timeline entries
+      await prisma.leadTimeline.create({
+        data: {
+          leadId: id,
+          activity: 'Lead converted to order',
+          performedBy: 'system'
+        }
+      });
+
+      await prisma.orderTimeline.create({
+        data: {
+          orderId: order.id,
+          status: 'PENDING',
+          notes: 'Order created from lead',
+          performedBy: 'system'
+        }
+      });
+
+      return ApiResult.success(order, "Lead converted to order successfully");
     } catch (error: any) {
-      console.log("Error in convertLead", error);
+      console.log("Error in convertLeadToOrder", error);
+      return ApiResult.error(error.message);
+    }
+  }
+
+  public async getLeadTimeline(id: string): Promise<ApiResult> {
+    try {
+      const timeline = await prisma.leadTimeline.findMany({
+        where: { leadId: id },
+        orderBy: {
+          createdAt: 'asc'
+        }
+      });
+
+      return ApiResult.success(timeline, "Lead timeline retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getLeadTimeline", error);
       return ApiResult.error(error.message);
     }
   }
 
   public async getLeadStats(organizationId: number): Promise<ApiResult> {
     try {
+      // Build cache key for stats
+      const cacheKey = cacheService.generateKey('lead-stats', { organizationId });
+
+      // Try to get from cache
+      const cachedResult = cacheService.get<any>(cacheKey);
+      if (cachedResult) {
+        return ApiResult.success(cachedResult, "Lead statistics retrieved successfully (cached)");
+      }
+
+      // Fetch stats from database
       const stats = await prisma.lead.groupBy({
         by: ['status'],
         where: { organizationId },
@@ -286,28 +417,26 @@ export class LeadService {
         where: { organizationId }
       });
 
-      const statsMap = {
+      const statsMap: any = {
         total: totalLeads,
-        pending: 0,
+        new: 0,
+        contacted: 0,
+        quoted: 0,
         converted: 0,
         rejected: 0
       };
 
       stats.forEach(stat => {
-        if (stat.status === LeadStatus.PENDING) {
-          statsMap.pending = stat._count.status;
-        } else if (stat.status === LeadStatus.CONVERTED) {
-          statsMap.converted = stat._count.status;
-        } else if (stat.status === LeadStatus.REJECTED) {
-          statsMap.rejected = stat._count.status;
-        }
+        statsMap[stat.status.toLowerCase()] = stat._count.status;
       });
 
-      return ApiResult.success(statsMap, "Lead statistics retrieved successfully");
+      // Cache the result for 2 minutes (stats change frequently)
+      cacheService.set(cacheKey, statsMap, 2 * 60 * 1000);
 
+      return ApiResult.success(statsMap, "Lead statistics retrieved successfully");
     } catch (error: any) {
       console.log("Error in getLeadStats", error);
       return ApiResult.error(error.message);
     }
   }
-} 
+}

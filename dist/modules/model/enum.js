@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NotificationType = exports.PaymentStatus = exports.OrderStatus = exports.ScrapVehicleType = exports.ScrapCategory = exports.LeadStatus = exports.EmployeeRole = exports.AdminRoleType = exports.UserRole = void 0;
+exports.QuoteResponseEnum = exports.PickupRequestStatus = exports.CustomerStatus = exports.NotificationType = exports.PaymentStatus = exports.PaymentTypeEnum = exports.PaymentStatusEnum = exports.OrderStatus = exports.ScrapCategory = exports.LeadSourceEnum = exports.VehicleConditionEnum = exports.VehicleTypeEnum = exports.LeadStatus = exports.EmployeeRole = exports.AdminRoleType = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["USER"] = "USER";
@@ -16,28 +16,48 @@ var AdminRoleType;
 var EmployeeRole;
 (function (EmployeeRole) {
     EmployeeRole["COLLECTOR"] = "COLLECTOR";
-    EmployeeRole["ADMIN_STAFF"] = "ADMIN_STAFF";
+    EmployeeRole["ADMIN"] = "ADMIN";
+    EmployeeRole["SUPERVISOR"] = "SUPERVISOR";
+    EmployeeRole["ACCOUNTANT"] = "ACCOUNTANT";
 })(EmployeeRole || (exports.EmployeeRole = EmployeeRole = {}));
 var LeadStatus;
 (function (LeadStatus) {
-    LeadStatus["PENDING"] = "PENDING";
+    LeadStatus["NEW"] = "NEW";
+    LeadStatus["CONTACTED"] = "CONTACTED";
+    LeadStatus["QUOTED"] = "QUOTED";
     LeadStatus["CONVERTED"] = "CONVERTED";
     LeadStatus["REJECTED"] = "REJECTED";
 })(LeadStatus || (exports.LeadStatus = LeadStatus = {}));
+var VehicleTypeEnum;
+(function (VehicleTypeEnum) {
+    VehicleTypeEnum["CAR"] = "CAR";
+    VehicleTypeEnum["BIKE"] = "BIKE";
+    VehicleTypeEnum["TRUCK"] = "TRUCK";
+    VehicleTypeEnum["BOAT"] = "BOAT";
+    VehicleTypeEnum["VAN"] = "VAN";
+    VehicleTypeEnum["SUV"] = "SUV";
+})(VehicleTypeEnum || (exports.VehicleTypeEnum = VehicleTypeEnum = {}));
+var VehicleConditionEnum;
+(function (VehicleConditionEnum) {
+    VehicleConditionEnum["JUNK"] = "JUNK";
+    VehicleConditionEnum["DAMAGED"] = "DAMAGED";
+    VehicleConditionEnum["WRECKED"] = "WRECKED";
+    VehicleConditionEnum["ACCIDENTAL"] = "ACCIDENTAL";
+    VehicleConditionEnum["FULLY_SCRAP"] = "FULLY_SCRAP";
+})(VehicleConditionEnum || (exports.VehicleConditionEnum = VehicleConditionEnum = {}));
+var LeadSourceEnum;
+(function (LeadSourceEnum) {
+    LeadSourceEnum["WEBFORM"] = "WEBFORM";
+    LeadSourceEnum["CHATBOT"] = "CHATBOT";
+    LeadSourceEnum["CALL"] = "CALL";
+    LeadSourceEnum["MANUAL"] = "MANUAL";
+})(LeadSourceEnum || (exports.LeadSourceEnum = LeadSourceEnum = {}));
 var ScrapCategory;
 (function (ScrapCategory) {
     ScrapCategory["JUNK"] = "JUNK";
     ScrapCategory["ACCIDENT_DAMAGED"] = "ACCIDENT_DAMAGED";
     ScrapCategory["FULLY_SCRAP"] = "FULLY_SCRAP";
 })(ScrapCategory || (exports.ScrapCategory = ScrapCategory = {}));
-var ScrapVehicleType;
-(function (ScrapVehicleType) {
-    ScrapVehicleType["CAR"] = "CAR";
-    ScrapVehicleType["MOTORCYCLE"] = "MOTORCYCLE";
-    ScrapVehicleType["TRUCK"] = "TRUCK";
-    ScrapVehicleType["BUS"] = "BUS";
-    ScrapVehicleType["TRAILER"] = "TRAILER";
-})(ScrapVehicleType || (exports.ScrapVehicleType = ScrapVehicleType = {}));
 var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "PENDING";
@@ -46,6 +66,19 @@ var OrderStatus;
     OrderStatus["COMPLETED"] = "COMPLETED";
     OrderStatus["CANCELLED"] = "CANCELLED";
 })(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
+var PaymentStatusEnum;
+(function (PaymentStatusEnum) {
+    PaymentStatusEnum["UNPAID"] = "UNPAID";
+    PaymentStatusEnum["PAID"] = "PAID";
+    PaymentStatusEnum["REFUNDED"] = "REFUNDED";
+})(PaymentStatusEnum || (exports.PaymentStatusEnum = PaymentStatusEnum = {}));
+var PaymentTypeEnum;
+(function (PaymentTypeEnum) {
+    PaymentTypeEnum["CASH"] = "CASH";
+    PaymentTypeEnum["CARD"] = "CARD";
+    PaymentTypeEnum["ONLINE"] = "ONLINE";
+    PaymentTypeEnum["BANK_TRANSFER"] = "BANK_TRANSFER";
+})(PaymentTypeEnum || (exports.PaymentTypeEnum = PaymentTypeEnum = {}));
 var PaymentStatus;
 (function (PaymentStatus) {
     PaymentStatus["SUCCESSFUL"] = "SUCCESSFUL";
@@ -57,4 +90,26 @@ var NotificationType;
     NotificationType["PICKUP_REQUEST"] = "PICKUP_REQUEST";
     NotificationType["PAYMENT_CONFIRMATION"] = "PAYMENT_CONFIRMATION";
     NotificationType["STATUS_UPDATE"] = "STATUS_UPDATE";
+    NotificationType["NEW_ASSIGNMENT"] = "NEW_ASSIGNMENT";
+    NotificationType["ORDER_COMPLETED"] = "ORDER_COMPLETED";
+    NotificationType["REFUND_PROCESSED"] = "REFUND_PROCESSED";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
+var CustomerStatus;
+(function (CustomerStatus) {
+    CustomerStatus["ACTIVE"] = "ACTIVE";
+    CustomerStatus["BLOCKED"] = "BLOCKED";
+})(CustomerStatus || (exports.CustomerStatus = CustomerStatus = {}));
+var PickupRequestStatus;
+(function (PickupRequestStatus) {
+    PickupRequestStatus["PENDING"] = "PENDING";
+    PickupRequestStatus["ASSIGNED"] = "ASSIGNED";
+    PickupRequestStatus["IN_TRANSIT"] = "IN_TRANSIT";
+    PickupRequestStatus["COMPLETED"] = "COMPLETED";
+    PickupRequestStatus["CANCELLED"] = "CANCELLED";
+})(PickupRequestStatus || (exports.PickupRequestStatus = PickupRequestStatus = {}));
+var QuoteResponseEnum;
+(function (QuoteResponseEnum) {
+    QuoteResponseEnum["EMAIL"] = "EMAIL";
+    QuoteResponseEnum["SMS"] = "SMS";
+    QuoteResponseEnum["CHATBOT"] = "CHATBOT";
+})(QuoteResponseEnum || (exports.QuoteResponseEnum = QuoteResponseEnum = {}));

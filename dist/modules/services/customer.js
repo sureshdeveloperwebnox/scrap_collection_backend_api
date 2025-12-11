@@ -14,31 +14,27 @@ class CustomerService {
             if (!organization) {
                 return api_result_1.ApiResult.error("Organization not found", 404);
             }
-            // Check if user exists and is a customer
-            const user = await config_1.prisma.user.findUnique({
-                where: { id: data.userId }
-            });
-            if (!user) {
-                return api_result_1.ApiResult.error("User not found", 404);
-            }
-            if (user.role !== enum_1.UserRole.CUSTOMER) {
-                return api_result_1.ApiResult.error("User must have CUSTOMER role", 400);
-            }
-            // Check if customer already exists for this user in this organization
+            // Check if customer already exists for this phone in this organization
             const existingCustomer = await config_1.prisma.customer.findFirst({
                 where: {
-                    userId: data.userId,
+                    phone: data.phone,
                     organizationId: data.organizationId
                 }
             });
             if (existingCustomer) {
-                return api_result_1.ApiResult.error("Customer already exists for this user in this organization", 400);
+                return api_result_1.ApiResult.error("Customer already exists for this phone in this organization", 400);
             }
             const customer = await config_1.prisma.customer.create({
                 data: {
                     organizationId: data.organizationId,
+                    name: data.name,
+                    phone: data.phone,
+                    email: data.email,
+                    address: data.address,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
                     userId: data.userId,
-                    address: data.address
+                    accountStatus: enum_1.CustomerStatus.ACTIVE
                 },
                 include: {
                     organization: {
@@ -68,49 +64,30 @@ class CustomerService {
     }
     async getCustomers(query) {
         try {
-            const { page = 1, limit = 10, search, organizationId, isActive } = query;
-            const skip = (page - 1) * limit;
+            const { page = 1, limit = 10, search, organizationId, accountStatus } = query;
+            const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
+            const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
+            const skip = (parsedPage - 1) * parsedLimit;
             const where = {};
             if (organizationId) {
-                where.organizationId = organizationId;
+                where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
             }
-            if (isActive !== undefined) {
-                where.user = {
-                    isActive: isActive
-                };
+            if (accountStatus) {
+                where.accountStatus = accountStatus;
             }
             if (search) {
                 where.OR = [
-                    {
-                        user: {
-                            email: { contains: search, mode: 'insensitive' }
-                        }
-                    },
-                    {
-                        user: {
-                            firstName: { contains: search, mode: 'insensitive' }
-                        }
-                    },
-                    {
-                        user: {
-                            lastName: { contains: search, mode: 'insensitive' }
-                        }
-                    },
-                    {
-                        user: {
-                            phone: { contains: search, mode: 'insensitive' }
-                        }
-                    },
-                    {
-                        address: { contains: search, mode: 'insensitive' }
-                    }
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { phone: { contains: search, mode: 'insensitive' } },
+                    { email: { contains: search, mode: 'insensitive' } },
+                    { address: { contains: search, mode: 'insensitive' } }
                 ];
             }
             const [customers, total] = await Promise.all([
                 config_1.prisma.customer.findMany({
                     where,
                     skip,
-                    take: limit,
+                    take: parsedLimit,
                     include: {
                         organization: {
                             select: {
@@ -127,13 +104,6 @@ class CustomerService {
                                 role: true,
                                 isActive: true
                             }
-                        },
-                        _count: {
-                            select: {
-                                orders: true,
-                                payments: true,
-                                reviews: true
-                            }
                         }
                     },
                     orderBy: {
@@ -142,14 +112,13 @@ class CustomerService {
                 }),
                 config_1.prisma.customer.count({ where })
             ]);
-            const totalPages = Math.ceil(total / limit);
             return api_result_1.ApiResult.success({
                 customers,
                 pagination: {
-                    page,
-                    limit,
+                    page: parsedPage,
+                    limit: parsedLimit,
                     total,
-                    totalPages
+                    totalPages: Math.ceil(total / parsedLimit)
                 }
             }, "Customers retrieved successfully");
         }
@@ -180,38 +149,15 @@ class CustomerService {
                         }
                     },
                     orders: {
-                        include: {
-                            vehicleType: true,
-                            employee: {
-                                include: {
-                                    user: {
-                                        select: {
-                                            firstName: true,
-                                            lastName: true
-                                        }
-                                    }
-                                }
-                            }
-                        },
+                        take: 10,
                         orderBy: {
                             createdAt: 'desc'
                         }
                     },
                     payments: {
+                        take: 10,
                         orderBy: {
                             createdAt: 'desc'
-                        }
-                    },
-                    reviews: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    },
-                    _count: {
-                        select: {
-                            orders: true,
-                            payments: true,
-                            reviews: true
                         }
                     }
                 }
@@ -223,74 +169,6 @@ class CustomerService {
         }
         catch (error) {
             console.log("Error in getCustomerById", error);
-            return api_result_1.ApiResult.error(error.message);
-        }
-    }
-    async getCustomerByUserId(userId) {
-        try {
-            const customer = await config_1.prisma.customer.findFirst({
-                where: { userId },
-                include: {
-                    organization: {
-                        select: {
-                            name: true
-                        }
-                    },
-                    user: {
-                        select: {
-                            id: true,
-                            email: true,
-                            phone: true,
-                            firstName: true,
-                            lastName: true,
-                            role: true,
-                            isActive: true
-                        }
-                    },
-                    orders: {
-                        include: {
-                            vehicleType: true,
-                            employee: {
-                                include: {
-                                    user: {
-                                        select: {
-                                            firstName: true,
-                                            lastName: true
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    },
-                    payments: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    },
-                    reviews: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    },
-                    _count: {
-                        select: {
-                            orders: true,
-                            payments: true,
-                            reviews: true
-                        }
-                    }
-                }
-            });
-            if (!customer) {
-                return api_result_1.ApiResult.error("Customer not found", 404);
-            }
-            return api_result_1.ApiResult.success(customer, "Customer retrieved successfully");
-        }
-        catch (error) {
-            console.log("Error in getCustomerByUserId", error);
             return api_result_1.ApiResult.error(error.message);
         }
     }
@@ -334,27 +212,17 @@ class CustomerService {
     async deleteCustomer(id) {
         try {
             const existingCustomer = await config_1.prisma.customer.findUnique({
-                where: { id },
-                include: {
-                    orders: true,
-                    payments: true,
-                    reviews: true
-                }
+                where: { id }
             });
             if (!existingCustomer) {
                 return api_result_1.ApiResult.error("Customer not found", 404);
             }
-            // Check if customer has any orders
-            if (existingCustomer.orders.length > 0) {
-                return api_result_1.ApiResult.error("Cannot delete customer with existing orders", 400);
-            }
-            // Check if customer has any payments
-            if (existingCustomer.payments.length > 0) {
-                return api_result_1.ApiResult.error("Cannot delete customer with existing payments", 400);
-            }
-            // Check if customer has any reviews
-            if (existingCustomer.reviews.length > 0) {
-                return api_result_1.ApiResult.error("Cannot delete customer with existing reviews", 400);
+            // Check if customer has orders
+            const orderCount = await config_1.prisma.order.count({
+                where: { customerId: id }
+            });
+            if (orderCount > 0) {
+                return api_result_1.ApiResult.error("Cannot delete customer that has orders. Consider blocking the account instead.", 400);
             }
             await config_1.prisma.customer.delete({
                 where: { id }
@@ -368,135 +236,33 @@ class CustomerService {
     }
     async getCustomerStats(organizationId) {
         try {
-            const [totalCustomers, activeCustomers, inactiveCustomers, customersWithOrders, customersWithoutOrders] = await Promise.all([
-                config_1.prisma.customer.count({
-                    where: { organizationId }
-                }),
-                config_1.prisma.customer.count({
-                    where: {
-                        organizationId,
-                        user: {
-                            isActive: true
-                        }
-                    }
-                }),
-                config_1.prisma.customer.count({
-                    where: {
-                        organizationId,
-                        user: {
-                            isActive: false
-                        }
-                    }
-                }),
-                config_1.prisma.customer.count({
-                    where: {
-                        organizationId,
-                        orders: {
-                            some: {}
-                        }
-                    }
-                }),
-                config_1.prisma.customer.count({
-                    where: {
-                        organizationId,
-                        orders: {
-                            none: {}
-                        }
-                    }
-                })
-            ]);
-            const stats = {
+            const stats = await config_1.prisma.customer.groupBy({
+                by: ['accountStatus'],
+                where: { organizationId },
+                _count: {
+                    accountStatus: true
+                }
+            });
+            const totalCustomers = await config_1.prisma.customer.count({
+                where: { organizationId }
+            });
+            const statsMap = {
                 total: totalCustomers,
-                active: activeCustomers,
-                inactive: inactiveCustomers,
-                withOrders: customersWithOrders,
-                withoutOrders: customersWithoutOrders
+                active: 0,
+                blocked: 0
             };
-            return api_result_1.ApiResult.success(stats, "Customer statistics retrieved successfully");
+            stats.forEach(stat => {
+                if (stat.accountStatus === enum_1.CustomerStatus.ACTIVE) {
+                    statsMap.active = stat._count.accountStatus;
+                }
+                else if (stat.accountStatus === enum_1.CustomerStatus.BLOCKED) {
+                    statsMap.blocked = stat._count.accountStatus;
+                }
+            });
+            return api_result_1.ApiResult.success(statsMap, "Customer statistics retrieved successfully");
         }
         catch (error) {
             console.log("Error in getCustomerStats", error);
-            return api_result_1.ApiResult.error(error.message);
-        }
-    }
-    async getCustomerOrders(id) {
-        try {
-            const customer = await config_1.prisma.customer.findUnique({
-                where: { id },
-                include: {
-                    orders: {
-                        include: {
-                            vehicleType: true,
-                            employee: {
-                                include: {
-                                    user: {
-                                        select: {
-                                            firstName: true,
-                                            lastName: true
-                                        }
-                                    }
-                                }
-                            },
-                            payment: true,
-                            review: true
-                        },
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    }
-                }
-            });
-            if (!customer) {
-                return api_result_1.ApiResult.error("Customer not found", 404);
-            }
-            return api_result_1.ApiResult.success(customer.orders, "Customer orders retrieved successfully");
-        }
-        catch (error) {
-            console.log("Error in getCustomerOrders", error);
-            return api_result_1.ApiResult.error(error.message);
-        }
-    }
-    async getCustomerPayments(id) {
-        try {
-            const customer = await config_1.prisma.customer.findUnique({
-                where: { id },
-                include: {
-                    payments: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    }
-                }
-            });
-            if (!customer) {
-                return api_result_1.ApiResult.error("Customer not found", 404);
-            }
-            return api_result_1.ApiResult.success(customer.payments, "Customer payments retrieved successfully");
-        }
-        catch (error) {
-            console.log("Error in getCustomerPayments", error);
-            return api_result_1.ApiResult.error(error.message);
-        }
-    }
-    async getCustomerReviews(id) {
-        try {
-            const customer = await config_1.prisma.customer.findUnique({
-                where: { id },
-                include: {
-                    reviews: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        }
-                    }
-                }
-            });
-            if (!customer) {
-                return api_result_1.ApiResult.error("Customer not found", 404);
-            }
-            return api_result_1.ApiResult.success(customer.reviews, "Customer reviews retrieved successfully");
-        }
-        catch (error) {
-            console.log("Error in getCustomerReviews", error);
             return api_result_1.ApiResult.error(error.message);
         }
     }

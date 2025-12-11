@@ -7,10 +7,10 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
   customerQuerySchema,
-  customerIdSchema,
-  customerUserIdSchema
+  customerIdSchema
 } from '../rules/customer.rules';
 import { ApiResult } from '../../utils/api-result';
+import { prisma } from '../../config';
 
 @Controller('/customers')
 export class CustomerController {
@@ -48,7 +48,7 @@ export class CustomerController {
   @Validate([customerIdSchema])
   public async getCustomerById(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.customerService.getCustomerById(id);
       result.send(res);
     } catch (error) {
@@ -58,12 +58,23 @@ export class CustomerController {
   }
 
   @GET('/user/:userId')
-  @Validate([customerUserIdSchema])
   public async getCustomerByUserId(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
-      const result = await this.customerService.getCustomerByUserId(userId);
-      result.send(res);
+      const customer = await prisma.customer.findFirst({
+        where: { userId },
+        include: {
+          organization: true,
+          user: true
+        }
+      });
+
+      if (!customer) {
+        ApiResult.error("Customer not found", 404).send(res);
+        return;
+      }
+
+      ApiResult.success(customer, "Customer retrieved successfully").send(res);
     } catch (error) {
       console.log("Error in getCustomerByUserId", error);
       ApiResult.error((error as any).message, 500).send(res);
@@ -74,7 +85,7 @@ export class CustomerController {
   @Validate([customerIdSchema, updateCustomerSchema])
   public async updateCustomer(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.customerService.updateCustomer(id, req.body);
       result.send(res);
     } catch (error) {
@@ -87,7 +98,7 @@ export class CustomerController {
   @Validate([customerIdSchema])
   public async deleteCustomer(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const result = await this.customerService.deleteCustomer(id);
       result.send(res);
     } catch (error) {
@@ -112,9 +123,20 @@ export class CustomerController {
   @Validate([customerIdSchema])
   public async getCustomerOrders(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
-      const result = await this.customerService.getCustomerOrders(id);
-      result.send(res);
+      const id = req.params.id;
+      const orders = await prisma.order.findMany({
+        where: { customerId: id },
+        include: {
+          assignedCollector: true,
+          yard: true,
+          payment: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      ApiResult.success(orders, "Customer orders retrieved successfully").send(res);
     } catch (error) {
       console.log("Error in getCustomerOrders", error);
       ApiResult.error((error as any).message, 500).send(res);
@@ -125,9 +147,20 @@ export class CustomerController {
   @Validate([customerIdSchema])
   public async getCustomerPayments(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
-      const result = await this.customerService.getCustomerPayments(id);
-      result.send(res);
+      const id = req.params.id;
+      const payments = await prisma.payment.findMany({
+        where: { customerId: id },
+        include: {
+          order: true,
+          collector: true,
+          refund: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      ApiResult.success(payments, "Customer payments retrieved successfully").send(res);
     } catch (error) {
       console.log("Error in getCustomerPayments", error);
       ApiResult.error((error as any).message, 500).send(res);
@@ -138,12 +171,22 @@ export class CustomerController {
   @Validate([customerIdSchema])
   public async getCustomerReviews(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
-      const result = await this.customerService.getCustomerReviews(id);
-      result.send(res);
+      const id = req.params.id;
+      const reviews = await prisma.review.findMany({
+        where: { customerId: id },
+        include: {
+          order: true,
+          collector: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      ApiResult.success(reviews, "Customer reviews retrieved successfully").send(res);
     } catch (error) {
       console.log("Error in getCustomerReviews", error);
       ApiResult.error((error as any).message, 500).send(res);
     }
   }
-} 
+}

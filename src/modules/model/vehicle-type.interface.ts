@@ -1,23 +1,23 @@
 export interface IVehicleType {
   id: number;
-  organizationId: number;
+  organizationId?: number;
   name: string;
-  description?: string;
+  icon?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface ICreateVehicleTypeRequest {
-  organizationId: number;
+  organizationId?: number;
   name: string;
-  description?: string;
+  icon?: string;
   isActive?: boolean;
 }
 
 export interface IUpdateVehicleTypeRequest {
   name?: string;
-  description?: string;
+  icon?: string;
   isActive?: boolean;
 }
 
@@ -27,4 +27,6 @@ export interface IVehicleTypeQueryParams {
   search?: string;
   isActive?: boolean;
   organizationId?: number;
+  sortBy?: 'name' | 'isActive' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
 } 

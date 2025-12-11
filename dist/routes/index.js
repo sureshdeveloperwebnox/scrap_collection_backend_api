@@ -10,9 +10,16 @@ const combineRouters = (app) => {
     (0, api_routes_1.attachControllers)(apiRouter, [
         controllers_1.AuthController,
         controllers_1.HelloController,
+        controllers_1.CustomerController,
         controllers_1.CountryController,
         controllers_1.LeadController,
-        controllers_1.VehicleTypeController
+        controllers_1.VehicleTypeController,
+        controllers_1.EmployeeController,
+        controllers_1.OrderController,
+        controllers_1.PickupRequestController,
+        controllers_1.PaymentController,
+        controllers_1.ReviewController,
+        controllers_1.ScrapYardController
     ], {
         middleware: {
             auth: middlewares_1.createRoleMiddleware,
