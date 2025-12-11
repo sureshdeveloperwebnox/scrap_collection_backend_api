@@ -9,3 +9,4 @@ export * from './pickup-request';
 export * from './payment';
 export * from './review';
 export * from './scrapyard';
+export * from './city';

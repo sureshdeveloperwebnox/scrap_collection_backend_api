@@ -10,3 +10,4 @@ export * from './pickup-request.rules';
 export * from './payment.rules';
 export * from './review.rules';
 export * from './scrapyard.rules';
+export * from './city.rules';

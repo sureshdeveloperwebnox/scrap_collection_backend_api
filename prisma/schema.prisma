@@ -571,3 +571,20 @@ model Country {
   updatedAt     DateTime       @updatedAt
   organizations Organization[]
 }
+
+// ============================================
+// CITY (WORK ZONE)
+// ============================================
+
+model City {
+  id          Int       @id @default(autoincrement())
+  name        String
+  latitude    Float
+  longitude   Float
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([name])
+  @@map("cities")
+}
