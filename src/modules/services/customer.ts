@@ -27,6 +27,15 @@ export class CustomerService {
         return ApiResult.error("Customer already exists for this phone in this organization", 400);
       }
 
+      // Validate accountStatus if provided, otherwise default to ACTIVE
+      let accountStatus = CustomerStatus.ACTIVE;
+      if (data.accountStatus) {
+        const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+        if (validStatuses.includes(data.accountStatus.toUpperCase())) {
+          accountStatus = data.accountStatus.toUpperCase() as CustomerStatus;
+        }
+      }
+
       const customer = await prisma.customer.create({
         data: {
           organizationId: data.organizationId,
@@ -36,8 +45,14 @@ export class CustomerService {
           address: data.address,
           latitude: data.latitude,
           longitude: data.longitude,
+          vehicleType: data.vehicleType,
+          vehicleMake: data.vehicleMake,
+          vehicleModel: data.vehicleModel,
+          vehicleNumber: data.vehicleNumber,
+          vehicleYear: data.vehicleYear,
+          vehicleCondition: data.vehicleCondition,
           userId: data.userId,
-          accountStatus: CustomerStatus.ACTIVE
+          accountStatus: accountStatus
         },
         include: {
           organization: {
@@ -82,7 +97,11 @@ export class CustomerService {
       }
 
       if (accountStatus) {
-        where.accountStatus = accountStatus;
+        // Validate accountStatus is a valid enum value
+        const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+        if (validStatuses.includes(accountStatus.toUpperCase())) {
+          where.accountStatus = accountStatus.toUpperCase() as any;
+        }
       }
 
       if (search) {
@@ -198,9 +217,21 @@ export class CustomerService {
         return ApiResult.error("Customer not found", 404);
       }
 
+      // Remove organizationId from update data as it's a relation field and cannot be updated directly
+      const { organizationId, ...updateData } = data as any;
+      
+      // Validate accountStatus if provided
+      if (updateData.accountStatus) {
+        const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+        if (!validStatuses.includes(updateData.accountStatus.toUpperCase())) {
+          return ApiResult.error(`Invalid accountStatus. Must be one of: ${validStatuses.join(', ')}`, 400);
+        }
+        updateData.accountStatus = updateData.accountStatus.toUpperCase();
+      }
+
       const customer = await prisma.customer.update({
         where: { id },
-        data,
+        data: updateData,
         include: {
           organization: {
             select: {
@@ -277,12 +308,18 @@ export class CustomerService {
       const statsMap: any = {
         total: totalCustomers,
         active: 0,
+        inactive: 0,
+        vip: 0,
         blocked: 0
       };
 
       stats.forEach(stat => {
         if (stat.accountStatus === CustomerStatus.ACTIVE) {
           statsMap.active = stat._count.accountStatus;
+        } else if (stat.accountStatus === CustomerStatus.INACTIVE) {
+          statsMap.inactive = stat._count.accountStatus;
+        } else if (stat.accountStatus === CustomerStatus.VIP) {
+          statsMap.vip = stat._count.accountStatus;
         } else if (stat.accountStatus === CustomerStatus.BLOCKED) {
           statsMap.blocked = stat._count.accountStatus;
         }

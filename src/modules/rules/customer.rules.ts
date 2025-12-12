@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { CustomerStatus } from '../model/enum';
+import { CustomerStatus, VehicleTypeEnum, VehicleConditionEnum } from '../model/enum';
 import { phoneCustomValidation } from '../../utils/phone-validator';
 
 export const createCustomerSchema = Joi.object({
@@ -24,6 +24,25 @@ export const createCustomerSchema = Joi.object({
   }),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
+  vehicleType: Joi.string().valid(...Object.values(VehicleTypeEnum)).optional().messages({
+    'any.only': 'Vehicle type must be one of: CAR, BIKE, TRUCK, BOAT, VAN, SUV'
+  }),
+  vehicleMake: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle make cannot exceed 50 characters'
+  }),
+  vehicleModel: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle model cannot exceed 50 characters'
+  }),
+  vehicleNumber: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle number cannot exceed 50 characters'
+  }),
+  vehicleYear: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().messages({
+    'number.min': 'Vehicle year must be 1900 or later',
+    'number.max': `Vehicle year cannot be later than ${new Date().getFullYear() + 1}`
+  }),
+  vehicleCondition: Joi.string().valid(...Object.values(VehicleConditionEnum)).optional().messages({
+    'any.only': 'Vehicle condition must be one of: JUNK, DAMAGED, WRECKED, ACCIDENTAL, FULLY_SCRAP'
+  }),
   userId: Joi.string().uuid().optional()
 });
 
@@ -40,6 +59,25 @@ export const updateCustomerSchema = Joi.object({
   }),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
+  vehicleType: Joi.string().valid(...Object.values(VehicleTypeEnum)).optional().messages({
+    'any.only': 'Vehicle type must be one of: CAR, BIKE, TRUCK, BOAT, VAN, SUV'
+  }),
+  vehicleMake: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle make cannot exceed 50 characters'
+  }),
+  vehicleModel: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle model cannot exceed 50 characters'
+  }),
+  vehicleNumber: Joi.string().max(50).optional().messages({
+    'string.max': 'Vehicle number cannot exceed 50 characters'
+  }),
+  vehicleYear: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().messages({
+    'number.min': 'Vehicle year must be 1900 or later',
+    'number.max': `Vehicle year cannot be later than ${new Date().getFullYear() + 1}`
+  }),
+  vehicleCondition: Joi.string().valid(...Object.values(VehicleConditionEnum)).optional().messages({
+    'any.only': 'Vehicle condition must be one of: JUNK, DAMAGED, WRECKED, ACCIDENTAL, FULLY_SCRAP'
+  }),
   accountStatus: Joi.string().valid(...Object.values(CustomerStatus)).optional()
 });
 

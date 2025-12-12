@@ -99,21 +99,27 @@ model Organization {
 // ============================================
 
 model Customer {
-  id             String         @id @default(uuid())
-  name           String
-  phone          String
-  email          String?
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  accountStatus  CustomerStatus @default(ACTIVE)
-  joinedDate     DateTime       @default(now())
-  organizationId Int
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  userId         String?
-  user           User?          @relation(fields: [userId], references: [id])
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id               String               @id @default(uuid())
+  name             String
+  phone            String
+  email            String?
+  address          String?
+  latitude         Float?
+  longitude        Float?
+  vehicleType      VehicleTypeEnum?
+  vehicleMake      String?
+  vehicleModel     String?
+  vehicleNumber    String?
+  vehicleYear      Int?
+  vehicleCondition VehicleConditionEnum?
+  accountStatus    CustomerStatus       @default(ACTIVE)
+  joinedDate       DateTime             @default(now())
+  organizationId   Int
+  organization     Organization         @relation(fields: [organizationId], references: [id])
+  userId           String?
+  user             User?                @relation(fields: [userId], references: [id])
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   // Relations
   orders         Order[]
@@ -125,6 +131,8 @@ model Customer {
 
 enum CustomerStatus {
   ACTIVE
+  INACTIVE
+  VIP
   BLOCKED
 }
 

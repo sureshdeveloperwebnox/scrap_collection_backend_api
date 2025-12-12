@@ -93,6 +93,8 @@ export enum NotificationType {
 
 export enum CustomerStatus {
   ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  VIP = 'VIP',
   BLOCKED = 'BLOCKED'
 }
 

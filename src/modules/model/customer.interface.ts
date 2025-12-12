@@ -1,4 +1,5 @@
 import { CustomerStatus } from './enum';
+import { VehicleTypeEnum, VehicleConditionEnum } from './enum';
 
 export interface ICustomer {
   id: string;
@@ -9,6 +10,12 @@ export interface ICustomer {
   address?: string;
   latitude?: number;
   longitude?: number;
+  vehicleType?: VehicleTypeEnum;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleNumber?: string;
+  vehicleYear?: number;
+  vehicleCondition?: VehicleConditionEnum;
   accountStatus: CustomerStatus;
   joinedDate: Date;
   organizationId: number;
@@ -26,6 +33,13 @@ export interface ICreateCustomerRequest {
   address?: string;
   latitude?: number;
   longitude?: number;
+  vehicleType?: VehicleTypeEnum;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleNumber?: string;
+  vehicleYear?: number;
+  vehicleCondition?: VehicleConditionEnum;
+  accountStatus?: CustomerStatus;
   userId?: string;
 }
 
@@ -37,6 +51,12 @@ export interface IUpdateCustomerRequest {
   address?: string;
   latitude?: number;
   longitude?: number;
+  vehicleType?: VehicleTypeEnum;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleNumber?: string;
+  vehicleYear?: number;
+  vehicleCondition?: VehicleConditionEnum;
   accountStatus?: CustomerStatus;
 }
 
@@ -51,5 +71,7 @@ export interface ICustomerQueryParams {
 export interface ICustomerStats {
   total: number;
   active: number;
+  inactive: number;
+  vip: number;
   blocked: number;
 }
