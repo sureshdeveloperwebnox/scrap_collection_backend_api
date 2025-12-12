@@ -71,7 +71,7 @@ export class LeadService {
 
   public async getLeads(query: ILeadQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, status, vehicleType, leadSource, organizationId, dateFrom, dateTo } = query as any;
+      const { page = 1, limit = 10, search, status, vehicleType, vehicleCondition, leadSource, organizationId, dateFrom, dateTo, sortBy, sortOrder } = query as any;
 
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -89,6 +89,10 @@ export class LeadService {
 
       if (vehicleType) {
         where.vehicleType = vehicleType;
+      }
+
+      if (vehicleCondition) {
+        where.vehicleCondition = vehicleCondition;
       }
 
       if (leadSource) {
@@ -110,6 +114,19 @@ export class LeadService {
         ];
       }
 
+      // Build orderBy clause for optimized sorting
+      const orderBy: any = {};
+      if (sortBy) {
+        const validSortFields = ['fullName', 'phone', 'email', 'status', 'createdAt', 'updatedAt'];
+        if (validSortFields.includes(sortBy)) {
+          orderBy[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+        } else {
+          orderBy.createdAt = 'desc'; // Default fallback
+        }
+      } else {
+        orderBy.createdAt = 'desc'; // Default sorting
+      }
+
       const [leads, total] = await Promise.all([
         prisma.lead.findMany({
           where,
@@ -123,9 +140,7 @@ export class LeadService {
             },
             customer: true
           },
-          orderBy: {
-            createdAt: 'desc'
-          }
+          orderBy
         }),
         prisma.lead.count({ where })
       ]);

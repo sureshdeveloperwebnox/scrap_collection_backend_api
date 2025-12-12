@@ -217,6 +217,11 @@ model Lead {
   order       Order?
   timeline    LeadTimeline[]
   chatbotLead ChatbotLead?
+
+  // Indexes for better query performance
+  @@index([organizationId, vehicleCondition])
+  @@index([organizationId, status, vehicleCondition])
+  @@index([organizationId, createdAt])
 }
 
 enum VehicleTypeEnum {
