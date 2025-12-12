@@ -3,6 +3,8 @@ export * from './hello.controller';
 export * from './country.controller';
 export * from './lead.controller';
 export * from './vehicle-type.controller';
+export * from './vehicle-name.controller';
+export * from './collector-assignment.controller';
 export * from './customer.controller';
 export * from './employee.controller';
 export * from './order.controller';

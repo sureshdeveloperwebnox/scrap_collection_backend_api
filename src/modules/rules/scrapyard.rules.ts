@@ -6,7 +6,6 @@ export const createScrapYardSchema = Joi.object({
   address: Joi.string().required(),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
-  capacity: Joi.number().integer().positive().required(),
   assignedEmployeeIds: Joi.array().items(Joi.string().uuid()).optional(),
   operatingHours: Joi.object().optional()
 });
@@ -16,7 +15,6 @@ export const updateScrapYardSchema = Joi.object({
   address: Joi.string().optional(),
   latitude: Joi.number().min(-90).max(90).optional(),
   longitude: Joi.number().min(-180).max(180).optional(),
-  capacity: Joi.number().integer().positive().optional(),
   assignedEmployeeIds: Joi.array().items(Joi.string().uuid()).optional(),
   operatingHours: Joi.object().optional()
 });

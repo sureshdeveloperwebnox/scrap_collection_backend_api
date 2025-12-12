@@ -4,7 +4,6 @@ export interface IScrapYard {
   address: string;
   latitude?: number;
   longitude?: number;
-  capacity: number;
   assignedEmployeeIds?: string[];
   operatingHours?: {
     [key: string]: {
@@ -13,6 +12,7 @@ export interface IScrapYard {
       closed?: boolean;
     };
   };
+  isActive?: boolean;
   organizationId: number;
   createdAt: Date;
   updatedAt: Date;
@@ -24,7 +24,6 @@ export interface ICreateScrapYardRequest {
   address: string;
   latitude?: number;
   longitude?: number;
-  capacity: number;
   assignedEmployeeIds?: string[];
   operatingHours?: {
     [key: string]: {
@@ -33,6 +32,7 @@ export interface ICreateScrapYardRequest {
       closed?: boolean;
     };
   };
+  isActive?: boolean;
 }
 
 export interface IUpdateScrapYardRequest {
@@ -40,7 +40,6 @@ export interface IUpdateScrapYardRequest {
   address?: string;
   latitude?: number;
   longitude?: number;
-  capacity?: number;
   assignedEmployeeIds?: string[];
   operatingHours?: {
     [key: string]: {
@@ -49,6 +48,7 @@ export interface IUpdateScrapYardRequest {
       closed?: boolean;
     };
   };
+  isActive?: boolean;
 }
 
 export interface IScrapYardQueryParams {

@@ -12,9 +12,9 @@ export class ScrapYardService {
           address: data.address,
           latitude: data.latitude,
           longitude: data.longitude,
-          capacity: data.capacity,
           assignedEmployeeIds: data.assignedEmployeeIds || [],
-          operatingHours: data.operatingHours || {}
+          operatingHours: data.operatingHours || {},
+          isActive: data.isActive !== undefined ? data.isActive : true
         },
         include: {
           organization: true,
@@ -66,8 +66,53 @@ export class ScrapYardService {
         prisma.scrapYard.count({ where })
       ]);
 
+      // Fetch assigned employees (managers) based on assignedEmployeeIds
+      const scrapYardsWithEmployees = await Promise.all(
+        scrapYards.map(async (yard) => {
+          let assignedEmployees: any[] = [];
+          
+          // Parse assignedEmployeeIds from JSON
+          if (yard.assignedEmployeeIds) {
+            try {
+              const employeeIds = Array.isArray(yard.assignedEmployeeIds) 
+                ? yard.assignedEmployeeIds 
+                : JSON.parse(yard.assignedEmployeeIds as string);
+              
+              if (Array.isArray(employeeIds) && employeeIds.length > 0) {
+                // Fetch employees by their IDs
+                assignedEmployees = await prisma.employee.findMany({
+                  where: {
+                    id: { in: employeeIds }
+                  },
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    role: {
+                      select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        isActive: true
+                      }
+                    }
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Error parsing assignedEmployeeIds:', error);
+            }
+          }
+
+          return {
+            ...yard,
+            employees: assignedEmployees
+          };
+        })
+      );
+
       return ApiResult.success({
-        scrapYards,
+        scrapYards: scrapYardsWithEmployees,
         pagination: {
           page: parsedPage,
           limit: parsedLimit,
@@ -96,7 +141,46 @@ export class ScrapYardService {
         return ApiResult.error("Scrap yard not found", 404);
       }
 
-      return ApiResult.success(scrapYard, "Scrap yard retrieved successfully");
+      // Fetch assigned employees (managers) based on assignedEmployeeIds
+      let assignedEmployees: any[] = [];
+      
+      if (scrapYard.assignedEmployeeIds) {
+        try {
+          const employeeIds = Array.isArray(scrapYard.assignedEmployeeIds) 
+            ? scrapYard.assignedEmployeeIds 
+            : JSON.parse(scrapYard.assignedEmployeeIds as string);
+          
+          if (Array.isArray(employeeIds) && employeeIds.length > 0) {
+            assignedEmployees = await prisma.employee.findMany({
+              where: {
+                id: { in: employeeIds }
+              },
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                role: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    isActive: true
+                  }
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing assignedEmployeeIds:', error);
+        }
+      }
+
+      const scrapYardWithEmployees = {
+        ...scrapYard,
+        employees: assignedEmployees
+      };
+
+      return ApiResult.success(scrapYardWithEmployees, "Scrap yard retrieved successfully");
     } catch (error: any) {
       console.log("Error in getScrapYardById", error);
       return ApiResult.error(error.message);
