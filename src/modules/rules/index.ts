@@ -3,6 +3,8 @@ export * from './hello.rules';
 export * from './country.rules';
 export * from './lead.rules';
 export * from './vehicle-type.rules';
+export * from './vehicle-name.rules';
+export * from './collector-assignment.rules';
 export * from './customer.rules';
 export * from './employee.rules';
 export * from './order.rules';

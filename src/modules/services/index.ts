@@ -2,6 +2,8 @@ export * from './auth';
 export * from './country';
 export * from './lead';
 export * from './vehicle-type';
+export * from './vehicle-name';
+export * from './collector-assignment';
 export * from './customer';
 export * from './employee';
 export * from './order';
