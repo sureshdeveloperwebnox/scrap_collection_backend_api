@@ -7,195 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// USER & AUTHENTICATION
-// ============================================
-
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  phone        String?
-  password     String?
-  hashPassword String?
-  firstName    String?
-  lastName     String?
-  role         UserRole @default(USER)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  adminRoles     AdminRole[]
+  id             String         @id @default(uuid())
+  email          String         @unique
+  phone          String?
+  password       String?
+  hashPassword   String?
+  firstName      String?
+  lastName       String?
+  role           UserRole       @default(USER)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organizationId Int?
+  adminRoles     AdminRole?
   customers      Customer[]
   employees      Employee[]
   notifications  Notification[]
-  organizationId Int?
   organization   Organization?  @relation(fields: [organizationId], references: [id])
 
   @@map("users")
 }
 
-enum UserRole {
-  USER
-  ADMIN
-  EMPLOYEE
-  CUSTOMER
-}
-
 model AdminRole {
   id          Int           @id @default(autoincrement())
   userId      String        @unique
-  user        User          @relation(fields: [userId], references: [id])
   roleType    AdminRoleType
-  permissions Json? // JSON field for permissions
+  permissions Json?
   lastLogin   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id])
 }
-
-enum AdminRoleType {
-  SUPER_ADMIN
-  STAFF_ADMIN
-}
-
-// ============================================
-// ORGANIZATION
-// ============================================
 
 model Organization {
-  id          Int      @id @default(autoincrement())
-  name        String
-  address     String?
-  phone       String?
-  email       String?
-  website     String?
-  logo        String?
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  countryId   Int
-  country     Country  @relation(fields: [countryId], references: [id])
-
-  // Relations
-  users                User[]
+  id                   Int                   @id @default(autoincrement())
+  name                 String
+  address              String?
+  phone                String?
+  email                String?
+  website              String?
+  logo                 String?
+  description          String?
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  countryId            Int
   customers            Customer[]
   employees            Employee[]
   leads                Lead[]
-  vehicleTypes         VehicleType[]
-  vehicleNames         VehicleName[]
   orders               Order[]
-  scrapYards           ScrapYard[]
+  country              Country               @relation(fields: [countryId], references: [id])
   payments             Payment[]
   reviews              Review[]
-  pickupRequests       PickupRequest[]
-  emailTemplates       EmailTemplate[]
-  scrapCategories      ScrapCategory[]
   collectorAssignments CollectorAssignment[]
+  emailTemplates       EmailTemplate[]
+  pickupRequests       PickupRequest[]
+  scrapCategories      ScrapCategory[]
+  scrapYards           ScrapYard[]
+  users                User[]
+  vehicleNames         VehicleName[]
+  vehicleTypes         VehicleType[]
 }
 
-// ============================================
-// CUSTOMER MANAGEMENT
-// ============================================
-
 model Customer {
-  id               String               @id @default(uuid())
+  id               String                @id @default(uuid())
   name             String
   phone            String
   email            String?
   address          String?
   latitude         Float?
   longitude        Float?
-  vehicleType      VehicleTypeEnum?
+  accountStatus    CustomerStatus        @default(ACTIVE)
+  joinedDate       DateTime              @default(now())
+  organizationId   Int
+  userId           String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  vehicleCondition VehicleConditionEnum?
   vehicleMake      String?
   vehicleModel     String?
   vehicleNumber    String?
+  vehicleType      VehicleTypeEnum?
   vehicleYear      Int?
-  vehicleCondition VehicleConditionEnum?
-  accountStatus    CustomerStatus       @default(ACTIVE)
-  joinedDate       DateTime             @default(now())
-  organizationId   Int
-  organization     Organization         @relation(fields: [organizationId], references: [id])
-  userId           String?
-  user             User?                @relation(fields: [userId], references: [id])
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-
-  // Relations
-  orders         Order[]
-  payments       Payment[]
-  reviews        Review[]
-  pickupRequests PickupRequest[]
-  leads          Lead[]
+  organization     Organization          @relation(fields: [organizationId], references: [id])
+  user             User?                 @relation(fields: [userId], references: [id])
+  leads            Lead[]
+  orders           Order[]
+  payments         Payment[]
+  reviews          Review[]
+  pickupRequests   PickupRequest[]
 }
-
-enum CustomerStatus {
-  ACTIVE
-  INACTIVE
-  VIP
-  BLOCKED
-}
-
-// ============================================
-// EMPLOYEE/COLLECTOR MANAGEMENT
-// ============================================
 
 model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
   description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  employees Employee[]
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
 
   @@map("roles")
 }
 
 model Employee {
-  id               String       @id @default(uuid())
-  fullName         String
-  email            String
-  phone            String
-  roleId           Int
-  role             Role         @relation(fields: [roleId], references: [id])
-  cityId           Int?
-  city             City?        @relation(fields: [cityId], references: [id])
-  passwordHash     String
-  isActive         Boolean      @default(true)
-  profilePhoto     String? // URL
-  rating           Float?       @default(0) // Average customer rating
-  completedPickups Int          @default(0) // Performance metric
-  deviceToken      String? // For push notifications
-  organizationId   Int
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  userId           String?
-  user             User?        @relation(fields: [userId], references: [id])
-  scrapYardId      String?
-  scrapYard        ScrapYard?   @relation(fields: [scrapYardId], references: [id])
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  // Relations
+  id                   String                @id @default(uuid())
+  fullName             String
+  email                String
+  phone                String
+  passwordHash         String
+  isActive             Boolean               @default(true)
+  profilePhoto         String?
+  rating               Float?                @default(0)
+  completedPickups     Int                   @default(0)
+  deviceToken          String?
+  organizationId       Int
+  userId               String?
+  scrapYardId          String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  cityId               Int?
+  roleId               Int
+  city                 City?                 @relation(fields: [cityId], references: [id])
+  organization         Organization          @relation(fields: [organizationId], references: [id])
+  role                 Role                  @relation(fields: [roleId], references: [id])
+  scrapYard            ScrapYard?            @relation(fields: [scrapYardId], references: [id])
+  user                 User?                 @relation(fields: [userId], references: [id])
   orders               Order[]
-  reviews              Review[]
-  pickupRequests       PickupRequest[]
   payments             Payment[]
+  reviews              Review[]
   collectorAssignments CollectorAssignment[]
+  pickupRequests       PickupRequest[]
 }
-
-enum EmployeeRole {
-  COLLECTOR
-  ADMIN
-  SUPERVISOR
-  ACCOUNTANT
-}
-
-// ============================================
-// LEAD MANAGEMENT
-// ============================================
 
 model Lead {
   id               String               @id @default(uuid())
@@ -207,29 +151,358 @@ model Lead {
   vehicleModel     String?
   vehicleYear      Int?
   vehicleCondition VehicleConditionEnum
-  locationAddress  String?              @db.Text
+  locationAddress  String?
   latitude         Float?
   longitude        Float?
   leadSource       LeadSourceEnum
-  photos           Json? // JSON Array of image URLs
-  notes            String?              @db.Text
+  photos           Json?
+  notes            String?
   status           LeadStatus
   organizationId   Int
-  organization     Organization         @relation(fields: [organizationId], references: [id])
   customerId       String?
-  customer         Customer?            @relation(fields: [customerId], references: [id])
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
+  customer         Customer?            @relation(fields: [customerId], references: [id])
+  organization     Organization         @relation(fields: [organizationId], references: [id])
+  order            Order?
+  chatbotLead      ChatbotLead?
+  timeline         LeadTimeline[]
 
-  // Relations
-  order       Order?
-  timeline    LeadTimeline[]
-  chatbotLead ChatbotLead?
-
-  // Indexes for better query performance
   @@index([organizationId, vehicleCondition])
   @@index([organizationId, status, vehicleCondition])
   @@index([organizationId, createdAt])
+}
+
+model LeadTimeline {
+  id          String   @id @default(uuid())
+  leadId      String
+  activity    String
+  performedBy String?
+  createdAt   DateTime @default(now())
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("lead_timelines")
+}
+
+model Order {
+  id                  String            @id @default(uuid())
+  leadId              String?           @unique
+  customerName        String
+  customerPhone       String
+  address             String
+  latitude            Float?
+  longitude           Float?
+  vehicleDetails      Json
+  assignedCollectorId String?
+  pickupTime          DateTime?
+  orderStatus         OrderStatus
+  paymentStatus       PaymentStatusEnum
+  quotedPrice         Float?
+  actualPrice         Float?
+  yardId              String?
+  customerNotes       String?
+  adminNotes          String?
+  organizationId      Int
+  customerId          String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  assignedCollector   Employee?         @relation(fields: [assignedCollectorId], references: [id])
+  customer            Customer?         @relation(fields: [customerId], references: [id])
+  lead                Lead?             @relation(fields: [leadId], references: [id])
+  organization        Organization      @relation(fields: [organizationId], references: [id])
+  yard                ScrapYard?        @relation(fields: [yardId], references: [id])
+  payment             Payment?
+  review              Review?
+  orderTimeline       OrderTimeline[]
+  pickupRequest       PickupRequest?
+}
+
+model OrderTimeline {
+  id          String      @id @default(uuid())
+  orderId     String
+  status      OrderStatus
+  notes       String?
+  performedBy String?
+  createdAt   DateTime    @default(now())
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_timelines")
+}
+
+model PickupRequest {
+  id                String              @id @default(uuid())
+  customerId        String
+  vehicleDetails    Json
+  pickupAddress     String
+  latitude          Float?
+  longitude         Float?
+  status            PickupRequestStatus
+  assignedTo        String?
+  orderId           String?             @unique
+  organizationId    Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  assignedCollector Employee?           @relation(fields: [assignedTo], references: [id])
+  customer          Customer            @relation(fields: [customerId], references: [id])
+  order             Order?              @relation(fields: [orderId], references: [id])
+  organization      Organization        @relation(fields: [organizationId], references: [id])
+
+  @@map("pickup_requests")
+}
+
+model ScrapYard {
+  id                  String       @id @default(uuid())
+  yardName            String
+  address             String
+  latitude            Float?
+  longitude           Float?
+  assignedEmployeeIds Json?
+  operatingHours      Json?
+  organizationId      Int
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  isActive            Boolean      @default(true)
+  employees           Employee[]
+  orders              Order[]
+  cities              City[]
+  organization        Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("scrap_yards")
+}
+
+model VehicleType {
+  id             Int           @id @default(autoincrement())
+  name           String
+  icon           String?
+  organizationId Int?
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  vehicleNames   VehicleName[]
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@map("vehicle_types")
+}
+
+model ScrapCategory {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  organizationId Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("scrap_categories")
+}
+
+model VehicleName {
+  id                   String                @id @default(uuid())
+  name                 String
+  vehicleTypeId        Int
+  organizationId       Int
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  condition            String?
+  make                 String?
+  model                String?
+  vehicleId            String?
+  year                 Int?
+  collectorAssignments CollectorAssignment[]
+  organization         Organization          @relation(fields: [organizationId], references: [id])
+  vehicleType          VehicleType           @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([name, vehicleTypeId, organizationId])
+  @@map("vehicle_names")
+}
+
+model CollectorAssignment {
+  id             String       @id @default(uuid())
+  collectorId    String
+  vehicleNameId  String?
+  cityId         Int?
+  organizationId Int
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  city           City?        @relation(fields: [cityId], references: [id])
+  collector      Employee     @relation(fields: [collectorId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  vehicleName    VehicleName? @relation(fields: [vehicleNameId], references: [id])
+
+  @@map("collector_assignments")
+}
+
+model Payment {
+  id             String            @id @default(uuid())
+  orderId        String            @unique
+  customerId     String
+  collectorId    String?
+  amount         Float
+  paymentType    PaymentTypeEnum
+  receiptUrl     String?
+  status         PaymentStatusEnum
+  organizationId Int
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  collector      Employee?         @relation(fields: [collectorId], references: [id])
+  customer       Customer          @relation(fields: [customerId], references: [id])
+  order          Order             @relation(fields: [orderId], references: [id])
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  refund         Refund?
+}
+
+model Refund {
+  id               String   @id @default(uuid())
+  paymentId        String   @unique
+  amount           Float
+  reason           String?
+  processedByAdmin String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  payment          Payment  @relation(fields: [paymentId], references: [id])
+
+  @@map("refunds")
+}
+
+model Review {
+  id             String       @id @default(uuid())
+  orderId        String       @unique
+  customerId     String
+  collectorId    String
+  rating         Int
+  comment        String?
+  organizationId Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  collector      Employee     @relation(fields: [collectorId], references: [id])
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  order          Order        @relation(fields: [orderId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model EmailTemplate {
+  id             String       @id @default(uuid())
+  name           String
+  subject        String
+  body           String
+  variables      Json?
+  organizationId Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("email_templates")
+}
+
+model ChatbotLead {
+  id             String   @id @default(uuid())
+  name           String
+  phone          String
+  vehicleDetails Json
+  location       String?
+  chatLog        Json?
+  leadId         String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lead           Lead?    @relation(fields: [leadId], references: [id])
+
+  @@map("chatbot_leads")
+}
+
+model AIPriceEstimator {
+  id                String               @id @default(uuid())
+  make              String
+  model             String
+  year              Int
+  condition         VehicleConditionEnum
+  location          String?
+  metalMarketRate   Float?
+  estimatedPriceMin Float
+  estimatedPriceMax Float
+  confidenceScore   Float
+  createdAt         DateTime             @default(now())
+
+  @@map("ai_price_estimators")
+}
+
+model AIAutoQuote {
+  id             String            @id @default(uuid())
+  customerId     String?
+  vehicleDetails Json
+  generatedPrice Float
+  respondedVia   QuoteResponseEnum
+  timestamp      DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  @@map("ai_auto_quotes")
+}
+
+model Country {
+  id            Int            @id @default(autoincrement())
+  name          String
+  currency      String
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  organizations Organization[]
+}
+
+model City {
+  id                   Int                   @id @default(autoincrement())
+  name                 String                @unique
+  latitude             Float
+  longitude            Float
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  scrapYardId          String?
+  employees            Employee[]
+  scrapYard            ScrapYard?            @relation(fields: [scrapYardId], references: [id])
+  collectorAssignments CollectorAssignment[]
+
+  @@map("cities")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
+
+enum AdminRoleType {
+  SUPER_ADMIN
+  STAFF_ADMIN
+}
+
+enum CustomerStatus {
+  ACTIVE
+  BLOCKED
+  INACTIVE
+  VIP
+}
+
+enum EmployeeRole {
+  COLLECTOR
+  ADMIN
+  SUPERVISOR
+  ACCOUNTANT
 }
 
 enum VehicleTypeEnum {
@@ -264,56 +537,6 @@ enum LeadStatus {
   REJECTED
 }
 
-model LeadTimeline {
-  id          String   @id @default(uuid())
-  leadId      String
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  activity    String   @db.Text
-  performedBy String? // User ID or system
-  createdAt   DateTime @default(now())
-
-  @@map("lead_timelines")
-}
-
-// ============================================
-// ORDER MANAGEMENT
-// ============================================
-
-model Order {
-  id                  String            @id @default(uuid())
-  leadId              String?           @unique
-  lead                Lead?             @relation(fields: [leadId], references: [id])
-  customerName        String
-  customerPhone       String
-  address             String            @db.Text
-  latitude            Float?
-  longitude           Float?
-  vehicleDetails      Json // {make, model, year, condition}
-  assignedCollectorId String?
-  assignedCollector   Employee?         @relation(fields: [assignedCollectorId], references: [id])
-  pickupTime          DateTime?
-  orderStatus         OrderStatus
-  paymentStatus       PaymentStatusEnum
-  quotedPrice         Float?
-  actualPrice         Float?
-  yardId              String?
-  yard                ScrapYard?        @relation(fields: [yardId], references: [id])
-  customerNotes       String?           @db.Text
-  adminNotes          String?           @db.Text
-  organizationId      Int
-  organization        Organization      @relation(fields: [organizationId], references: [id])
-  customerId          String?
-  customer            Customer?         @relation(fields: [customerId], references: [id])
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  // Relations
-  payment       Payment?
-  review        Review?
-  pickupRequest PickupRequest?
-  orderTimeline OrderTimeline[]
-}
-
 enum OrderStatus {
   PENDING
   ASSIGNED
@@ -322,179 +545,12 @@ enum OrderStatus {
   CANCELLED
 }
 
-model OrderTimeline {
-  id          String      @id @default(uuid())
-  orderId     String
-  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status      OrderStatus
-  notes       String?     @db.Text
-  performedBy String? // User ID or system
-  createdAt   DateTime    @default(now())
-
-  @@map("order_timelines")
-}
-
-// ============================================
-// PICKUP REQUEST MANAGEMENT
-// ============================================
-
-model PickupRequest {
-  id                String              @id @default(uuid())
-  customerId        String
-  customer          Customer            @relation(fields: [customerId], references: [id])
-  vehicleDetails    Json // Vehicle information
-  pickupAddress     String              @db.Text
-  latitude          Float?
-  longitude         Float?
-  status            PickupRequestStatus
-  assignedTo        String?
-  assignedCollector Employee?           @relation(fields: [assignedTo], references: [id])
-  orderId           String?             @unique
-  order             Order?              @relation(fields: [orderId], references: [id])
-  organizationId    Int
-  organization      Organization        @relation(fields: [organizationId], references: [id])
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-
-  @@map("pickup_requests")
-}
-
 enum PickupRequestStatus {
   PENDING
   ASSIGNED
   IN_TRANSIT
   COMPLETED
   CANCELLED
-}
-
-// ============================================
-// SCRAP YARD MANAGEMENT
-// ============================================
-
-model ScrapYard {
-  id                  String       @id @default(uuid())
-  yardName            String
-  address             String       @db.Text
-  latitude            Float?
-  longitude           Float?
-  assignedEmployeeIds Json? // JSON Array of employee IDs
-  operatingHours      Json? // JSON object for operating hours
-  isActive            Boolean      @default(true)
-  organizationId      Int
-  organization        Organization @relation(fields: [organizationId], references: [id])
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  // Relations
-  employees    Employee[]
-  orders       Order[]
-  cities       City[]
-  vehicleNames VehicleName[]
-
-  @@map("scrap_yards")
-}
-
-// ============================================
-// VEHICLE TYPES & SCRAP CATEGORIES (MASTER TABLES)
-// ============================================
-
-model VehicleType {
-  id             Int           @id @default(autoincrement())
-  name           String
-  icon           String? // Icon URL or identifier
-  organizationId Int?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  // Relations
-  vehicleNames   VehicleName[]
-
-  @@unique([name, organizationId])
-  @@map("vehicle_types")
-}
-
-model ScrapCategory {
-  id             String       @id @default(uuid())
-  name           String
-  description    String?      @db.Text
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@map("scrap_categories")
-}
-
-// ============================================
-// VEHICLE NAMES
-// ============================================
-
-model VehicleName {
-  id             String       @id @default(uuid())
-  name           String
-  vehicleTypeId  Int
-  vehicleType    VehicleType  @relation(fields: [vehicleTypeId], references: [id])
-  scrapYardId    String
-  scrapYard      ScrapYard    @relation(fields: [scrapYardId], references: [id])
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  // Relations
-  collectorAssignments CollectorAssignment[]
-
-  @@unique([name, vehicleTypeId, scrapYardId, organizationId])
-  @@map("vehicle_names")
-}
-
-// ============================================
-// COLLECTOR ASSIGNMENTS
-// ============================================
-
-model CollectorAssignment {
-  id             String       @id @default(uuid())
-  collectorId    String
-  collector      Employee     @relation(fields: [collectorId], references: [id])
-  vehicleNameId   String?
-  vehicleName    VehicleName? @relation(fields: [vehicleNameId], references: [id])
-  cityId         Int?
-  city           City?        @relation(fields: [cityId], references: [id])
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@map("collector_assignments")
-}
-
-// ============================================
-// PAYMENT & WALLET MANAGEMENT
-// ============================================
-
-model Payment {
-  id             String            @id @default(uuid())
-  orderId        String            @unique
-  order          Order             @relation(fields: [orderId], references: [id])
-  customerId     String
-  customer       Customer          @relation(fields: [customerId], references: [id])
-  collectorId    String?
-  collector      Employee?         @relation(fields: [collectorId], references: [id])
-  amount         Float
-  paymentType    PaymentTypeEnum
-  receiptUrl     String?
-  status         PaymentStatusEnum
-  organizationId Int
-  organization   Organization      @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-
-  // Relations
-  refund Refund?
 }
 
 enum PaymentTypeEnum {
@@ -510,56 +566,6 @@ enum PaymentStatusEnum {
   REFUNDED
 }
 
-model Refund {
-  id               String   @id @default(uuid())
-  paymentId        String   @unique
-  payment          Payment  @relation(fields: [paymentId], references: [id])
-  amount           Float
-  reason           String?  @db.Text
-  processedByAdmin String? // Admin user ID
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("refunds")
-}
-
-// ============================================
-// RATINGS & REVIEWS
-// ============================================
-
-model Review {
-  id             String       @id @default(uuid())
-  orderId        String       @unique
-  order          Order        @relation(fields: [orderId], references: [id])
-  customerId     String
-  customer       Customer     @relation(fields: [customerId], references: [id])
-  collectorId    String
-  collector      Employee     @relation(fields: [collectorId], references: [id])
-  rating         Int // 1-5
-  comment        String?      @db.Text
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-}
-
-// ============================================
-// NOTIFICATIONS
-// ============================================
-
-model Notification {
-  id        Int              @id @default(autoincrement())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id])
-  title     String
-  message   String           @db.Text
-  type      NotificationType
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-
-  @@map("notifications")
-}
-
 enum NotificationType {
   PICKUP_REQUEST
   PAYMENT_CONFIRMATION
@@ -569,110 +575,8 @@ enum NotificationType {
   REFUND_PROCESSED
 }
 
-// ============================================
-// EMAIL TEMPLATES
-// ============================================
-
-model EmailTemplate {
-  id             String       @id @default(uuid())
-  name           String
-  subject        String
-  body           String       @db.Text
-  variables      Json? // JSON object for template variables
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@map("email_templates")
-}
-
-// ============================================
-// AI & AUTOMATION MODULES
-// ============================================
-
-model ChatbotLead {
-  id             String   @id @default(uuid())
-  name           String
-  phone          String
-  vehicleDetails Json // Vehicle information
-  location       String?  @db.Text
-  chatLog        Json? // JSON array of chat messages
-  leadId         String?  @unique
-  lead           Lead?    @relation(fields: [leadId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@map("chatbot_leads")
-}
-
-model AIPriceEstimator {
-  id                String               @id @default(uuid())
-  make              String
-  model             String
-  year              Int
-  condition         VehicleConditionEnum
-  location          String?              @db.Text
-  metalMarketRate   Float?
-  estimatedPriceMin Float
-  estimatedPriceMax Float
-  confidenceScore   Float // 0-1
-  createdAt         DateTime             @default(now())
-
-  @@map("ai_price_estimators")
-}
-
-model AIAutoQuote {
-  id             String            @id @default(uuid())
-  customerId     String?
-  vehicleDetails Json // Vehicle information
-  generatedPrice Float
-  respondedVia   QuoteResponseEnum
-  timestamp      DateTime          @default(now())
-  createdAt      DateTime          @default(now())
-
-  @@map("ai_auto_quotes")
-}
-
 enum QuoteResponseEnum {
   EMAIL
   SMS
   CHATBOT
-}
-
-// ============================================
-// COUNTRY (EXISTING)
-// ============================================
-
-model Country {
-  id            Int            @id @default(autoincrement())
-  name          String
-  currency      String
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  organizations Organization[]
-}
-
-// ============================================
-// CITY (WORK ZONE)
-// ============================================
-
-model City {
-  id          Int       @id @default(autoincrement())
-  name        String
-  latitude    Float
-  longitude   Float
-  isActive    Boolean   @default(true)
-  scrapYardId String?
-  scrapYard   ScrapYard? @relation(fields: [scrapYardId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  employees            Employee[]
-  collectorAssignments CollectorAssignment[]
-
-  @@unique([name])
-  @@map("cities")
 }

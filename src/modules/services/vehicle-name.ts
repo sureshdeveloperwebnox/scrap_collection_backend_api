@@ -24,21 +24,25 @@ export class VehicleNameService {
         return ApiResult.error("Vehicle type not found", 404);
       }
 
-      // Check if scrap yard exists
-      const scrapYard = await prisma.scrapYard.findUnique({
-        where: { id: data.scrapYardId }
-      });
-
-      if (!scrapYard) {
-        return ApiResult.error("Scrap yard not found", 404);
+      // Auto-generate name from make and model if name is not provided
+      let vehicleName = data.name;
+      if (!vehicleName || vehicleName.trim() === '') {
+        if (data.make && data.model) {
+          vehicleName = `${data.make} ${data.model}`.trim();
+        } else if (data.make) {
+          vehicleName = data.make;
+        } else if (data.model) {
+          vehicleName = data.model;
+        } else {
+          return ApiResult.error("Vehicle name is required. Please provide make and/or model.", 400);
+        }
       }
 
       // Check if vehicle name already exists for this combination
       const existingVehicleName = await prisma.vehicleName.findFirst({
         where: {
-          name: data.name,
+          name: vehicleName,
           vehicleTypeId: data.vehicleTypeId,
-          scrapYardId: data.scrapYardId,
           organizationId: data.organizationId
         }
       });
@@ -47,12 +51,15 @@ export class VehicleNameService {
         return ApiResult.error("Vehicle name with this combination already exists", 400);
       }
 
-      const vehicleName = await prisma.vehicleName.create({
+      const createdVehicleName = await prisma.vehicleName.create({
         data: {
           organizationId: data.organizationId,
-          name: data.name,
+          name: vehicleName,
           vehicleTypeId: data.vehicleTypeId,
-          scrapYardId: data.scrapYardId,
+          make: data.make || null,
+          model: data.model || null,
+          year: data.year || null,
+          vehicleId: data.vehicleId, // Required field
           isActive: data.isActive ?? true
         },
         include: {
@@ -61,13 +68,6 @@ export class VehicleNameService {
               id: true,
               name: true,
               icon: true
-            }
-          },
-          scrapYard: {
-            select: {
-              id: true,
-              yardName: true,
-              address: true
             }
           },
           organization: {
@@ -81,7 +81,7 @@ export class VehicleNameService {
       // Invalidate vehicle names cache
       cacheService.deletePattern('^vehicle-names:');
 
-      return ApiResult.success(vehicleName, "Vehicle name created successfully", 201);
+      return ApiResult.success(createdVehicleName, "Vehicle name created successfully", 201);
 
     } catch (error: any) {
       console.log("Error in createVehicleName", error);
@@ -91,7 +91,7 @@ export class VehicleNameService {
 
   public async getVehicleNames(query: IVehicleNameQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, isActive, organizationId, vehicleTypeId, scrapYardId, sortBy = 'createdAt', sortOrder = 'desc' } = query as any;
+      const { page = 1, limit = 10, search, isActive, organizationId, vehicleTypeId, sortBy = 'createdAt', sortOrder = 'desc' } = query as any;
 
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
@@ -114,7 +114,6 @@ export class VehicleNameService {
         isActive,
         organizationId,
         vehicleTypeId,
-        scrapYardId,
         sortBy,
         sortOrder
       });
@@ -141,10 +140,6 @@ export class VehicleNameService {
         }
       }
 
-      if (scrapYardId !== undefined && scrapYardId !== null && scrapYardId !== '') {
-        where.scrapYardId = scrapYardId;
-      }
-
       if (isActive !== undefined && isActive !== null && isActive !== '') {
         let normalizedIsActive: boolean | undefined;
         if (typeof isActive === 'boolean') {
@@ -166,7 +161,9 @@ export class VehicleNameService {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
           { vehicleType: { name: { contains: search, mode: 'insensitive' } } },
-          { scrapYard: { yardName: { contains: search, mode: 'insensitive' } } }
+          { make: { contains: search, mode: 'insensitive' } },
+          { model: { contains: search, mode: 'insensitive' } },
+          { vehicleId: { contains: search, mode: 'insensitive' } }
         ];
       }
 
@@ -190,13 +187,6 @@ export class VehicleNameService {
                 id: true,
                 name: true,
                 icon: true
-              }
-            },
-            scrapYard: {
-              select: {
-                id: true,
-                yardName: true,
-                address: true
               }
             },
             organization: {
@@ -249,13 +239,6 @@ export class VehicleNameService {
               icon: true
             }
           },
-          scrapYard: {
-            select: {
-              id: true,
-              yardName: true,
-              address: true
-            }
-          },
           organization: {
             select: {
               name: true
@@ -297,28 +280,15 @@ export class VehicleNameService {
         }
       }
 
-      // Check if scrap yard exists (if being updated)
-      if (data.scrapYardId) {
-        const scrapYard = await prisma.scrapYard.findUnique({
-          where: { id: data.scrapYardId }
-        });
-
-        if (!scrapYard) {
-          return ApiResult.error("Scrap yard not found", 404);
-        }
-      }
-
-      // If name, vehicleTypeId, or scrapYardId is being updated, check for duplicates
+      // If name or vehicleTypeId is being updated, check for duplicates
       const finalVehicleTypeId = data.vehicleTypeId ?? existingVehicleName.vehicleTypeId;
-      const finalScrapYardId = data.scrapYardId ?? existingVehicleName.scrapYardId;
       const finalName = data.name ?? existingVehicleName.name;
 
-      if (data.name || data.vehicleTypeId || data.scrapYardId) {
+      if (data.name || data.vehicleTypeId) {
         const duplicateVehicleName = await prisma.vehicleName.findFirst({
           where: {
             name: finalName,
             vehicleTypeId: finalVehicleTypeId,
-            scrapYardId: finalScrapYardId,
             organizationId: existingVehicleName.organizationId,
             id: { not: id }
           }
@@ -334,7 +304,10 @@ export class VehicleNameService {
         data: {
           name: data.name,
           vehicleTypeId: data.vehicleTypeId,
-          scrapYardId: data.scrapYardId,
+          make: data.make !== undefined ? (data.make || null) : undefined,
+          model: data.model !== undefined ? (data.model || null) : undefined,
+          year: data.year !== undefined ? (data.year || null) : undefined,
+          vehicleId: data.vehicleId !== undefined ? (data.vehicleId || null) : undefined,
           isActive: data.isActive
         },
         include: {
@@ -343,13 +316,6 @@ export class VehicleNameService {
               id: true,
               name: true,
               icon: true
-            }
-          },
-          scrapYard: {
-            select: {
-              id: true,
-              yardName: true,
-              address: true
             }
           },
           organization: {

@@ -7,13 +7,11 @@ export interface IVehicleName {
     name: string;
     icon?: string;
   };
-  scrapYardId: string;
-  scrapYard?: {
-    id: string;
-    yardName: string;
-    address: string;
-  };
   organizationId: number;
+  make?: string;
+  model?: string;
+  year?: number;
+  vehicleId?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -21,16 +19,23 @@ export interface IVehicleName {
 
 export interface ICreateVehicleNameRequest {
   organizationId: number;
-  name: string;
+  name?: string; // Optional - will be auto-generated from make and model if not provided
   vehicleTypeId: number;
-  scrapYardId: string;
+  make?: string;
+  model?: string;
+  condition?: string;
+  year?: number;
+  vehicleId: string; // Required
   isActive?: boolean;
 }
 
 export interface IUpdateVehicleNameRequest {
   name?: string;
   vehicleTypeId?: number;
-  scrapYardId?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  vehicleId?: string;
   isActive?: boolean;
 }
 
@@ -41,7 +46,6 @@ export interface IVehicleNameQueryParams {
   isActive?: boolean;
   organizationId?: number;
   vehicleTypeId?: number;
-  scrapYardId?: string;
   sortBy?: 'name' | 'isActive' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
 }
