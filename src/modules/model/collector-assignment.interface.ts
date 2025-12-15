@@ -34,6 +34,7 @@ export interface ICreateCollectorAssignmentRequest {
   collectorId: string;
   vehicleNameId?: string;
   cityId?: number;
+  scrapYardId?: string;
   isActive?: boolean;
 }
 

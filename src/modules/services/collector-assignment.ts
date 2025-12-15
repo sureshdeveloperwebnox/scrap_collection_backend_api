@@ -44,80 +44,187 @@ export class CollectorAssignmentService {
         }
       }
 
-      // Check if city exists (if provided)
-      if (data.cityId) {
-        const city = await prisma.city.findUnique({
-          where: { id: data.cityId }
+      // Check if scrap yard exists (if provided)
+      if (data.scrapYardId) {
+        const scrapYard = await prisma.scrapYard.findUnique({
+          where: { id: data.scrapYardId }
         });
 
-        if (!city) {
-          return ApiResult.error("City not found", 404);
+        if (!scrapYard) {
+          return ApiResult.error("Scrap yard not found", 404);
+        }
+
+        if (!scrapYard.isActive) {
+          return ApiResult.error("Cannot assign to inactive scrap yard", 400);
         }
       }
 
       // Check if at least one assignment is provided
-      if (!data.vehicleNameId && !data.cityId) {
-        return ApiResult.error("Either vehicleNameId or cityId must be provided", 400);
+      if (!data.vehicleNameId && !data.cityId && !data.scrapYardId) {
+        return ApiResult.error("Either vehicleNameId, cityId, or scrapYardId must be provided", 400);
       }
 
-      // Check if assignment already exists
-      const existingAssignment = await prisma.collectorAssignment.findFirst({
-        where: {
-          collectorId: data.collectorId,
-          vehicleNameId: data.vehicleNameId || null,
-          cityId: data.cityId || null,
-          organizationId: data.organizationId
+      // If scrapYardId is provided, update the collector's scrapYardId
+      if (data.scrapYardId) {
+        await prisma.employee.update({
+          where: { id: data.collectorId },
+          data: { scrapYardId: data.scrapYardId }
+        });
+      }
+
+      // Check if assignment already exists (only if creating a vehicle/city assignment)
+      if (data.vehicleNameId || data.cityId) {
+        const existingAssignment = await prisma.collectorAssignment.findFirst({
+          where: {
+            collectorId: data.collectorId,
+            vehicleNameId: data.vehicleNameId || null,
+            cityId: data.cityId || null,
+            organizationId: data.organizationId
+          }
+        });
+
+        if (existingAssignment) {
+          return ApiResult.error("This assignment already exists", 400);
         }
-      });
-
-      if (existingAssignment) {
-        return ApiResult.error("This assignment already exists", 400);
       }
 
-      const assignment = await prisma.collectorAssignment.create({
-        data: {
-          organizationId: data.organizationId,
-          collectorId: data.collectorId,
-          vehicleNameId: data.vehicleNameId || null,
-          cityId: data.cityId || null,
-          isActive: data.isActive ?? true
-        },
-        include: {
-          collector: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phone: true
-            }
+      // Create assignment record only if vehicle or city is involved
+      // If only scrap yard is assigned, we just return the updated collector info
+      let assignment;
+
+      if (data.vehicleNameId || data.cityId) {
+        assignment = await prisma.collectorAssignment.create({
+          data: {
+            organizationId: data.organizationId,
+            collectorId: data.collectorId,
+            vehicleNameId: data.vehicleNameId || null,
+            cityId: data.cityId || null,
+            isActive: data.isActive ?? true
           },
-          vehicleName: {
-            select: {
-              id: true,
-              name: true,
-              vehicleType: {
-                select: {
-                  id: true,
-                  name: true
+          include: {
+            collector: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phone: true,
+                scrapYard: {
+                  select: {
+                    id: true,
+                    yardName: true,
+                    address: true
+                  }
                 }
               }
-            }
-          },
-          city: {
-            select: {
-              id: true,
-              name: true,
-              latitude: true,
-              longitude: true
-            }
-          },
-          organization: {
-            select: {
-              name: true
+            },
+            vehicleName: {
+              select: {
+                id: true,
+                name: true,
+                vehicleType: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
+              }
+            },
+            city: {
+              select: {
+                id: true,
+                name: true,
+                latitude: true,
+                longitude: true
+              }
+            },
+            organization: {
+              select: {
+                name: true
+              }
             }
           }
-        }
-      });
+        });
+      } else {
+        // If only scrap yard was assigned, we construct a mock assignment object to return
+        // or we fetch the collector details to return consistent structure
+        // However, the frontend expects an assignment object. 
+        // But wait, if we don't create a CollectorAssignment record, it won't show up in the assignments list.
+        // The user wants it to show up in the assignments list.
+        // But CollectorAssignment doesn't have scrapYardId.
+        // If the user selects ONLY a scrap yard, and we don't create a CollectorAssignment, 
+        // then it won't appear in the "Assignments" tab which iterates over `assignments`.
+
+        // If the user wants it to appear in Assignments tab, we might need to create a dummy assignment?
+        // Or maybe the user ALWAYS assigns a vehicle?
+        // The UI says "Vehicle (Optional)".
+
+        // If I create a CollectorAssignment with null vehicle and null city, it might be valid?
+        // The schema says vehicleNameId and cityId are optional.
+        // Let's check schema:
+        // vehicleNameId  String?
+        // cityId         Int?
+
+        // So yes, we can create a CollectorAssignment with both null if we want to track the "assignment event".
+        // But `CollectorAssignment` doesn't store the scrap yard. 
+        // If we create one with both null, it's an "empty" assignment record.
+
+        // However, the user said "in collectors assignments table the workzone was not seen... the zone was scrap yard".
+        // This implies they want to see the scrap yard in the table.
+        // If I create an assignment with null vehicle/city, but the collector has a scrap yard, 
+        // I can display the scrap yard in the table.
+
+        assignment = await prisma.collectorAssignment.create({
+          data: {
+            organizationId: data.organizationId,
+            collectorId: data.collectorId,
+            vehicleNameId: data.vehicleNameId || null,
+            cityId: data.cityId || null,
+            isActive: data.isActive ?? true
+          },
+          include: {
+            collector: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phone: true,
+                scrapYard: {
+                  select: {
+                    id: true,
+                    yardName: true,
+                    address: true
+                  }
+                }
+              }
+            },
+            vehicleName: {
+              select: {
+                id: true,
+                name: true,
+                vehicleType: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
+              }
+            },
+            city: {
+              select: {
+                id: true,
+                name: true,
+                latitude: true,
+                longitude: true
+              }
+            },
+            organization: {
+              select: {
+                name: true
+              }
+            }
+          }
+        });
+      }
 
       // Invalidate collector assignments cache
       cacheService.deletePattern('^collector-assignments:');
@@ -137,7 +244,7 @@ export class CollectorAssignmentService {
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
-      
+
       if (parsedPage < 1) {
         return ApiResult.error("Page must be greater than 0", 400);
       }
@@ -236,7 +343,14 @@ export class CollectorAssignmentService {
                 id: true,
                 fullName: true,
                 email: true,
-                phone: true
+                phone: true,
+                scrapYard: {
+                  select: {
+                    id: true,
+                    yardName: true,
+                    address: true
+                  }
+                }
               }
             },
             vehicleName: {
@@ -307,7 +421,14 @@ export class CollectorAssignmentService {
               id: true,
               fullName: true,
               email: true,
-              phone: true
+              phone: true,
+              scrapYard: {
+                select: {
+                  id: true,
+                  yardName: true,
+                  address: true
+                }
+              }
             }
           },
           vehicleName: {
@@ -424,7 +545,14 @@ export class CollectorAssignmentService {
               id: true,
               fullName: true,
               email: true,
-              phone: true
+              phone: true,
+              scrapYard: {
+                select: {
+                  id: true,
+                  yardName: true,
+                  address: true
+                }
+              }
             }
           },
           vehicleName: {
