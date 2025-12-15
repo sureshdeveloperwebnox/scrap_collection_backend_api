@@ -19,6 +19,9 @@ export const createVehicleNameSchema = Joi.object({
   model: Joi.string().max(50).optional().allow('', null).messages({
     'string.max': 'Model cannot exceed 50 characters'
   }),
+  condition: Joi.string().valid('JUNK', 'DAMAGED', 'WRECKED', 'ACCIDENTAL', 'FULLY_SCRAP').optional().allow('', null).messages({
+    'any.only': 'Condition must be one of: JUNK, DAMAGED, WRECKED, ACCIDENTAL, FULLY_SCRAP'
+  }),
   year: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null).messages({
     'number.min': 'Year must be 1900 or later',
     'number.max': `Year cannot exceed ${new Date().getFullYear() + 1}`
@@ -47,6 +50,9 @@ export const updateVehicleNameSchema = Joi.object({
   }),
   model: Joi.string().max(50).optional().allow('', null).messages({
     'string.max': 'Model cannot exceed 50 characters'
+  }),
+  condition: Joi.string().valid('JUNK', 'DAMAGED', 'WRECKED', 'ACCIDENTAL', 'FULLY_SCRAP').optional().allow('', null).messages({
+    'any.only': 'Condition must be one of: JUNK, DAMAGED, WRECKED, ACCIDENTAL, FULLY_SCRAP'
   }),
   year: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null).messages({
     'number.min': 'Year must be 1900 or later',

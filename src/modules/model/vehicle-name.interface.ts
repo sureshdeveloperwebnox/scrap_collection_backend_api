@@ -10,6 +10,7 @@ export interface IVehicleName {
   organizationId: number;
   make?: string;
   model?: string;
+  condition?: string;
   year?: number;
   vehicleId?: string;
   isActive: boolean;
@@ -34,6 +35,7 @@ export interface IUpdateVehicleNameRequest {
   vehicleTypeId?: number;
   make?: string;
   model?: string;
+  condition?: string;
   year?: number;
   vehicleId?: string;
   isActive?: boolean;

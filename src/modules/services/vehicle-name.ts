@@ -58,6 +58,7 @@ export class VehicleNameService {
           vehicleTypeId: data.vehicleTypeId,
           make: data.make || null,
           model: data.model || null,
+          condition: data.condition || null,
           year: data.year || null,
           vehicleId: data.vehicleId, // Required field
           isActive: data.isActive ?? true
@@ -163,6 +164,7 @@ export class VehicleNameService {
           { vehicleType: { name: { contains: search, mode: 'insensitive' } } },
           { make: { contains: search, mode: 'insensitive' } },
           { model: { contains: search, mode: 'insensitive' } },
+          { condition: { contains: search, mode: 'insensitive' } },
           { vehicleId: { contains: search, mode: 'insensitive' } }
         ];
       }
@@ -306,6 +308,7 @@ export class VehicleNameService {
           vehicleTypeId: data.vehicleTypeId,
           make: data.make !== undefined ? (data.make || null) : undefined,
           model: data.model !== undefined ? (data.model || null) : undefined,
+          condition: data.condition !== undefined ? (data.condition || null) : undefined,
           year: data.year !== undefined ? (data.year || null) : undefined,
           vehicleId: data.vehicleId !== undefined ? (data.vehicleId || null) : undefined,
           isActive: data.isActive
