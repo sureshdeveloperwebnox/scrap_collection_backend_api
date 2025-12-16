@@ -24,13 +24,15 @@ export class VehicleNameService {
         return ApiResult.error("Vehicle type not found", 404);
       }
 
-      // Check if scrap yard exists
-      const scrapYard = await prisma.scrapYard.findUnique({
-        where: { id: data.scrapYardId }
-      });
+      // Check if scrap yard exists (if provided)
+      if (data.scrapYardId) {
+        const scrapYard = await prisma.scrapYard.findUnique({
+          where: { id: data.scrapYardId }
+        });
 
-      if (!scrapYard) {
-        return ApiResult.error("Scrap yard not found", 404);
+        if (!scrapYard) {
+          return ApiResult.error("Scrap yard not found", 404);
+        }
       }
 
       // Check if vehicle name already exists for this combination
@@ -38,13 +40,12 @@ export class VehicleNameService {
         where: {
           name: data.name,
           vehicleTypeId: data.vehicleTypeId,
-          scrapYardId: data.scrapYardId,
           organizationId: data.organizationId
         }
       });
 
       if (existingVehicleName) {
-        return ApiResult.error("Vehicle name with this combination already exists", 400);
+        return ApiResult.error("Vehicle name already exists in this organization", 400);
       }
 
       const vehicleName = await prisma.vehicleName.create({
@@ -96,7 +97,7 @@ export class VehicleNameService {
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
-      
+
       if (parsedPage < 1) {
         return ApiResult.error("Page must be greater than 0", 400);
       }
@@ -308,24 +309,22 @@ export class VehicleNameService {
         }
       }
 
-      // If name, vehicleTypeId, or scrapYardId is being updated, check for duplicates
+      // If name or vehicleTypeId is being updated, check for duplicates
       const finalVehicleTypeId = data.vehicleTypeId ?? existingVehicleName.vehicleTypeId;
-      const finalScrapYardId = data.scrapYardId ?? existingVehicleName.scrapYardId;
       const finalName = data.name ?? existingVehicleName.name;
 
-      if (data.name || data.vehicleTypeId || data.scrapYardId) {
+      if (data.name || data.vehicleTypeId) {
         const duplicateVehicleName = await prisma.vehicleName.findFirst({
           where: {
             name: finalName,
             vehicleTypeId: finalVehicleTypeId,
-            scrapYardId: finalScrapYardId,
             organizationId: existingVehicleName.organizationId,
             id: { not: id }
           }
         });
 
         if (duplicateVehicleName) {
-          return ApiResult.error("Vehicle name with this combination already exists", 400);
+          return ApiResult.error("Vehicle name already exists in this organization", 400);
         }
       }
 

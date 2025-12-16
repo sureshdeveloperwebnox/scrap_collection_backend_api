@@ -7,7 +7,7 @@ export interface IVehicleName {
     name: string;
     icon?: string;
   };
-  scrapYardId: string;
+  scrapYardId?: string;
   scrapYard?: {
     id: string;
     yardName: string;
@@ -23,7 +23,7 @@ export interface ICreateVehicleNameRequest {
   organizationId: number;
   name: string;
   vehicleTypeId: number;
-  scrapYardId: string;
+  scrapYardId?: string;
   isActive?: boolean;
 }
 

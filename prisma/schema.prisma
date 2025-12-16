@@ -455,8 +455,8 @@ model VehicleName {
   name           String
   vehicleTypeId  Int
   vehicleType    VehicleType  @relation(fields: [vehicleTypeId], references: [id])
-  scrapYardId    String
-  scrapYard      ScrapYard    @relation(fields: [scrapYardId], references: [id])
+  scrapYardId    String?
+  scrapYard      ScrapYard?   @relation(fields: [scrapYardId], references: [id])
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id])
   isActive       Boolean      @default(true)
@@ -466,7 +466,7 @@ model VehicleName {
   // Relations
   collectorAssignments CollectorAssignment[]
 
-  @@unique([name, vehicleTypeId, scrapYardId, organizationId])
+  @@unique([name, vehicleTypeId, organizationId])
   @@map("vehicle_names")
 }
 

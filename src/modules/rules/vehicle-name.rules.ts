@@ -14,9 +14,8 @@ export const createVehicleNameSchema = Joi.object({
     'number.positive': 'Vehicle type ID must be a positive number',
     'any.required': 'Vehicle type ID is required'
   }),
-  scrapYardId: Joi.string().uuid().required().messages({
-    'string.guid': 'Scrap yard ID must be a valid UUID',
-    'any.required': 'Scrap yard ID is required'
+  scrapYardId: Joi.string().uuid().optional().messages({
+    'string.guid': 'Scrap yard ID must be a valid UUID'
   }),
   isActive: Joi.boolean().default(true).messages({
     'boolean.base': 'isActive must be a boolean value'
