@@ -12,6 +12,8 @@ export * from './pickup-request.controller';
 export * from './payment.controller';
 export * from './review.controller';
 export * from './scrapyard.controller';
+export * from './scrap-category.controller';
+export * from './scrap-name.controller';
 export * from './upload.controller';
 export * from './city.controller';
 export * from './role.controller';

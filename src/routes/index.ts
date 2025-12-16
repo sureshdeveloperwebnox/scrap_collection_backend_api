@@ -1,11 +1,11 @@
 import { Express, Router } from 'express';
 import { attachControllers } from './api.routes';
-import { 
-  AuthController, 
-  CountryController, 
-  CustomerController, 
-  HelloController, 
-  LeadController, 
+import {
+  AuthController,
+  CountryController,
+  CustomerController,
+  HelloController,
+  LeadController,
   VehicleTypeController,
   VehicleNameController,
   CollectorAssignmentController,
@@ -15,6 +15,8 @@ import {
   PaymentController,
   ReviewController,
   ScrapYardController,
+  ScrapCategoryController,
+  ScrapNameController,
   UploadController,
   CityController,
   RoleController
@@ -23,7 +25,7 @@ import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
 export const combineRouters = (app: Express) => {
   const apiRouter = Router();
-  
+
   attachControllers(
     apiRouter,
     [
@@ -41,6 +43,8 @@ export const combineRouters = (app: Express) => {
       PaymentController,
       ReviewController,
       ScrapYardController,
+      ScrapCategoryController,
+      ScrapNameController,
       UploadController,
       CityController,
       RoleController
@@ -52,6 +56,6 @@ export const combineRouters = (app: Express) => {
       },
     }
   );
-  
+
   app.use('/api/v1', apiRouter);
 };

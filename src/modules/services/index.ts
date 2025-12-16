@@ -11,4 +11,6 @@ export * from './pickup-request';
 export * from './payment';
 export * from './review';
 export * from './scrapyard';
+export * from './scrap-category';
+export * from './scrap-name';
 export * from './city';

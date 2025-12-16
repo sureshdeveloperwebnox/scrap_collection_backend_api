@@ -91,6 +91,7 @@ model Organization {
   pickupRequests       PickupRequest[]
   emailTemplates       EmailTemplate[]
   scrapCategories      ScrapCategory[]
+  scrapNames           ScrapName[]
   collectorAssignments CollectorAssignment[]
 }
 
@@ -424,7 +425,25 @@ model ScrapCategory {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Relations
+  scrapNames ScrapName[]
+
   @@map("scrap_categories")
+}
+
+model ScrapName {
+  id              String       @id @default(uuid())
+  name            String
+  scrapCategoryId String
+  scrapCategory   ScrapCategory @relation(fields: [scrapCategoryId], references: [id])
+  organizationId  Int
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([name, scrapCategoryId, organizationId])
+  @@map("scrap_names")
 }
 
 // ============================================
