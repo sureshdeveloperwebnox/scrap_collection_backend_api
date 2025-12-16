@@ -33,7 +33,7 @@ export class VehicleTypeService {
         data: {
           organizationId: data.organizationId,
           name: data.name,
-          icon: data.icon,
+
           isActive: data.isActive ?? true
         },
         include: {
@@ -64,7 +64,7 @@ export class VehicleTypeService {
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
-      
+
       if (parsedPage < 1) {
         return ApiResult.error("Page must be greater than 0", 400);
       }
