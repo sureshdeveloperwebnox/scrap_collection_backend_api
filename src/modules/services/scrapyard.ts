@@ -31,7 +31,7 @@ export class ScrapYardService {
 
   public async getScrapYards(query: IScrapYardQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, organizationId } = query as any;
+      const { page = 1, limit = 10, search, organizationId, status } = query as any;
 
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -41,6 +41,16 @@ export class ScrapYardService {
 
       if (organizationId) {
         where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
+      }
+
+      // Add status filter
+      if (status !== undefined && status !== null && status !== '') {
+        // Convert string 'true'/'false' to boolean
+        if (status === 'true' || status === true) {
+          where.isActive = true;
+        } else if (status === 'false' || status === false) {
+          where.isActive = false;
+        }
       }
 
       if (search) {
@@ -70,14 +80,14 @@ export class ScrapYardService {
       const scrapYardsWithEmployees = await Promise.all(
         scrapYards.map(async (yard) => {
           let assignedEmployees: any[] = [];
-          
+
           // Parse assignedEmployeeIds from JSON
           if (yard.assignedEmployeeIds) {
             try {
-              const employeeIds = Array.isArray(yard.assignedEmployeeIds) 
-                ? yard.assignedEmployeeIds 
+              const employeeIds = Array.isArray(yard.assignedEmployeeIds)
+                ? yard.assignedEmployeeIds
                 : JSON.parse(yard.assignedEmployeeIds as string);
-              
+
               if (Array.isArray(employeeIds) && employeeIds.length > 0) {
                 // Fetch employees by their IDs
                 assignedEmployees = await prisma.employee.findMany({
@@ -143,13 +153,13 @@ export class ScrapYardService {
 
       // Fetch assigned employees (managers) based on assignedEmployeeIds
       let assignedEmployees: any[] = [];
-      
+
       if (scrapYard.assignedEmployeeIds) {
         try {
-          const employeeIds = Array.isArray(scrapYard.assignedEmployeeIds) 
-            ? scrapYard.assignedEmployeeIds 
+          const employeeIds = Array.isArray(scrapYard.assignedEmployeeIds)
+            ? scrapYard.assignedEmployeeIds
             : JSON.parse(scrapYard.assignedEmployeeIds as string);
-          
+
           if (Array.isArray(employeeIds) && employeeIds.length > 0) {
             assignedEmployees = await prisma.employee.findMany({
               where: {
