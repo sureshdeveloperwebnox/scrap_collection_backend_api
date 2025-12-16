@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VehicleTypeService = void 0;
 const config_1 = require("../../config");
 const api_result_1 = require("../../utils/api-result");
+const cache_1 = require("../../utils/cache");
 class VehicleTypeService {
     async createVehicleType(data) {
         var _a;
@@ -30,7 +31,6 @@ class VehicleTypeService {
                 data: {
                     organizationId: data.organizationId,
                     name: data.name,
-                    icon: data.icon,
                     isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
                 },
                 include: {
@@ -41,6 +41,9 @@ class VehicleTypeService {
                     }
                 }
             });
+            // Invalidate vehicle types cache and stats cache
+            cache_1.cacheService.deletePattern('^vehicle-types:');
+            cache_1.cacheService.deletePattern('^vehicle-type-stats:');
             return api_result_1.ApiResult.success(vehicleType, "Vehicle type created successfully", 201);
         }
         catch (error) {
@@ -50,11 +53,32 @@ class VehicleTypeService {
     }
     async getVehicleTypes(query) {
         try {
-            const { page = 1, limit = 10, search, isActive, organizationId } = query;
-            // Coerce pagination to numbers
+            const { page = 1, limit = 10, search, isActive, organizationId, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+            // Validate pagination
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
+            if (parsedPage < 1) {
+                return api_result_1.ApiResult.error("Page must be greater than 0", 400);
+            }
+            if (parsedLimit < 1 || parsedLimit > 100) {
+                return api_result_1.ApiResult.error("Limit must be between 1 and 100", 400);
+            }
             const skip = (parsedPage - 1) * parsedLimit;
+            // Generate cache key
+            const cacheKey = cache_1.cacheService.generateKey('vehicle-types', {
+                page: parsedPage,
+                limit: parsedLimit,
+                search,
+                isActive,
+                organizationId,
+                sortBy,
+                sortOrder
+            });
+            // Try to get from cache
+            const cachedResult = cache_1.cacheService.get(cacheKey);
+            if (cachedResult) {
+                return api_result_1.ApiResult.success(cachedResult, "Vehicle types retrieved successfully (cached)");
+            }
             const where = {};
             // Coerce organizationId to number if present
             if (organizationId !== undefined && organizationId !== null && organizationId !== '') {
@@ -88,6 +112,13 @@ class VehicleTypeService {
                     { name: { contains: search, mode: 'insensitive' } }
                 ];
             }
+            // Validate sort fields
+            const validSortFields = ['name', 'isActive', 'createdAt', 'updatedAt'];
+            const validSortOrder = ['asc', 'desc'];
+            const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+            const finalSortOrder = validSortOrder.includes(sortOrder.toLowerCase()) ? sortOrder.toLowerCase() : 'desc';
+            const orderBy = {};
+            orderBy[finalSortBy] = finalSortOrder;
             const [vehicleTypes, total] = await Promise.all([
                 config_1.prisma.vehicleType.findMany({
                     where,
@@ -100,22 +131,27 @@ class VehicleTypeService {
                             }
                         }
                     },
-                    orderBy: {
-                        createdAt: 'desc'
-                    }
+                    orderBy
                 }),
                 config_1.prisma.vehicleType.count({ where })
             ]);
             const totalPages = Math.ceil(total / parsedLimit);
-            return api_result_1.ApiResult.success({
+            const hasNextPage = parsedPage < totalPages;
+            const hasPreviousPage = parsedPage > 1;
+            const result = {
                 vehicleTypes,
                 pagination: {
                     page: parsedPage,
                     limit: parsedLimit,
                     total,
-                    totalPages
+                    totalPages,
+                    hasNextPage,
+                    hasPreviousPage
                 }
-            }, "Vehicle types retrieved successfully");
+            };
+            // Cache the result for 3 minutes
+            cache_1.cacheService.set(cacheKey, result, 3 * 60 * 1000);
+            return api_result_1.ApiResult.success(result, "Vehicle types retrieved successfully");
         }
         catch (error) {
             console.log("Error in getVehicleTypes", error);
@@ -176,6 +212,9 @@ class VehicleTypeService {
                     }
                 }
             });
+            // Invalidate vehicle types cache and stats cache
+            cache_1.cacheService.deletePattern('^vehicle-types:');
+            cache_1.cacheService.deletePattern('^vehicle-type-stats:');
             return api_result_1.ApiResult.success(vehicleType, "Vehicle type updated successfully");
         }
         catch (error) {
@@ -199,6 +238,9 @@ class VehicleTypeService {
             await config_1.prisma.vehicleType.delete({
                 where: { id }
             });
+            // Invalidate vehicle types cache and stats cache
+            cache_1.cacheService.deletePattern('^vehicle-types:');
+            cache_1.cacheService.deletePattern('^vehicle-type-stats:');
             return api_result_1.ApiResult.success(null, "Vehicle type deleted successfully");
         }
         catch (error) {
@@ -208,6 +250,13 @@ class VehicleTypeService {
     }
     async getVehicleTypeStats(organizationId) {
         try {
+            // Build cache key for stats
+            const cacheKey = cache_1.cacheService.generateKey('vehicle-type-stats', { organizationId });
+            // Try to get from cache
+            const cachedResult = cache_1.cacheService.get(cacheKey);
+            if (cachedResult) {
+                return api_result_1.ApiResult.success(cachedResult, "Vehicle type statistics retrieved successfully (cached)");
+            }
             const stats = await config_1.prisma.vehicleType.groupBy({
                 by: ['isActive'],
                 where: { organizationId },
@@ -231,6 +280,8 @@ class VehicleTypeService {
                     statsMap.inactive = stat._count.isActive;
                 }
             });
+            // Cache the result for 2 minutes
+            cache_1.cacheService.set(cacheKey, statsMap, 2 * 60 * 1000);
             return api_result_1.ApiResult.success(statsMap, "Vehicle type statistics retrieved successfully");
         }
         catch (error) {

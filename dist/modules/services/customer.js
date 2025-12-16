@@ -24,6 +24,14 @@ class CustomerService {
             if (existingCustomer) {
                 return api_result_1.ApiResult.error("Customer already exists for this phone in this organization", 400);
             }
+            // Validate accountStatus if provided, otherwise default to ACTIVE
+            let accountStatus = enum_1.CustomerStatus.ACTIVE;
+            if (data.accountStatus) {
+                const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+                if (validStatuses.includes(data.accountStatus.toUpperCase())) {
+                    accountStatus = data.accountStatus.toUpperCase();
+                }
+            }
             const customer = await config_1.prisma.customer.create({
                 data: {
                     organizationId: data.organizationId,
@@ -33,8 +41,14 @@ class CustomerService {
                     address: data.address,
                     latitude: data.latitude,
                     longitude: data.longitude,
+                    vehicleType: data.vehicleType,
+                    vehicleMake: data.vehicleMake,
+                    vehicleModel: data.vehicleModel,
+                    vehicleNumber: data.vehicleNumber,
+                    vehicleYear: data.vehicleYear,
+                    vehicleCondition: data.vehicleCondition,
                     userId: data.userId,
-                    accountStatus: enum_1.CustomerStatus.ACTIVE
+                    accountStatus: accountStatus
                 },
                 include: {
                     organization: {
@@ -73,7 +87,11 @@ class CustomerService {
                 where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
             }
             if (accountStatus) {
-                where.accountStatus = accountStatus;
+                // Validate accountStatus is a valid enum value
+                const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+                if (validStatuses.includes(accountStatus.toUpperCase())) {
+                    where.accountStatus = accountStatus.toUpperCase();
+                }
             }
             if (search) {
                 where.OR = [
@@ -180,9 +198,19 @@ class CustomerService {
             if (!existingCustomer) {
                 return api_result_1.ApiResult.error("Customer not found", 404);
             }
+            // Remove organizationId from update data as it's a relation field and cannot be updated directly
+            const { organizationId, ...updateData } = data;
+            // Validate accountStatus if provided
+            if (updateData.accountStatus) {
+                const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
+                if (!validStatuses.includes(updateData.accountStatus.toUpperCase())) {
+                    return api_result_1.ApiResult.error(`Invalid accountStatus. Must be one of: ${validStatuses.join(', ')}`, 400);
+                }
+                updateData.accountStatus = updateData.accountStatus.toUpperCase();
+            }
             const customer = await config_1.prisma.customer.update({
                 where: { id },
-                data,
+                data: updateData,
                 include: {
                     organization: {
                         select: {
@@ -249,11 +277,19 @@ class CustomerService {
             const statsMap = {
                 total: totalCustomers,
                 active: 0,
+                inactive: 0,
+                vip: 0,
                 blocked: 0
             };
             stats.forEach(stat => {
                 if (stat.accountStatus === enum_1.CustomerStatus.ACTIVE) {
                     statsMap.active = stat._count.accountStatus;
+                }
+                else if (stat.accountStatus === enum_1.CustomerStatus.INACTIVE) {
+                    statsMap.inactive = stat._count.accountStatus;
+                }
+                else if (stat.accountStatus === enum_1.CustomerStatus.VIP) {
+                    statsMap.vip = stat._count.accountStatus;
                 }
                 else if (stat.accountStatus === enum_1.CustomerStatus.BLOCKED) {
                     statsMap.blocked = stat._count.accountStatus;

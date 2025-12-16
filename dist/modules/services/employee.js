@@ -10,6 +10,29 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 class EmployeeService {
     async createEmployee(data) {
         try {
+            // Verify role exists
+            const role = await config_1.prisma.role.findUnique({
+                where: { id: data.roleId }
+            });
+            if (!role) {
+                return api_result_1.ApiResult.error("Role not found", 404);
+            }
+            if (!role.isActive) {
+                return api_result_1.ApiResult.error("Cannot assign inactive role to employee", 400);
+            }
+            // Verify city exists if provided
+            if (data.cityId) {
+                const city = await config_1.prisma.city.findUnique({
+                    where: { id: data.cityId }
+                });
+                if (!city) {
+                    return api_result_1.ApiResult.error("City not found", 404);
+                }
+            }
+            // Validate password is provided
+            if (!data.password) {
+                return api_result_1.ApiResult.error("Password is required", 400);
+            }
             const passwordHash = await bcrypt_1.default.hash(data.password, 10);
             const employee = await config_1.prisma.employee.create({
                 data: {
@@ -17,18 +40,18 @@ class EmployeeService {
                     fullName: data.fullName,
                     email: data.email,
                     phone: data.phone,
-                    role: data.role,
-                    workZone: data.workZone,
+                    roleId: data.roleId,
+                    cityId: data.cityId,
                     passwordHash,
-                    profilePhoto: data.profilePhoto,
-                    scrapYardId: data.scrapYardId,
                     isActive: true,
                     completedPickups: 0,
                     rating: 0
                 },
                 include: {
                     organization: true,
-                    scrapYard: true
+                    scrapYard: true,
+                    role: true,
+                    city: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee created successfully", 201);
@@ -40,7 +63,7 @@ class EmployeeService {
     }
     async getEmployees(query) {
         try {
-            const { page = 1, limit = 10, search, role, isActive, organizationId, workZone } = query;
+            const { page = 1, limit = 10, search, roleId, cityId, isActive, organizationId } = query;
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
             const skip = (parsedPage - 1) * parsedLimit;
@@ -48,8 +71,11 @@ class EmployeeService {
             if (organizationId) {
                 where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
             }
-            if (role) {
-                where.role = role;
+            if (roleId) {
+                where.roleId = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+            }
+            if (cityId) {
+                where.cityId = typeof cityId === 'string' ? parseInt(cityId, 10) : cityId;
             }
             if (isActive !== undefined) {
                 // Convert string to boolean if needed
@@ -59,9 +85,6 @@ class EmployeeService {
                 else {
                     where.isActive = Boolean(isActive);
                 }
-            }
-            if (workZone) {
-                where.workZone = workZone;
             }
             if (search) {
                 where.OR = [
@@ -77,7 +100,9 @@ class EmployeeService {
                     take: parsedLimit,
                     include: {
                         organization: true,
-                        scrapYard: true
+                        scrapYard: true,
+                        role: true,
+                        city: true
                     },
                     orderBy: {
                         createdAt: 'desc'
@@ -106,7 +131,9 @@ class EmployeeService {
                 where: { id },
                 include: {
                     organization: true,
-                    scrapYard: true
+                    scrapYard: true,
+                    role: true,
+                    city: true
                 }
             });
             if (!employee) {
@@ -127,6 +154,27 @@ class EmployeeService {
             if (!existingEmployee) {
                 return api_result_1.ApiResult.error("Employee not found", 404);
             }
+            // Verify role exists if being updated
+            if (data.roleId) {
+                const role = await config_1.prisma.role.findUnique({
+                    where: { id: data.roleId }
+                });
+                if (!role) {
+                    return api_result_1.ApiResult.error("Role not found", 404);
+                }
+                if (!role.isActive) {
+                    return api_result_1.ApiResult.error("Cannot assign inactive role to employee", 400);
+                }
+            }
+            // Verify city exists if being updated
+            if (data.cityId !== undefined && data.cityId !== null) {
+                const city = await config_1.prisma.city.findUnique({
+                    where: { id: data.cityId }
+                });
+                if (!city) {
+                    return api_result_1.ApiResult.error("City not found", 404);
+                }
+            }
             const updateData = { ...data };
             if (data.password) {
                 updateData.passwordHash = await bcrypt_1.default.hash(data.password, 10);
@@ -137,7 +185,9 @@ class EmployeeService {
                 data: updateData,
                 include: {
                     organization: true,
-                    scrapYard: true
+                    scrapYard: true,
+                    role: true,
+                    city: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee updated successfully");

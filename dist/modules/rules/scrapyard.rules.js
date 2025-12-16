@@ -11,7 +11,6 @@ exports.createScrapYardSchema = joi_1.default.object({
     address: joi_1.default.string().required(),
     latitude: joi_1.default.number().min(-90).max(90).optional(),
     longitude: joi_1.default.number().min(-180).max(180).optional(),
-    capacity: joi_1.default.number().integer().positive().required(),
     assignedEmployeeIds: joi_1.default.array().items(joi_1.default.string().uuid()).optional(),
     operatingHours: joi_1.default.object().optional()
 });
@@ -20,7 +19,6 @@ exports.updateScrapYardSchema = joi_1.default.object({
     address: joi_1.default.string().optional(),
     latitude: joi_1.default.number().min(-90).max(90).optional(),
     longitude: joi_1.default.number().min(-180).max(180).optional(),
-    capacity: joi_1.default.number().integer().positive().optional(),
     assignedEmployeeIds: joi_1.default.array().items(joi_1.default.string().uuid()).optional(),
     operatingHours: joi_1.default.object().optional()
 });

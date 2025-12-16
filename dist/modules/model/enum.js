@@ -97,6 +97,8 @@ var NotificationType;
 var CustomerStatus;
 (function (CustomerStatus) {
     CustomerStatus["ACTIVE"] = "ACTIVE";
+    CustomerStatus["INACTIVE"] = "INACTIVE";
+    CustomerStatus["VIP"] = "VIP";
     CustomerStatus["BLOCKED"] = "BLOCKED";
 })(CustomerStatus || (exports.CustomerStatus = CustomerStatus = {}));
 var PickupRequestStatus;

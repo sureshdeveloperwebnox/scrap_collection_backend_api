@@ -4,9 +4,21 @@ exports.LeadService = void 0;
 const config_1 = require("../../config");
 const api_result_1 = require("../../utils/api-result");
 const enum_1 = require("../model/enum");
+const cache_1 = require("../../utils/cache");
+const storage_service_1 = require("../../utils/storage.service");
 class LeadService {
+    /**
+     * Normalize photo paths - convert full URLs to relative paths
+     */
+    normalizePhotoPaths(photos) {
+        if (!photos || !Array.isArray(photos))
+            return [];
+        return photos.map(photo => storage_service_1.storageService.getRelativePath(photo));
+    }
     async createLead(data) {
         try {
+            // Normalize photo paths before saving
+            const normalizedPhotos = this.normalizePhotoPaths(data.photos);
             const lead = await config_1.prisma.lead.create({
                 data: {
                     organizationId: data.organizationId,
@@ -22,7 +34,7 @@ class LeadService {
                     latitude: data.latitude,
                     longitude: data.longitude,
                     leadSource: data.leadSource,
-                    photos: data.photos || [],
+                    photos: normalizedPhotos,
                     notes: data.notes,
                     status: enum_1.LeadStatus.NEW,
                     ...(data.customerId && { customerId: data.customerId })
@@ -44,6 +56,9 @@ class LeadService {
                     performedBy: 'system'
                 }
             });
+            // Invalidate leads cache and stats cache
+            cache_1.cacheService.deletePattern('^leads:');
+            cache_1.cacheService.deletePattern('^lead-stats:');
             return api_result_1.ApiResult.success(lead, "Lead created successfully", 201);
         }
         catch (error) {
@@ -53,7 +68,7 @@ class LeadService {
     }
     async getLeads(query) {
         try {
-            const { page = 1, limit = 10, search, status, vehicleType, leadSource, organizationId, dateFrom, dateTo } = query;
+            const { page = 1, limit = 10, search, status, vehicleType, vehicleCondition, leadSource, organizationId, dateFrom, dateTo, sortBy, sortOrder } = query;
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
             const skip = (parsedPage - 1) * parsedLimit;
@@ -66,6 +81,9 @@ class LeadService {
             }
             if (vehicleType) {
                 where.vehicleType = vehicleType;
+            }
+            if (vehicleCondition) {
+                where.vehicleCondition = vehicleCondition;
             }
             if (leadSource) {
                 where.leadSource = leadSource;
@@ -85,6 +103,20 @@ class LeadService {
                     { locationAddress: { contains: search, mode: 'insensitive' } }
                 ];
             }
+            // Build orderBy clause for optimized sorting
+            const orderBy = {};
+            if (sortBy) {
+                const validSortFields = ['fullName', 'phone', 'email', 'status', 'createdAt', 'updatedAt'];
+                if (validSortFields.includes(sortBy)) {
+                    orderBy[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+                }
+                else {
+                    orderBy.createdAt = 'desc'; // Default fallback
+                }
+            }
+            else {
+                orderBy.createdAt = 'desc'; // Default sorting
+            }
             const [leads, total] = await Promise.all([
                 config_1.prisma.lead.findMany({
                     where,
@@ -98,9 +130,7 @@ class LeadService {
                         },
                         customer: true
                     },
-                    orderBy: {
-                        createdAt: 'desc'
-                    }
+                    orderBy
                 }),
                 config_1.prisma.lead.count({ where })
             ]);
@@ -154,11 +184,18 @@ class LeadService {
             // Build update data object, including all provided fields
             const updateData = {};
             // Always update fullName and phone if provided (they are required fields)
+            // These should always be provided in update requests
             if (data.fullName !== undefined && data.fullName !== null) {
-                updateData.fullName = String(data.fullName).trim();
+                const trimmedName = String(data.fullName).trim();
+                if (trimmedName !== '') {
+                    updateData.fullName = trimmedName;
+                }
             }
             if (data.phone !== undefined && data.phone !== null) {
-                updateData.phone = String(data.phone).trim();
+                const trimmedPhone = String(data.phone).trim();
+                if (trimmedPhone !== '' && trimmedPhone !== '+') {
+                    updateData.phone = trimmedPhone;
+                }
             }
             // Include optional fields
             if (data.email !== undefined)
@@ -181,15 +218,25 @@ class LeadService {
                 updateData.longitude = data.longitude;
             if (data.leadSource !== undefined)
                 updateData.leadSource = data.leadSource;
-            if (data.photos !== undefined)
-                updateData.photos = data.photos;
+            if (data.photos !== undefined) {
+                // Normalize photo paths before saving
+                updateData.photos = this.normalizePhotoPaths(data.photos);
+            }
             if (data.notes !== undefined)
                 updateData.notes = data.notes;
             if (data.status !== undefined)
                 updateData.status = data.status;
             // Log for debugging
-            console.log('Update lead - received data:', data);
-            console.log('Update lead - updateData:', updateData);
+            console.log('Update lead - received data:', JSON.stringify(data, null, 2));
+            console.log('Update lead - updateData:', JSON.stringify(updateData, null, 2));
+            // Ensure we have at least one field to update
+            if (Object.keys(updateData).length === 0) {
+                return api_result_1.ApiResult.error("No fields provided for update", 400);
+            }
+            // Ensure fullName and phone are present if they're being updated
+            if (updateData.fullName === undefined && updateData.phone === undefined) {
+                console.warn('Warning: Neither fullName nor phone provided in update');
+            }
             const lead = await config_1.prisma.lead.update({
                 where: { id },
                 data: updateData,
@@ -202,6 +249,7 @@ class LeadService {
                     customer: true
                 }
             });
+            console.log('Update lead - updated lead:', lead);
             // Create timeline entry
             await config_1.prisma.leadTimeline.create({
                 data: {
@@ -210,6 +258,9 @@ class LeadService {
                     performedBy: 'system'
                 }
             });
+            // Invalidate leads cache and stats cache
+            cache_1.cacheService.deletePattern('^leads:');
+            cache_1.cacheService.deletePattern('^lead-stats:');
             return api_result_1.ApiResult.success(lead, "Lead updated successfully");
         }
         catch (error) {
@@ -235,6 +286,9 @@ class LeadService {
             await config_1.prisma.lead.delete({
                 where: { id }
             });
+            // Invalidate leads cache and stats cache
+            cache_1.cacheService.deletePattern('^leads:');
+            cache_1.cacheService.deletePattern('^lead-stats:');
             return api_result_1.ApiResult.success(null, "Lead deleted successfully");
         }
         catch (error) {
@@ -285,6 +339,9 @@ class LeadService {
                 where: { id },
                 data: { status: enum_1.LeadStatus.CONVERTED }
             });
+            // Invalidate leads cache and stats cache
+            cache_1.cacheService.deletePattern('^leads:');
+            cache_1.cacheService.deletePattern('^lead-stats:');
             // Create timeline entries
             await config_1.prisma.leadTimeline.create({
                 data: {
@@ -325,6 +382,14 @@ class LeadService {
     }
     async getLeadStats(organizationId) {
         try {
+            // Build cache key for stats
+            const cacheKey = cache_1.cacheService.generateKey('lead-stats', { organizationId });
+            // Try to get from cache
+            const cachedResult = cache_1.cacheService.get(cacheKey);
+            if (cachedResult) {
+                return api_result_1.ApiResult.success(cachedResult, "Lead statistics retrieved successfully (cached)");
+            }
+            // Fetch stats from database
             const stats = await config_1.prisma.lead.groupBy({
                 by: ['status'],
                 where: { organizationId },
@@ -346,6 +411,8 @@ class LeadService {
             stats.forEach(stat => {
                 statsMap[stat.status.toLowerCase()] = stat._count.status;
             });
+            // Cache the result for 2 minutes (stats change frequently)
+            cache_1.cacheService.set(cacheKey, statsMap, 2 * 60 * 1000);
             return api_result_1.ApiResult.success(statsMap, "Lead statistics retrieved successfully");
         }
         catch (error) {
