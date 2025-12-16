@@ -5,7 +5,7 @@ import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
 import { VehicleNameService } from '../services/vehicle-name';
-import { 
+import {
   createVehicleNameSchema,
   updateVehicleNameSchema,
   vehicleNameQuerySchema,
@@ -80,6 +80,21 @@ export class VehicleNameController {
       result.send(res);
     } catch (error) {
       console.log("Error in deleteVehicleName", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
+  }
+  @GET('/stats/:organizationId')
+  public async getVehicleNameStats(req: Request, res: Response): Promise<void> {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        ApiResult.error("Invalid organization ID", 400).send(res);
+        return;
+      }
+      const result = await this.vehicleNameService.getVehicleNameStats(organizationId);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getVehicleNameStats", error);
       ApiResult.error((error as any).message, 500).send(res);
     }
   }

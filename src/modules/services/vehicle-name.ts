@@ -404,4 +404,31 @@ export class VehicleNameService {
       return ApiResult.error(error.message);
     }
   }
+  public async getVehicleNameStats(organizationId: number): Promise<ApiResult> {
+    try {
+      const stats = await prisma.vehicleName.groupBy({
+        by: ['isActive'],
+        where: {
+          organizationId
+        },
+        _count: {
+          isActive: true
+        }
+      });
+
+      const total = stats.reduce((acc, curr) => acc + curr._count.isActive, 0);
+      const active = stats.find(s => s.isActive)?._count.isActive || 0;
+      const inactive = stats.find(s => !s.isActive)?._count.isActive || 0;
+
+      return ApiResult.success({
+        total,
+        active,
+        inactive
+      }, "Vehicle name stats retrieved successfully");
+
+    } catch (error: any) {
+      console.log("Error in getVehicleNameStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
 }
