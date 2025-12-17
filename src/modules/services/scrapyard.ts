@@ -13,6 +13,7 @@ export class ScrapYardService {
           latitude: data.latitude,
           longitude: data.longitude,
           assignedEmployeeIds: data.assignedEmployeeIds || [],
+          managerId: data.managerId,
           operatingHours: data.operatingHours || {},
           isActive: data.isActive !== undefined ? data.isActive : true
         },
@@ -116,7 +117,8 @@ export class ScrapYardService {
 
           return {
             ...yard,
-            employees: assignedEmployees
+            employees: assignedEmployees,
+            managerId: yard.managerId
           };
         })
       );
@@ -187,7 +189,8 @@ export class ScrapYardService {
 
       const scrapYardWithEmployees = {
         ...scrapYard,
-        employees: assignedEmployees
+        employees: assignedEmployees,
+        managerId: scrapYard.managerId
       };
 
       return ApiResult.success(scrapYardWithEmployees, "Scrap yard retrieved successfully");

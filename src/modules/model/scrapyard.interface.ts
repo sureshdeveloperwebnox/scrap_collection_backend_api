@@ -5,6 +5,7 @@ export interface IScrapYard {
   latitude?: number;
   longitude?: number;
   assignedEmployeeIds?: string[];
+  managerId?: string;
   operatingHours?: {
     [key: string]: {
       open: string;
@@ -25,6 +26,7 @@ export interface ICreateScrapYardRequest {
   latitude?: number;
   longitude?: number;
   assignedEmployeeIds?: string[];
+  managerId?: string;
   operatingHours?: {
     [key: string]: {
       open: string;
@@ -41,6 +43,7 @@ export interface IUpdateScrapYardRequest {
   latitude?: number;
   longitude?: number;
   assignedEmployeeIds?: string[];
+  managerId?: string;
   operatingHours?: {
     [key: string]: {
       open: string;

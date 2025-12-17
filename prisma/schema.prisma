@@ -379,6 +379,7 @@ model ScrapYard {
   latitude            Float?
   longitude           Float?
   assignedEmployeeIds Json? // JSON Array of employee IDs
+  managerId           String?
   operatingHours      Json? // JSON object for operating hours
   isActive            Boolean      @default(true)
   organizationId      Int
