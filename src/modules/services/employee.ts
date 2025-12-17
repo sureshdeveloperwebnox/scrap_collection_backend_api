@@ -29,6 +29,18 @@ export class EmployeeService {
           return ApiResult.error("City not found", 404);
         }
       }
+
+      // Verify scrap yard exists if provided
+      if (data.scrapYardId) {
+        const scrapYard = await prisma.scrapYard.findUnique({
+          where: { id: data.scrapYardId }
+        });
+
+        if (!scrapYard) {
+          return ApiResult.error("Scrap yard not found", 404);
+        }
+      }
+
       // Validate password is provided
       if (!data.password) {
         return ApiResult.error("Password is required", 400);
@@ -44,6 +56,7 @@ export class EmployeeService {
           phone: data.phone,
           roleId: data.roleId,
           cityId: data.cityId,
+          scrapYardId: data.scrapYardId,
           passwordHash,
           isActive: true,
           completedPickups: 0,
@@ -192,6 +205,17 @@ export class EmployeeService {
 
         if (!city) {
           return ApiResult.error("City not found", 404);
+        }
+      }
+
+      // Verify scrap yard exists if being updated
+      if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
+        const scrapYard = await prisma.scrapYard.findUnique({
+          where: { id: data.scrapYardId }
+        });
+
+        if (!scrapYard) {
+          return ApiResult.error("Scrap yard not found", 404);
         }
       }
 

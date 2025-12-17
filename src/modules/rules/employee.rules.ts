@@ -16,6 +16,7 @@ export const createEmployeeSchema = Joi.object({
   cityId: Joi.number().integer().positive().optional().messages({
     'number.positive': 'City ID must be a positive number'
   }),
+  scrapYardId: Joi.string().uuid().optional().allow(null),
   password: Joi.string().min(6).required().messages({
     'any.required': 'Password is required',
     'string.min': 'Password must be at least 6 characters long'
@@ -34,6 +35,7 @@ export const updateEmployeeSchema = Joi.object({
   cityId: Joi.number().integer().positive().optional().allow(null).messages({
     'number.positive': 'City ID must be a positive number'
   }),
+  scrapYardId: Joi.string().uuid().optional().allow(null),
   password: Joi.string().min(6).optional(),
   isActive: Joi.boolean().optional(),
   deviceToken: Joi.string().optional()

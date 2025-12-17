@@ -40,6 +40,7 @@ export interface ICreateEmployeeRequest {
   countryCode?: string;
   roleId: number;
   cityId?: number;
+  scrapYardId?: string;
   password: string;
 }
 
@@ -50,6 +51,7 @@ export interface IUpdateEmployeeRequest {
   countryCode?: string;
   roleId?: number;
   cityId?: number | null;
+  scrapYardId?: string | null;
   password?: string;
   isActive?: boolean;
   deviceToken?: string;
