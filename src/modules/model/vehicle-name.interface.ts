@@ -15,6 +15,10 @@ export interface IVehicleName {
   };
   organizationId: number;
   isActive: boolean;
+  vehicleNumber?: string;
+  make?: string;
+  model?: string;
+  year?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +29,10 @@ export interface ICreateVehicleNameRequest {
   vehicleTypeId: number;
   scrapYardId?: string;
   isActive?: boolean;
+  vehicleNumber?: string;
+  make?: string;
+  model?: string;
+  year?: number;
 }
 
 export interface IUpdateVehicleNameRequest {
@@ -32,6 +40,10 @@ export interface IUpdateVehicleNameRequest {
   vehicleTypeId?: number;
   scrapYardId?: string;
   isActive?: boolean;
+  vehicleNumber?: string;
+  make?: string;
+  model?: string;
+  year?: number;
 }
 
 export interface IVehicleNameQueryParams {

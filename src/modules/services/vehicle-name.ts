@@ -54,7 +54,11 @@ export class VehicleNameService {
           name: data.name,
           vehicleTypeId: data.vehicleTypeId,
           scrapYardId: data.scrapYardId,
-          isActive: data.isActive ?? true
+          isActive: data.isActive ?? true,
+          vehicleNumber: data.vehicleNumber,
+          make: data.make,
+          model: data.model,
+          year: data.year
         },
         include: {
           vehicleType: {
@@ -334,7 +338,11 @@ export class VehicleNameService {
           name: data.name,
           vehicleTypeId: data.vehicleTypeId,
           scrapYardId: data.scrapYardId,
-          isActive: data.isActive
+          isActive: data.isActive,
+          vehicleNumber: data.vehicleNumber,
+          make: data.make,
+          model: data.model,
+          year: data.year
         },
         include: {
           vehicleType: {

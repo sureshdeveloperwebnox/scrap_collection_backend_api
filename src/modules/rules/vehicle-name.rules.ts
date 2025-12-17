@@ -19,7 +19,11 @@ export const createVehicleNameSchema = Joi.object({
   }),
   isActive: Joi.boolean().default(true).messages({
     'boolean.base': 'isActive must be a boolean value'
-  })
+  }),
+  vehicleNumber: Joi.string().max(20).optional().allow(null, ''),
+  make: Joi.string().max(50).optional().allow(null, ''),
+  model: Joi.string().max(50).optional().allow(null, ''),
+  year: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null)
 });
 
 export const updateVehicleNameSchema = Joi.object({
@@ -35,7 +39,11 @@ export const updateVehicleNameSchema = Joi.object({
   }),
   isActive: Joi.boolean().optional().messages({
     'boolean.base': 'isActive must be a boolean value'
-  })
+  }),
+  vehicleNumber: Joi.string().max(20).optional().allow(null, ''),
+  make: Joi.string().max(50).optional().allow(null, ''),
+  model: Joi.string().max(50).optional().allow(null, ''),
+  year: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null)
 });
 
 export const vehicleNameQuerySchema = Joi.object({
