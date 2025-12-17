@@ -19,7 +19,8 @@ import {
   ScrapNameController,
   UploadController,
   CityController,
-  RoleController
+  RoleController,
+  CrewController
 } from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
@@ -47,7 +48,8 @@ export const combineRouters = (app: Express) => {
       ScrapNameController,
       UploadController,
       CityController,
-      RoleController
+      RoleController,
+      CrewController
     ],
     {
       middleware: {

@@ -15,18 +15,36 @@ export class CollectorAssignmentService {
         return ApiResult.error("Organization not found", 404);
       }
 
-      // Check if collector exists
-      const collector = await prisma.employee.findUnique({
-        where: { id: data.collectorId }
-      });
+      // Check if collector exists (if provided)
+      let collector;
+      if (data.collectorId) {
+        collector = await prisma.employee.findUnique({
+          where: { id: data.collectorId }
+        });
 
-      if (!collector) {
-        return ApiResult.error("Collector not found", 404);
+        if (!collector) {
+          return ApiResult.error("Collector not found", 404);
+        }
+
+        if (collector.organizationId !== data.organizationId) {
+          return ApiResult.error("Collector does not belong to this organization", 403);
+        }
       }
 
-      // Check if collector belongs to the organization
-      if (collector.organizationId !== data.organizationId) {
-        return ApiResult.error("Collector does not belong to this organization", 403);
+      // Check if crew exists (if provided)
+      let crew;
+      if (data.crewId) {
+        crew = await prisma.crew.findUnique({
+          where: { id: data.crewId }
+        });
+
+        if (!crew) {
+          return ApiResult.error("Crew not found", 404);
+        }
+      }
+
+      if (!data.collectorId && !data.crewId) {
+        return ApiResult.error("Either collector or crew must be provided", 400);
       }
 
       // Check if vehicle name exists (if provided)
@@ -73,7 +91,8 @@ export class CollectorAssignmentService {
       // Check if assignment already exists
       const existingAssignment = await prisma.collectorAssignment.findFirst({
         where: {
-          collectorId: data.collectorId,
+          collectorId: data.collectorId || null,
+          crewId: data.crewId || null,
           vehicleNameId: data.vehicleNameId || null,
           cityId: data.cityId || null,
           scrapYardId: data.scrapYardId || null,
@@ -88,7 +107,8 @@ export class CollectorAssignmentService {
       const assignment = await prisma.collectorAssignment.create({
         data: {
           organizationId: data.organizationId,
-          collectorId: data.collectorId,
+          collectorId: data.collectorId || null,
+          crewId: data.crewId || null,
           vehicleNameId: data.vehicleNameId || null,
           cityId: data.cityId || null,
           scrapYardId: data.scrapYardId || null,
@@ -101,6 +121,13 @@ export class CollectorAssignmentService {
               fullName: true,
               email: true,
               phone: true
+            }
+          },
+          crew: {
+            select: {
+              id: true,
+              name: true,
+              description: true
             }
           },
           vehicleName: {
@@ -152,7 +179,7 @@ export class CollectorAssignmentService {
 
   public async getCollectorAssignments(query: ICollectorAssignmentQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, isActive, organizationId, collectorId, vehicleNameId, cityId, sortBy = 'createdAt', sortOrder = 'desc' } = query as any;
+      const { page = 1, limit = 10, search, isActive, organizationId, collectorId, crewId, vehicleNameId, cityId, sortBy = 'createdAt', sortOrder = 'desc' } = query as any;
 
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
@@ -175,6 +202,7 @@ export class CollectorAssignmentService {
         isActive,
         organizationId,
         collectorId,
+        crewId,
         vehicleNameId,
         cityId,
         scrapYardId: (query as any).scrapYardId,
@@ -199,6 +227,10 @@ export class CollectorAssignmentService {
 
       if (collectorId !== undefined && collectorId !== null && collectorId !== '') {
         where.collectorId = collectorId;
+      }
+
+      if (crewId !== undefined && crewId !== null && crewId !== '') {
+        where.crewId = crewId;
       }
 
       if (vehicleNameId !== undefined && vehicleNameId !== null && vehicleNameId !== '') {
@@ -237,6 +269,7 @@ export class CollectorAssignmentService {
       if (search) {
         where.OR = [
           { collector: { fullName: { contains: search, mode: 'insensitive' } } },
+          { crew: { name: { contains: search, mode: 'insensitive' } } },
           { vehicleName: { name: { contains: search, mode: 'insensitive' } } },
           { city: { name: { contains: search, mode: 'insensitive' } } },
           { scrapYard: { yardName: { contains: search, mode: 'insensitive' } } }
@@ -264,6 +297,13 @@ export class CollectorAssignmentService {
                 fullName: true,
                 email: true,
                 phone: true
+              }
+            },
+            crew: {
+              select: {
+                id: true,
+                name: true,
+                description: true
               }
             },
             vehicleName: {
@@ -343,6 +383,13 @@ export class CollectorAssignmentService {
               fullName: true,
               email: true,
               phone: true
+            }
+          },
+          crew: {
+            select: {
+              id: true,
+              name: true,
+              description: true
             }
           },
           vehicleName: {
@@ -478,6 +525,13 @@ export class CollectorAssignmentService {
               fullName: true,
               email: true,
               phone: true
+            }
+          },
+          crew: {
+            select: {
+              id: true,
+              name: true,
+              description: true
             }
           },
           vehicleName: {

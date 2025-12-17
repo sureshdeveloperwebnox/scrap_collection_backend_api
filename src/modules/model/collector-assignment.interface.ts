@@ -1,11 +1,17 @@
 export interface ICollectorAssignment {
   id: string;
-  collectorId: string;
+  collectorId?: string;
   collector?: {
     id: string;
     fullName: string;
     email: string;
     phone: string;
+  };
+  crewId?: string;
+  crew?: {
+    id: string;
+    name: string;
+    description?: string;
   };
   vehicleNameId?: string;
   vehicleName?: {
@@ -31,7 +37,8 @@ export interface ICollectorAssignment {
 
 export interface ICreateCollectorAssignmentRequest {
   organizationId: number;
-  collectorId: string;
+  collectorId?: string;
+  crewId?: string;
   vehicleNameId?: string;
   cityId?: number;
   scrapYardId?: string;

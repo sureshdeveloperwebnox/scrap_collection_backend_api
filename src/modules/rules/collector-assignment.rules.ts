@@ -5,9 +5,11 @@ export const createCollectorAssignmentSchema = Joi.object({
     'number.positive': 'Organization ID must be a positive number',
     'any.required': 'Organization ID is required'
   }),
-  collectorId: Joi.string().uuid().required().messages({
-    'string.guid': 'Collector ID must be a valid UUID',
-    'any.required': 'Collector ID is required'
+  collectorId: Joi.string().uuid().optional().allow(null).messages({
+    'string.guid': 'Collector ID must be a valid UUID'
+  }),
+  crewId: Joi.string().uuid().optional().allow(null).messages({
+    'string.guid': 'Crew ID must be a valid UUID'
   }),
   vehicleNameId: Joi.string().uuid().optional().allow(null).messages({
     'string.guid': 'Vehicle name ID must be a valid UUID'
@@ -21,8 +23,8 @@ export const createCollectorAssignmentSchema = Joi.object({
   isActive: Joi.boolean().default(true).messages({
     'boolean.base': 'isActive must be a boolean value'
   })
-}).or('vehicleNameId', 'cityId', 'scrapYardId').messages({
-  'object.missing': 'Either vehicleNameId, cityId, or scrapYardId must be provided'
+}).or('vehicleNameId', 'cityId', 'scrapYardId').or('collectorId', 'crewId').messages({
+  'object.missing': 'Configuration error: check validation rules'
 });
 
 export const updateCollectorAssignmentSchema = Joi.object({
@@ -47,6 +49,7 @@ export const collectorAssignmentQuerySchema = Joi.object({
   isActive: Joi.boolean().optional(),
   organizationId: Joi.number().integer().positive().optional(),
   collectorId: Joi.string().uuid().optional(),
+  crewId: Joi.string().uuid().optional(),
   vehicleNameId: Joi.string().uuid().optional(),
   cityId: Joi.number().integer().positive().optional(),
   scrapYardId: Joi.string().uuid().optional(),

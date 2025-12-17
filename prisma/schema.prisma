@@ -176,6 +176,8 @@ model Employee {
   user             User?        @relation(fields: [userId], references: [id])
   scrapYardId      String?
   scrapYard        ScrapYard?   @relation(fields: [scrapYardId], references: [id])
+  crewId           String?
+  crew             Crew?        @relation(fields: [crewId], references: [id])
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -185,6 +187,21 @@ model Employee {
   pickupRequests       PickupRequest[]
   payments             Payment[]
   collectorAssignments CollectorAssignment[]
+}
+
+model Crew {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members              Employee[]
+  collectorAssignments CollectorAssignment[]
+
+  @@map("crews")
 }
 
 enum EmployeeRole {
@@ -483,10 +500,13 @@ model VehicleName {
 // COLLECTOR ASSIGNMENTS
 // ============================================
 
+
 model CollectorAssignment {
   id             String       @id @default(uuid())
-  collectorId    String
-  collector      Employee     @relation(fields: [collectorId], references: [id])
+  collectorId    String?
+  collector      Employee?    @relation(fields: [collectorId], references: [id])
+  crewId         String?
+  crew           Crew?        @relation(fields: [crewId], references: [id])
   vehicleNameId   String?
   vehicleName    VehicleName? @relation(fields: [vehicleNameId], references: [id])
   cityId         Int?

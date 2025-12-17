@@ -14,3 +14,4 @@ export * from './scrapyard';
 export * from './scrap-category';
 export * from './scrap-name';
 export * from './city';
+export * from './crew';
