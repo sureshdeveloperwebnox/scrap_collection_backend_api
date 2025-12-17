@@ -392,6 +392,7 @@ model ScrapYard {
   orders       Order[]
   cities       City[]
   vehicleNames VehicleName[]
+  collectorAssignments CollectorAssignment[]
 
   @@map("scrap_yards")
 }
@@ -490,6 +491,8 @@ model CollectorAssignment {
   vehicleName    VehicleName? @relation(fields: [vehicleNameId], references: [id])
   cityId         Int?
   city           City?        @relation(fields: [cityId], references: [id])
+  scrapYardId    String?
+  scrapYard      ScrapYard?   @relation(fields: [scrapYardId], references: [id])
   organizationId Int
   organization   Organization @relation(fields: [organizationId], references: [id])
   isActive       Boolean      @default(true)

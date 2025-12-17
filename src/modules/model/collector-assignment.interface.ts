@@ -34,12 +34,14 @@ export interface ICreateCollectorAssignmentRequest {
   collectorId: string;
   vehicleNameId?: string;
   cityId?: number;
+  scrapYardId?: string;
   isActive?: boolean;
 }
 
 export interface IUpdateCollectorAssignmentRequest {
   vehicleNameId?: string | null;
   cityId?: number | null;
+  scrapYardId?: string | null;
   isActive?: boolean;
 }
 

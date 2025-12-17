@@ -15,11 +15,14 @@ export const createCollectorAssignmentSchema = Joi.object({
   cityId: Joi.number().integer().positive().optional().allow(null).messages({
     'number.positive': 'City ID must be a positive number'
   }),
+  scrapYardId: Joi.string().uuid().optional().allow(null).messages({
+    'string.guid': 'Scrap yard ID must be a valid UUID'
+  }),
   isActive: Joi.boolean().default(true).messages({
     'boolean.base': 'isActive must be a boolean value'
   })
-}).or('vehicleNameId', 'cityId').messages({
-  'object.missing': 'Either vehicleNameId or cityId must be provided'
+}).or('vehicleNameId', 'cityId', 'scrapYardId').messages({
+  'object.missing': 'Either vehicleNameId, cityId, or scrapYardId must be provided'
 });
 
 export const updateCollectorAssignmentSchema = Joi.object({
@@ -28,6 +31,9 @@ export const updateCollectorAssignmentSchema = Joi.object({
   }),
   cityId: Joi.number().integer().positive().optional().allow(null).messages({
     'number.positive': 'City ID must be a positive number'
+  }),
+  scrapYardId: Joi.string().uuid().optional().allow(null).messages({
+    'string.guid': 'Scrap yard ID must be a valid UUID'
   }),
   isActive: Joi.boolean().optional().messages({
     'boolean.base': 'isActive must be a boolean value'
@@ -43,6 +49,7 @@ export const collectorAssignmentQuerySchema = Joi.object({
   collectorId: Joi.string().uuid().optional(),
   vehicleNameId: Joi.string().uuid().optional(),
   cityId: Joi.number().integer().positive().optional(),
+  scrapYardId: Joi.string().uuid().optional(),
   sortBy: Joi.string().valid('createdAt', 'updatedAt').optional().default('createdAt'),
   sortOrder: Joi.string().valid('asc', 'desc').optional().default('desc')
 });
