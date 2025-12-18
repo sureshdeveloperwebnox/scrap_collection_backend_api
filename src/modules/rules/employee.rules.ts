@@ -46,6 +46,7 @@ export const employeeQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(10),
   search: Joi.string().max(100).optional(),
   roleId: Joi.number().integer().positive().optional(),
+  role: Joi.string().optional(),
   cityId: Joi.number().integer().positive().optional(),
   isActive: Joi.boolean().optional(),
   organizationId: Joi.number().integer().positive().optional()

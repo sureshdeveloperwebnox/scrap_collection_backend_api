@@ -79,7 +79,7 @@ export class EmployeeService {
 
   public async getEmployees(query: IEmployeeQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, roleId, cityId, isActive, organizationId } = query as any;
+      const { page = 1, limit = 10, search, roleId, role, cityId, isActive, organizationId } = query as any;
 
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -93,6 +93,15 @@ export class EmployeeService {
 
       if (roleId) {
         where.roleId = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+      }
+
+      if (role) {
+        where.role = {
+          name: {
+            equals: role,
+            mode: 'insensitive'
+          }
+        };
       }
 
       if (cityId) {
