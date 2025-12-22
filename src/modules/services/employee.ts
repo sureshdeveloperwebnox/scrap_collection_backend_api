@@ -361,4 +361,23 @@ export class EmployeeService {
       return ApiResult.error(error.message);
     }
   }
+
+  public async getEmployeeStats(organizationId: number): Promise<ApiResult> {
+    try {
+      const [total, active, inactive] = await Promise.all([
+        prisma.employee.count({ where: { organizationId } }),
+        prisma.employee.count({ where: { organizationId, isActive: true } }),
+        prisma.employee.count({ where: { organizationId, isActive: false } })
+      ]);
+
+      return ApiResult.success({
+        total,
+        active,
+        inactive
+      }, "Employee stats retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getEmployeeStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
 }

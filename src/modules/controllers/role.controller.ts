@@ -5,7 +5,7 @@ import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
 import { RoleService } from '../services/role';
-import { 
+import {
   createRoleSchema,
   updateRoleSchema,
   roleQuerySchema,
@@ -19,6 +19,17 @@ export class RoleController {
 
   constructor() {
     this.roleService = new RoleService();
+  }
+
+  @GET('/stats')
+  public async getRoleStats(req: Request, res: Response): Promise<void> {
+    try {
+      const result = await this.roleService.getRoleStats();
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getRoleStats", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
   }
 
   @POST('/')
@@ -110,4 +121,3 @@ export class RoleController {
     }
   }
 }
-

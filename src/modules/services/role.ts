@@ -41,7 +41,7 @@ export class RoleService {
       // Validate pagination
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
-      
+
       if (parsedPage < 1) {
         return ApiResult.error("Page must be greater than 0", 400);
       }
@@ -282,5 +282,23 @@ export class RoleService {
       return ApiResult.error(error.message);
     }
   }
-}
 
+  public async getRoleStats(): Promise<ApiResult> {
+    try {
+      const [total, active, inactive] = await Promise.all([
+        prisma.role.count(),
+        prisma.role.count({ where: { isActive: true } }),
+        prisma.role.count({ where: { isActive: false } })
+      ]);
+
+      return ApiResult.success({
+        total,
+        active,
+        inactive
+      }, "Role stats retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getRoleStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
+}

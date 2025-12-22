@@ -3,7 +3,7 @@ import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
 import { EmployeeService } from '../services/employee';
-import { 
+import {
   createEmployeeSchema,
   updateEmployeeSchema,
   employeeQuerySchema,
@@ -17,6 +17,22 @@ export class EmployeeController {
 
   constructor() {
     this.employeeService = new EmployeeService();
+  }
+
+  @GET('/stats/:organizationId')
+  public async getEmployeeStats(req: Request, res: Response): Promise<void> {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        ApiResult.error("Invalid organization ID", 400).send(res);
+        return;
+      }
+      const result = await this.employeeService.getEmployeeStats(organizationId);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getEmployeeStats", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
   }
 
   @POST('/')
