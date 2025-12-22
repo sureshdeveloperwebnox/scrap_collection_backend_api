@@ -23,6 +23,9 @@ export interface IOrder {
   quotedPrice?: number;
   actualPrice?: number;
   yardId?: string;
+  crewId?: string;
+  routeDistance?: string;
+  routeDuration?: string;
   customerNotes?: string;
   adminNotes?: string;
   organizationId: number;
@@ -50,6 +53,9 @@ export interface ICreateOrderRequest {
   pickupTime?: Date;
   quotedPrice?: number;
   yardId?: string;
+  crewId?: string;
+  routeDistance?: string;
+  routeDuration?: string;
   customerNotes?: string;
   adminNotes?: string;
   customerId?: string;
@@ -75,6 +81,9 @@ export interface IUpdateOrderRequest {
   quotedPrice?: number;
   actualPrice?: number;
   yardId?: string;
+  crewId?: string;
+  routeDistance?: string;
+  routeDuration?: string;
   customerNotes?: string;
   adminNotes?: string;
 }

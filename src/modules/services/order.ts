@@ -59,6 +59,9 @@ export class OrderService {
           paymentStatus: PaymentStatusEnum.UNPAID,
           quotedPrice: data.quotedPrice,
           yardId: data.yardId,
+          crewId: data.crewId,
+          routeDistance: data.routeDistance,
+          routeDuration: data.routeDuration,
           customerNotes: data.customerNotes,
           adminNotes: data.adminNotes,
           customerId: data.customerId
@@ -67,7 +70,12 @@ export class OrderService {
           assignedCollector: true,
           yard: true,
           customer: true,
-          lead: true
+          lead: true,
+          crew: {
+            include: {
+              members: true
+            }
+          }
         }
       });
 
@@ -137,7 +145,12 @@ export class OrderService {
             assignedCollector: true,
             yard: true,
             customer: true,
-            lead: true
+            lead: true,
+            crew: {
+              include: {
+                members: true
+              }
+            }
           },
           orderBy: {
             createdAt: 'desc'
@@ -171,7 +184,12 @@ export class OrderService {
           customer: true,
           lead: true,
           payment: true,
-          review: true
+          review: true,
+          crew: {
+            include: {
+              members: true
+            }
+          }
         }
       });
 
@@ -196,13 +214,29 @@ export class OrderService {
         return ApiResult.error("Order not found", 404);
       }
 
+      // Remove relation fields from update data
+      const {
+        organizationId,
+        customerId,
+        leadId,
+        assignedCollectorId,
+        yardId,
+        crewId,
+        ...updateData
+      } = data as any;
+
       const order = await prisma.order.update({
         where: { id },
-        data,
+        data: updateData,
         include: {
           assignedCollector: true,
           yard: true,
-          customer: true
+          customer: true,
+          crew: {
+            include: {
+              members: true
+            }
+          }
         }
       });
 
