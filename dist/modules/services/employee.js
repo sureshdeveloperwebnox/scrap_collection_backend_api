@@ -324,5 +324,23 @@ class EmployeeService {
             return api_result_1.ApiResult.error(error.message);
         }
     }
+    async getEmployeeStats(organizationId) {
+        try {
+            const [total, active, inactive] = await Promise.all([
+                config_1.prisma.employee.count({ where: { organizationId } }),
+                config_1.prisma.employee.count({ where: { organizationId, isActive: true } }),
+                config_1.prisma.employee.count({ where: { organizationId, isActive: false } })
+            ]);
+            return api_result_1.ApiResult.success({
+                total,
+                active,
+                inactive
+            }, "Employee stats retrieved successfully");
+        }
+        catch (error) {
+            console.log("Error in getEmployeeStats", error);
+            return api_result_1.ApiResult.error(error.message);
+        }
+    }
 }
 exports.EmployeeService = EmployeeService;

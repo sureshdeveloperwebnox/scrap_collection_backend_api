@@ -6,6 +6,7 @@ export interface IOrder {
   leadId?: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   customerCountryCode?: string;
   address: string;
   latitude?: number;
@@ -16,6 +17,7 @@ export interface IOrder {
     year?: number;
     condition?: string;
   };
+  photos?: any; // JSON Array of image URLs
   assignedCollectorId?: string;
   pickupTime?: Date;
   orderStatus: OrderStatus;
@@ -28,6 +30,7 @@ export interface IOrder {
   routeDuration?: string;
   customerNotes?: string;
   adminNotes?: string;
+  instructions?: string;
   organizationId: number;
   customerId?: string;
   createdAt: Date;
@@ -39,6 +42,7 @@ export interface ICreateOrderRequest {
   leadId?: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   customerCountryCode?: string;
   address: string;
   latitude?: number;
@@ -49,6 +53,7 @@ export interface ICreateOrderRequest {
     year?: number;
     condition?: string;
   };
+  photos?: any; // JSON Array of image URLs
   assignedCollectorId?: string;
   pickupTime?: Date;
   quotedPrice?: number;
@@ -58,6 +63,7 @@ export interface ICreateOrderRequest {
   routeDuration?: string;
   customerNotes?: string;
   adminNotes?: string;
+  instructions?: string;
   customerId?: string;
 }
 
@@ -90,7 +96,11 @@ export interface IUpdateOrderRequest {
 
 export interface IAssignOrderRequest {
   orderId: string;
-  collectorId: string;
+  collectorId?: string;
+  crewId?: string;
+  yardId?: string;
+  routeDistance?: string;
+  routeDuration?: string;
 }
 
 export interface IOrderQueryParams {

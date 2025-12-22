@@ -44,7 +44,7 @@ class CrewService {
                     },
                 },
             });
-            return api_result_1.ApiResult.success(crew, "Crew created successfully", 201);
+            return api_result_1.ApiResult.success({ crew }, "Crew created successfully", 201);
         }
         catch (error) {
             console.error("Error in createCrew", error);
@@ -95,7 +95,7 @@ class CrewService {
             if (!crew) {
                 return api_result_1.ApiResult.error('Crew not found', 404);
             }
-            return api_result_1.ApiResult.success(crew, "Crew fetched successfully");
+            return api_result_1.ApiResult.success({ crew }, "Crew fetched successfully");
         }
         catch (error) {
             console.error("Error in getCrewById", error);
@@ -126,7 +126,7 @@ class CrewService {
                     },
                 },
             });
-            return api_result_1.ApiResult.success(crew, "Crew updated successfully");
+            return api_result_1.ApiResult.success({ crew }, "Crew updated successfully");
         }
         catch (error) {
             console.error("Error in updateCrew", error);

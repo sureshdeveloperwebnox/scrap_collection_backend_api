@@ -244,5 +244,23 @@ class RoleService {
             return api_result_1.ApiResult.error(error.message);
         }
     }
+    async getRoleStats() {
+        try {
+            const [total, active, inactive] = await Promise.all([
+                config_1.prisma.role.count(),
+                config_1.prisma.role.count({ where: { isActive: true } }),
+                config_1.prisma.role.count({ where: { isActive: false } })
+            ]);
+            return api_result_1.ApiResult.success({
+                total,
+                active,
+                inactive
+            }, "Role stats retrieved successfully");
+        }
+        catch (error) {
+            console.log("Error in getRoleStats", error);
+            return api_result_1.ApiResult.error(error.message);
+        }
+    }
 }
 exports.RoleService = RoleService;

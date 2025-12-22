@@ -20,6 +20,16 @@ let RoleController = class RoleController {
     constructor() {
         this.roleService = new role_1.RoleService();
     }
+    async getRoleStats(req, res) {
+        try {
+            const result = await this.roleService.getRoleStats();
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getRoleStats", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
     async createRole(req, res) {
         try {
             const result = await this.roleService.createRole(req.body);
@@ -97,6 +107,12 @@ let RoleController = class RoleController {
     }
 };
 exports.RoleController = RoleController;
+__decorate([
+    (0, method_decorator_1.GET)('/stats'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], RoleController.prototype, "getRoleStats", null);
 __decorate([
     (0, method_decorator_1.POST)('/'),
     (0, middleware_decorator_1.Validate)([role_rules_1.createRoleSchema]),

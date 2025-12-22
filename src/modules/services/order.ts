@@ -42,6 +42,18 @@ export class OrderService {
       // Generate unique order number
       const orderNumber = await this.generateOrderNumber(data.organizationId);
 
+      // If leadId is provided, fetch lead data to copy photos
+      let leadPhotos = null;
+      if (data.leadId) {
+        const lead = await prisma.lead.findUnique({
+          where: { id: data.leadId },
+          select: { photos: true }
+        });
+        if (lead?.photos) {
+          leadPhotos = lead.photos;
+        }
+      }
+
       const order = await prisma.order.create({
         data: {
           orderNumber,
@@ -49,13 +61,15 @@ export class OrderService {
           leadId: data.leadId,
           customerName: data.customerName,
           customerPhone: data.customerPhone,
+          customerEmail: data.customerEmail,
           address: data.address,
           latitude: data.latitude,
           longitude: data.longitude,
           vehicleDetails: data.vehicleDetails,
+          photos: leadPhotos || data.photos,
           assignedCollectorId: data.assignedCollectorId,
           pickupTime: data.pickupTime,
-          orderStatus: OrderStatus.PENDING,
+          orderStatus: data.assignedCollectorId || data.crewId ? OrderStatus.ASSIGNED : OrderStatus.PENDING,
           paymentStatus: PaymentStatusEnum.UNPAID,
           quotedPrice: data.quotedPrice,
           yardId: data.yardId,
@@ -64,7 +78,8 @@ export class OrderService {
           routeDuration: data.routeDuration,
           customerNotes: data.customerNotes,
           adminNotes: data.adminNotes,
-          customerId: data.customerId
+          customerId: data.customerId,
+          instructions: data.instructions
         },
         include: {
           assignedCollector: true,
@@ -83,7 +98,7 @@ export class OrderService {
       await prisma.orderTimeline.create({
         data: {
           orderId: order.id,
-          status: OrderStatus.PENDING,
+          status: order.orderStatus,
           notes: `Order ${orderNumber} created`,
           performedBy: 'system'
         }
@@ -214,14 +229,12 @@ export class OrderService {
         return ApiResult.error("Order not found", 404);
       }
 
-      // Remove relation fields from update data
+      // Remove only core relation fields that should never be updated
+      // Allow assignment fields (assignedCollectorId, yardId, crewId) to be updated
       const {
         organizationId,
         customerId,
         leadId,
-        assignedCollectorId,
-        yardId,
-        crewId,
         ...updateData
       } = data as any;
 
@@ -282,14 +295,46 @@ export class OrderService {
 
   public async assignOrder(id: string, data: IAssignOrderRequest): Promise<ApiResult> {
     try {
+      const updateData: any = {
+        orderStatus: OrderStatus.ASSIGNED
+      };
+
+      // Handle collector assignment
+      if (data.collectorId) {
+        updateData.assignedCollectorId = data.collectorId;
+      }
+
+      // Handle crew assignment (if provided in the request)
+      if ((data as any).crewId) {
+        updateData.crewId = (data as any).crewId;
+      }
+
+      // Handle yard assignment (if provided in the request)
+      if ((data as any).yardId) {
+        updateData.yardId = (data as any).yardId;
+      }
+
+      // Handle route information (if provided)
+      if ((data as any).routeDistance) {
+        updateData.routeDistance = (data as any).routeDistance;
+      }
+      if ((data as any).routeDuration) {
+        updateData.routeDuration = (data as any).routeDuration;
+      }
+
       const order = await prisma.order.update({
         where: { id },
-        data: {
-          assignedCollectorId: data.collectorId,
-          orderStatus: OrderStatus.ASSIGNED
-        },
+        data: updateData,
         include: {
-          assignedCollector: true
+          assignedCollector: true,
+          yard: true,
+          customer: true,
+          lead: true,
+          crew: {
+            include: {
+              members: true
+            }
+          }
         }
       });
 
@@ -297,7 +342,7 @@ export class OrderService {
         data: {
           orderId: id,
           status: OrderStatus.ASSIGNED,
-          notes: `Assigned to collector`,
+          notes: `Order assigned`,
           performedBy: 'system'
         }
       });

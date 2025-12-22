@@ -16,7 +16,7 @@ export class Auth {
         email: email
       }
     });
-    
+
 
     if (!checkEmail) {
       return ApiResult.error('Invalid email', 401);
@@ -33,9 +33,9 @@ export class Auth {
     // Create JWT token with user category
     const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
     const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
+      {
+        id: user.id,
+        email: user.email,
         firstName: user.firstName,
         role: user.role,
         organizationId: user.organizationId
@@ -104,9 +104,9 @@ export class Auth {
     // Create JWT token with user category
     const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
     const token = jwt.sign(
-      { 
+      {
         id: newUser.id,
-        email: email, 
+        email: email,
         firstName: firstName,
         lastName: lastName,
         phone: phone,
@@ -132,13 +132,13 @@ export class Auth {
   public async signInWithGoogle(idToken: string): Promise<ApiResult> {
     try {
       const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-      
+
       if (!GOOGLE_CLIENT_ID) {
         return ApiResult.error('Google OAuth not configured', 500);
       }
 
       const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-      
+
       // Verify the ID token
       const ticket = await client.verifyIdToken({
         idToken: idToken,
@@ -146,7 +146,7 @@ export class Auth {
       });
 
       const payload = ticket.getPayload();
-      
+
       if (!payload) {
         return ApiResult.error('Invalid Google token', 401);
       }
@@ -166,7 +166,7 @@ export class Auth {
       if (!user) {
         // Create new user and organization
         const fullName = `${given_name || ''} ${family_name || ''}`.trim() || email.split('@')[0];
-        
+
         // Get the first active country, or create a default one if none exists
         let country = await prisma.country.findFirst({
           where: { isActive: true },
@@ -183,7 +183,7 @@ export class Auth {
             }
           });
         }
-        
+
         // Create new organization
         const newOrganization = await prisma.organization.create({
           data: {
@@ -213,9 +213,9 @@ export class Auth {
       // Create JWT token
       const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
       const token = jwt.sign(
-        { 
-          id: user.id, 
-          email: user.email, 
+        {
+          id: user.id,
+          email: user.email,
           firstName: user.firstName,
           role: user.role,
           organizationId: user.organizationId

@@ -37,6 +37,17 @@ class OrderService {
         try {
             // Generate unique order number
             const orderNumber = await this.generateOrderNumber(data.organizationId);
+            // If leadId is provided, fetch lead data to copy photos
+            let leadPhotos = null;
+            if (data.leadId) {
+                const lead = await config_1.prisma.lead.findUnique({
+                    where: { id: data.leadId },
+                    select: { photos: true }
+                });
+                if (lead === null || lead === void 0 ? void 0 : lead.photos) {
+                    leadPhotos = lead.photos;
+                }
+            }
             const order = await config_1.prisma.order.create({
                 data: {
                     orderNumber,
@@ -44,32 +55,43 @@ class OrderService {
                     leadId: data.leadId,
                     customerName: data.customerName,
                     customerPhone: data.customerPhone,
+                    customerEmail: data.customerEmail,
                     address: data.address,
                     latitude: data.latitude,
                     longitude: data.longitude,
                     vehicleDetails: data.vehicleDetails,
+                    photos: leadPhotos || data.photos,
                     assignedCollectorId: data.assignedCollectorId,
                     pickupTime: data.pickupTime,
-                    orderStatus: enum_1.OrderStatus.PENDING,
+                    orderStatus: data.assignedCollectorId || data.crewId ? enum_1.OrderStatus.ASSIGNED : enum_1.OrderStatus.PENDING,
                     paymentStatus: enum_1.PaymentStatusEnum.UNPAID,
                     quotedPrice: data.quotedPrice,
                     yardId: data.yardId,
+                    crewId: data.crewId,
+                    routeDistance: data.routeDistance,
+                    routeDuration: data.routeDuration,
                     customerNotes: data.customerNotes,
                     adminNotes: data.adminNotes,
-                    customerId: data.customerId
+                    customerId: data.customerId,
+                    instructions: data.instructions
                 },
                 include: {
                     assignedCollector: true,
                     yard: true,
                     customer: true,
-                    lead: true
+                    lead: true,
+                    crew: {
+                        include: {
+                            members: true
+                        }
+                    }
                 }
             });
             // Create timeline entry
             await config_1.prisma.orderTimeline.create({
                 data: {
                     orderId: order.id,
-                    status: enum_1.OrderStatus.PENDING,
+                    status: order.orderStatus,
                     notes: `Order ${orderNumber} created`,
                     performedBy: 'system'
                 }
@@ -123,7 +145,12 @@ class OrderService {
                         assignedCollector: true,
                         yard: true,
                         customer: true,
-                        lead: true
+                        lead: true,
+                        crew: {
+                            include: {
+                                members: true
+                            }
+                        }
                     },
                     orderBy: {
                         createdAt: 'desc'
@@ -156,7 +183,12 @@ class OrderService {
                     customer: true,
                     lead: true,
                     payment: true,
-                    review: true
+                    review: true,
+                    crew: {
+                        include: {
+                            members: true
+                        }
+                    }
                 }
             });
             if (!order) {
@@ -177,13 +209,21 @@ class OrderService {
             if (!existingOrder) {
                 return api_result_1.ApiResult.error("Order not found", 404);
             }
+            // Remove only core relation fields that should never be updated
+            // Allow assignment fields (assignedCollectorId, yardId, crewId) to be updated
+            const { organizationId, customerId, leadId, ...updateData } = data;
             const order = await config_1.prisma.order.update({
                 where: { id },
-                data,
+                data: updateData,
                 include: {
                     assignedCollector: true,
                     yard: true,
-                    customer: true
+                    customer: true,
+                    crew: {
+                        include: {
+                            members: true
+                        }
+                    }
                 }
             });
             // Create timeline entry if status changed
@@ -224,21 +264,48 @@ class OrderService {
     }
     async assignOrder(id, data) {
         try {
+            const updateData = {
+                orderStatus: enum_1.OrderStatus.ASSIGNED
+            };
+            // Handle collector assignment
+            if (data.collectorId) {
+                updateData.assignedCollectorId = data.collectorId;
+            }
+            // Handle crew assignment (if provided in the request)
+            if (data.crewId) {
+                updateData.crewId = data.crewId;
+            }
+            // Handle yard assignment (if provided in the request)
+            if (data.yardId) {
+                updateData.yardId = data.yardId;
+            }
+            // Handle route information (if provided)
+            if (data.routeDistance) {
+                updateData.routeDistance = data.routeDistance;
+            }
+            if (data.routeDuration) {
+                updateData.routeDuration = data.routeDuration;
+            }
             const order = await config_1.prisma.order.update({
                 where: { id },
-                data: {
-                    assignedCollectorId: data.collectorId,
-                    orderStatus: enum_1.OrderStatus.ASSIGNED
-                },
+                data: updateData,
                 include: {
-                    assignedCollector: true
+                    assignedCollector: true,
+                    yard: true,
+                    customer: true,
+                    lead: true,
+                    crew: {
+                        include: {
+                            members: true
+                        }
+                    }
                 }
             });
             await config_1.prisma.orderTimeline.create({
                 data: {
                     orderId: id,
                     status: enum_1.OrderStatus.ASSIGNED,
-                    notes: `Assigned to collector`,
+                    notes: `Order assigned`,
                     performedBy: 'system'
                 }
             });

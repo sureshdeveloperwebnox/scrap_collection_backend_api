@@ -305,10 +305,12 @@ model Order {
   lead                Lead?             @relation(fields: [leadId], references: [id])
   customerName        String
   customerPhone       String
+  customerEmail       String?
   address             String            @db.Text
   latitude            Float?
   longitude           Float?
   vehicleDetails      Json // {make, model, year, condition}
+  photos              Json? // JSON Array of image URLs
   assignedCollectorId String?
   assignedCollector   Employee?         @relation(fields: [assignedCollectorId], references: [id])
   pickupTime          DateTime?
@@ -337,6 +339,13 @@ model Order {
   review        Review?
   pickupRequest PickupRequest?
   orderTimeline OrderTimeline[]
+
+  // Indexes for better query performance
+  @@index([organizationId, orderStatus])
+  @@index([organizationId, createdAt])
+  @@index([assignedCollectorId])
+  @@index([yardId])
+  @@index([crewId])
 }
 
 enum OrderStatus {

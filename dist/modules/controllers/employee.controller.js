@@ -20,6 +20,21 @@ let EmployeeController = class EmployeeController {
     constructor() {
         this.employeeService = new employee_1.EmployeeService();
     }
+    async getEmployeeStats(req, res) {
+        try {
+            const organizationId = parseInt(req.params.organizationId);
+            if (isNaN(organizationId)) {
+                api_result_1.ApiResult.error("Invalid organization ID", 400).send(res);
+                return;
+            }
+            const result = await this.employeeService.getEmployeeStats(organizationId);
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getEmployeeStats", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
     async createEmployee(req, res) {
         try {
             const result = await this.employeeService.createEmployee(req.body);
@@ -108,6 +123,12 @@ let EmployeeController = class EmployeeController {
     }
 };
 exports.EmployeeController = EmployeeController;
+__decorate([
+    (0, method_decorator_1.GET)('/stats/:organizationId'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], EmployeeController.prototype, "getEmployeeStats", null);
 __decorate([
     (0, method_decorator_1.POST)('/'),
     (0, middleware_decorator_1.Validate)([employee_rules_1.createEmployeeSchema]),
