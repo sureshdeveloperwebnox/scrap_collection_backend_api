@@ -26,7 +26,8 @@ const combineRouters = (app) => {
         controllers_1.ScrapNameController,
         controllers_1.UploadController,
         controllers_1.CityController,
-        controllers_1.RoleController
+        controllers_1.RoleController,
+        controllers_1.CrewController
     ], {
         middleware: {
             auth: middlewares_1.createRoleMiddleware,

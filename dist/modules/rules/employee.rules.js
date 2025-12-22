@@ -21,6 +21,7 @@ exports.createEmployeeSchema = joi_1.default.object({
     cityId: joi_1.default.number().integer().positive().optional().messages({
         'number.positive': 'City ID must be a positive number'
     }),
+    scrapYardId: joi_1.default.string().uuid().optional().allow(null),
     password: joi_1.default.string().min(6).required().messages({
         'any.required': 'Password is required',
         'string.min': 'Password must be at least 6 characters long'
@@ -38,6 +39,7 @@ exports.updateEmployeeSchema = joi_1.default.object({
     cityId: joi_1.default.number().integer().positive().optional().allow(null).messages({
         'number.positive': 'City ID must be a positive number'
     }),
+    scrapYardId: joi_1.default.string().uuid().optional().allow(null),
     password: joi_1.default.string().min(6).optional(),
     isActive: joi_1.default.boolean().optional(),
     deviceToken: joi_1.default.string().optional()
@@ -47,6 +49,7 @@ exports.employeeQuerySchema = joi_1.default.object({
     limit: joi_1.default.number().integer().min(1).max(100).default(10),
     search: joi_1.default.string().max(100).optional(),
     roleId: joi_1.default.number().integer().positive().optional(),
+    role: joi_1.default.string().optional(),
     cityId: joi_1.default.number().integer().positive().optional(),
     isActive: joi_1.default.boolean().optional(),
     organizationId: joi_1.default.number().integer().positive().optional()

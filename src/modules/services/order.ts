@@ -4,10 +4,47 @@ import { ApiResult } from "../../utils/api-result";
 import { OrderStatus, PaymentStatusEnum } from "../model/enum";
 
 export class OrderService {
+  /**
+   * Generate unique order number with format: WO-DDMMYYYY-N
+   * Example: WO-22122025-1, WO-22122025-2, etc.
+   */
+  private async generateOrderNumber(organizationId: number): Promise<string> {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const datePrefix = `${day}${month}${year}`;
+
+    // Get the start and end of today for this organization
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    // Count orders created today for this organization
+    const todayOrderCount = await prisma.order.count({
+      where: {
+        organizationId,
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    // Sequential number for today (starts from 1)
+    const sequentialNumber = todayOrderCount + 1;
+
+    // Format: WO-DDMMYYYY-N
+    return `WO-${datePrefix}-${sequentialNumber}`;
+  }
+
   public async createOrder(data: ICreateOrderRequest): Promise<ApiResult> {
     try {
+      // Generate unique order number
+      const orderNumber = await this.generateOrderNumber(data.organizationId);
+
       const order = await prisma.order.create({
         data: {
+          orderNumber,
           organizationId: data.organizationId,
           leadId: data.leadId,
           customerName: data.customerName,
@@ -39,7 +76,7 @@ export class OrderService {
         data: {
           orderId: order.id,
           status: OrderStatus.PENDING,
-          notes: 'Order created',
+          notes: `Order ${orderNumber} created`,
           performedBy: 'system'
         }
       });

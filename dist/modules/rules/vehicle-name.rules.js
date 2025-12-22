@@ -24,7 +24,11 @@ exports.createVehicleNameSchema = joi_1.default.object({
     }),
     isActive: joi_1.default.boolean().default(true).messages({
         'boolean.base': 'isActive must be a boolean value'
-    })
+    }),
+    vehicleNumber: joi_1.default.string().max(20).optional().allow(null, ''),
+    make: joi_1.default.string().max(50).optional().allow(null, ''),
+    model: joi_1.default.string().max(50).optional().allow(null, ''),
+    year: joi_1.default.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null)
 });
 exports.updateVehicleNameSchema = joi_1.default.object({
     name: joi_1.default.string().min(2).max(100).optional().messages({
@@ -39,7 +43,11 @@ exports.updateVehicleNameSchema = joi_1.default.object({
     }),
     isActive: joi_1.default.boolean().optional().messages({
         'boolean.base': 'isActive must be a boolean value'
-    })
+    }),
+    vehicleNumber: joi_1.default.string().max(20).optional().allow(null, ''),
+    make: joi_1.default.string().max(50).optional().allow(null, ''),
+    model: joi_1.default.string().max(50).optional().allow(null, ''),
+    year: joi_1.default.number().integer().min(1900).max(new Date().getFullYear() + 1).optional().allow(null)
 });
 exports.vehicleNameQuerySchema = joi_1.default.object({
     page: joi_1.default.number().integer().min(1).default(1),

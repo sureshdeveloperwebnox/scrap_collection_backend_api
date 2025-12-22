@@ -29,6 +29,15 @@ class EmployeeService {
                     return api_result_1.ApiResult.error("City not found", 404);
                 }
             }
+            // Verify scrap yard exists if provided
+            if (data.scrapYardId) {
+                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                    where: { id: data.scrapYardId }
+                });
+                if (!scrapYard) {
+                    return api_result_1.ApiResult.error("Scrap yard not found", 404);
+                }
+            }
             // Validate password is provided
             if (!data.password) {
                 return api_result_1.ApiResult.error("Password is required", 400);
@@ -42,6 +51,7 @@ class EmployeeService {
                     phone: data.phone,
                     roleId: data.roleId,
                     cityId: data.cityId,
+                    scrapYardId: data.scrapYardId,
                     passwordHash,
                     isActive: true,
                     completedPickups: 0,
@@ -63,7 +73,7 @@ class EmployeeService {
     }
     async getEmployees(query) {
         try {
-            const { page = 1, limit = 10, search, roleId, cityId, isActive, organizationId } = query;
+            const { page = 1, limit = 10, search, roleId, role, cityId, isActive, organizationId } = query;
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
             const skip = (parsedPage - 1) * parsedLimit;
@@ -73,6 +83,14 @@ class EmployeeService {
             }
             if (roleId) {
                 where.roleId = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
+            }
+            if (role) {
+                where.role = {
+                    name: {
+                        equals: role,
+                        mode: 'insensitive'
+                    }
+                };
             }
             if (cityId) {
                 where.cityId = typeof cityId === 'string' ? parseInt(cityId, 10) : cityId;
@@ -173,6 +191,15 @@ class EmployeeService {
                 });
                 if (!city) {
                     return api_result_1.ApiResult.error("City not found", 404);
+                }
+            }
+            // Verify scrap yard exists if being updated
+            if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
+                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                    where: { id: data.scrapYardId }
+                });
+                if (!scrapYard) {
+                    return api_result_1.ApiResult.error("Scrap yard not found", 404);
                 }
             }
             const updateData = { ...data };

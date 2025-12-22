@@ -30,3 +30,4 @@ __exportStar(require("./scrapyard"), exports);
 __exportStar(require("./scrap-category"), exports);
 __exportStar(require("./scrap-name"), exports);
 __exportStar(require("./city"), exports);
+__exportStar(require("./crew"), exports);

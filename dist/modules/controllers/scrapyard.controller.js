@@ -40,6 +40,16 @@ let ScrapYardController = class ScrapYardController {
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
+    async getScrapYardStats(req, res) {
+        try {
+            const result = await this.scrapYardService.getScrapYardStats(req.query);
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getScrapYardStats", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
     async getScrapYardById(req, res) {
         try {
             const id = req.params.id;
@@ -89,6 +99,12 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], ScrapYardController.prototype, "getScrapYards", null);
+__decorate([
+    (0, method_decorator_1.GET)('/stats'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], ScrapYardController.prototype, "getScrapYardStats", null);
 __decorate([
     (0, method_decorator_1.GET)('/:id'),
     (0, middleware_decorator_1.Validate)([scrapyard_rules_1.scrapYardIdSchema]),

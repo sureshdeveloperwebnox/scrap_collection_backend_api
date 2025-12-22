@@ -15,16 +15,31 @@ class CollectorAssignmentService {
             if (!organization) {
                 return api_result_1.ApiResult.error("Organization not found", 404);
             }
-            // Check if collector exists
-            const collector = await config_1.prisma.employee.findUnique({
-                where: { id: data.collectorId }
-            });
-            if (!collector) {
-                return api_result_1.ApiResult.error("Collector not found", 404);
+            // Check if collector exists (if provided)
+            let collector;
+            if (data.collectorId) {
+                collector = await config_1.prisma.employee.findUnique({
+                    where: { id: data.collectorId }
+                });
+                if (!collector) {
+                    return api_result_1.ApiResult.error("Collector not found", 404);
+                }
+                if (collector.organizationId !== data.organizationId) {
+                    return api_result_1.ApiResult.error("Collector does not belong to this organization", 403);
+                }
             }
-            // Check if collector belongs to the organization
-            if (collector.organizationId !== data.organizationId) {
-                return api_result_1.ApiResult.error("Collector does not belong to this organization", 403);
+            // Check if crew exists (if provided)
+            let crew;
+            if (data.crewId) {
+                crew = await config_1.prisma.crew.findUnique({
+                    where: { id: data.crewId }
+                });
+                if (!crew) {
+                    return api_result_1.ApiResult.error("Crew not found", 404);
+                }
+            }
+            if (!data.collectorId && !data.crewId) {
+                return api_result_1.ApiResult.error("Either collector or crew must be provided", 400);
             }
             // Check if vehicle name exists (if provided)
             if (data.vehicleNameId) {
@@ -47,16 +62,26 @@ class CollectorAssignmentService {
                     return api_result_1.ApiResult.error("City not found", 404);
                 }
             }
-            // Check if at least one assignment is provided
-            if (!data.vehicleNameId && !data.cityId) {
-                return api_result_1.ApiResult.error("Either vehicleNameId or cityId must be provided", 400);
+            // Check if scrap yard exists (if provided)
+            if (data.scrapYardId) {
+                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                    where: { id: data.scrapYardId }
+                });
+                if (!scrapYard) {
+                    return api_result_1.ApiResult.error("Scrap yard not found", 404);
+                }
+                if (scrapYard.organizationId !== data.organizationId) {
+                    return api_result_1.ApiResult.error("Scrap yard does not belong to this organization", 403);
+                }
             }
             // Check if assignment already exists
             const existingAssignment = await config_1.prisma.collectorAssignment.findFirst({
                 where: {
-                    collectorId: data.collectorId,
+                    collectorId: data.collectorId || null,
+                    crewId: data.crewId || null,
                     vehicleNameId: data.vehicleNameId || null,
                     cityId: data.cityId || null,
+                    scrapYardId: data.scrapYardId || null,
                     organizationId: data.organizationId
                 }
             });
@@ -66,9 +91,11 @@ class CollectorAssignmentService {
             const assignment = await config_1.prisma.collectorAssignment.create({
                 data: {
                     organizationId: data.organizationId,
-                    collectorId: data.collectorId,
+                    collectorId: data.collectorId || null,
+                    crewId: data.crewId || null,
                     vehicleNameId: data.vehicleNameId || null,
                     cityId: data.cityId || null,
+                    scrapYardId: data.scrapYardId || null,
                     isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
                 },
                 include: {
@@ -78,6 +105,13 @@ class CollectorAssignmentService {
                             fullName: true,
                             email: true,
                             phone: true
+                        }
+                    },
+                    crew: {
+                        select: {
+                            id: true,
+                            name: true,
+                            description: true
                         }
                     },
                     vehicleName: {
@@ -100,6 +134,14 @@ class CollectorAssignmentService {
                             longitude: true
                         }
                     },
+                    scrapYard: {
+                        select: {
+                            id: true,
+                            yardName: true,
+                            latitude: true,
+                            longitude: true
+                        }
+                    },
                     organization: {
                         select: {
                             name: true
@@ -118,7 +160,7 @@ class CollectorAssignmentService {
     }
     async getCollectorAssignments(query) {
         try {
-            const { page = 1, limit = 10, search, isActive, organizationId, collectorId, vehicleNameId, cityId, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+            const { page = 1, limit = 10, search, isActive, organizationId, collectorId, crewId, vehicleNameId, cityId, sortBy = 'createdAt', sortOrder = 'desc' } = query;
             // Validate pagination
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -137,8 +179,10 @@ class CollectorAssignmentService {
                 isActive,
                 organizationId,
                 collectorId,
+                crewId,
                 vehicleNameId,
                 cityId,
+                scrapYardId: query.scrapYardId,
                 sortBy,
                 sortOrder
             });
@@ -157,6 +201,9 @@ class CollectorAssignmentService {
             if (collectorId !== undefined && collectorId !== null && collectorId !== '') {
                 where.collectorId = collectorId;
             }
+            if (crewId !== undefined && crewId !== null && crewId !== '') {
+                where.crewId = crewId;
+            }
             if (vehicleNameId !== undefined && vehicleNameId !== null && vehicleNameId !== '') {
                 where.vehicleNameId = vehicleNameId;
             }
@@ -165,6 +212,10 @@ class CollectorAssignmentService {
                 if (!Number.isNaN(parsedCityId)) {
                     where.cityId = parsedCityId;
                 }
+            }
+            const queryScrapYardId = query.scrapYardId;
+            if (queryScrapYardId !== undefined && queryScrapYardId !== null && queryScrapYardId !== '') {
+                where.scrapYardId = queryScrapYardId;
             }
             if (isActive !== undefined && isActive !== null && isActive !== '') {
                 let normalizedIsActive;
@@ -188,8 +239,10 @@ class CollectorAssignmentService {
             if (search) {
                 where.OR = [
                     { collector: { fullName: { contains: search, mode: 'insensitive' } } },
+                    { crew: { name: { contains: search, mode: 'insensitive' } } },
                     { vehicleName: { name: { contains: search, mode: 'insensitive' } } },
-                    { city: { name: { contains: search, mode: 'insensitive' } } }
+                    { city: { name: { contains: search, mode: 'insensitive' } } },
+                    { scrapYard: { yardName: { contains: search, mode: 'insensitive' } } }
                 ];
             }
             // Validate sort fields
@@ -213,6 +266,13 @@ class CollectorAssignmentService {
                                 phone: true
                             }
                         },
+                        crew: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true
+                            }
+                        },
                         vehicleName: {
                             select: {
                                 id: true,
@@ -229,6 +289,14 @@ class CollectorAssignmentService {
                             select: {
                                 id: true,
                                 name: true,
+                                latitude: true,
+                                longitude: true
+                            }
+                        },
+                        scrapYard: {
+                            select: {
+                                id: true,
+                                yardName: true,
                                 latitude: true,
                                 longitude: true
                             }
@@ -277,6 +345,13 @@ class CollectorAssignmentService {
                             fullName: true,
                             email: true,
                             phone: true
+                        }
+                    },
+                    crew: {
+                        select: {
+                            id: true,
+                            name: true,
+                            description: true
                         }
                     },
                     vehicleName: {
@@ -345,25 +420,39 @@ class CollectorAssignmentService {
                     return api_result_1.ApiResult.error("City not found", 404);
                 }
             }
+            // Check if scrap yard exists (if being updated)
+            if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
+                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                    where: { id: data.scrapYardId }
+                });
+                if (!scrapYard) {
+                    return api_result_1.ApiResult.error("Scrap yard not found", 404);
+                }
+                if (scrapYard.organizationId !== existingAssignment.organizationId) {
+                    return api_result_1.ApiResult.error("Scrap yard does not belong to this organization", 403);
+                }
+            }
             // Ensure at least one assignment remains
             const finalVehicleNameId = data.vehicleNameId !== undefined ? data.vehicleNameId : existingAssignment.vehicleNameId;
             const finalCityId = data.cityId !== undefined ? data.cityId : existingAssignment.cityId;
-            if (!finalVehicleNameId && !finalCityId) {
-                return api_result_1.ApiResult.error("Either vehicleNameId or cityId must be provided", 400);
+            const finalScrapYardId = data.scrapYardId !== undefined ? data.scrapYardId : existingAssignment.scrapYardId;
+            if (!finalVehicleNameId && !finalCityId && !finalScrapYardId) {
+                return api_result_1.ApiResult.error("At least one assignment (vehicle, city, or scrap yard) must be provided", 400);
             }
             // Check for duplicate assignment
-            if (data.vehicleNameId !== undefined || data.cityId !== undefined) {
+            if (data.vehicleNameId !== undefined || data.cityId !== undefined || data.scrapYardId !== undefined) {
                 const duplicateAssignment = await config_1.prisma.collectorAssignment.findFirst({
                     where: {
                         collectorId: existingAssignment.collectorId,
                         vehicleNameId: finalVehicleNameId || null,
                         cityId: finalCityId || null,
+                        scrapYardId: finalScrapYardId || null,
                         organizationId: existingAssignment.organizationId,
                         id: { not: id }
                     }
                 });
                 if (duplicateAssignment) {
-                    return api_result_1.ApiResult.error("This assignment already exists", 400);
+                    return api_result_1.ApiResult.error("This assignment already exists for another entry", 400);
                 }
             }
             const assignment = await config_1.prisma.collectorAssignment.update({
@@ -371,6 +460,7 @@ class CollectorAssignmentService {
                 data: {
                     vehicleNameId: data.vehicleNameId !== undefined ? data.vehicleNameId : undefined,
                     cityId: data.cityId !== undefined ? data.cityId : undefined,
+                    scrapYardId: data.scrapYardId !== undefined ? data.scrapYardId : undefined,
                     isActive: data.isActive
                 },
                 include: {
@@ -380,6 +470,13 @@ class CollectorAssignmentService {
                             fullName: true,
                             email: true,
                             phone: true
+                        }
+                    },
+                    crew: {
+                        select: {
+                            id: true,
+                            name: true,
+                            description: true
                         }
                     },
                     vehicleName: {
@@ -398,6 +495,14 @@ class CollectorAssignmentService {
                         select: {
                             id: true,
                             name: true,
+                            latitude: true,
+                            longitude: true
+                        }
+                    },
+                    scrapYard: {
+                        select: {
+                            id: true,
+                            yardName: true,
                             latitude: true,
                             longitude: true
                         }

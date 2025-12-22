@@ -299,6 +299,7 @@ model LeadTimeline {
 
 model Order {
   id                  String            @id @default(uuid())
+  orderNumber         String?           @unique // Format: WO-DDMMYYYY-N
   leadId              String?           @unique
   lead                Lead?             @relation(fields: [leadId], references: [id])
   customerName        String

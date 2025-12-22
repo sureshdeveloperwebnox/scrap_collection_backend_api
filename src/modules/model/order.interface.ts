@@ -2,6 +2,7 @@ import { OrderStatus, PaymentStatusEnum } from './enum';
 
 export interface IOrder {
   id: string;
+  orderNumber?: string; // Format: WO-DDMMYYYY-N
   leadId?: string;
   customerName: string;
   customerPhone: string;

@@ -33,3 +33,4 @@ __exportStar(require("./scrap-name.controller"), exports);
 __exportStar(require("./upload.controller"), exports);
 __exportStar(require("./city.controller"), exports);
 __exportStar(require("./role.controller"), exports);
+__exportStar(require("./crew.controller"), exports);

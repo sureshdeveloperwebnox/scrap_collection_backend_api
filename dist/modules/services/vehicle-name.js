@@ -48,7 +48,11 @@ class VehicleNameService {
                     name: data.name,
                     vehicleTypeId: data.vehicleTypeId,
                     scrapYardId: data.scrapYardId,
-                    isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
+                    isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true,
+                    vehicleNumber: data.vehicleNumber,
+                    make: data.make,
+                    model: data.model,
+                    year: data.year
                 },
                 include: {
                     vehicleType: {
@@ -298,7 +302,11 @@ class VehicleNameService {
                     name: data.name,
                     vehicleTypeId: data.vehicleTypeId,
                     scrapYardId: data.scrapYardId,
-                    isActive: data.isActive
+                    isActive: data.isActive,
+                    vehicleNumber: data.vehicleNumber,
+                    make: data.make,
+                    model: data.model,
+                    year: data.year
                 },
                 include: {
                     vehicleType: {

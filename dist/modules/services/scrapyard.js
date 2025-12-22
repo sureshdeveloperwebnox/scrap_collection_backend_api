@@ -14,6 +14,7 @@ class ScrapYardService {
                     latitude: data.latitude,
                     longitude: data.longitude,
                     assignedEmployeeIds: data.assignedEmployeeIds || [],
+                    managerId: data.managerId,
                     operatingHours: data.operatingHours || {},
                     isActive: data.isActive !== undefined ? data.isActive : true
                 },
@@ -31,13 +32,23 @@ class ScrapYardService {
     }
     async getScrapYards(query) {
         try {
-            const { page = 1, limit = 10, search, organizationId } = query;
+            const { page = 1, limit = 10, search, organizationId, status } = query;
             const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
             const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
             const skip = (parsedPage - 1) * parsedLimit;
             const where = {};
             if (organizationId) {
                 where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
+            }
+            // Add status filter
+            if (status !== undefined && status !== null && status !== '') {
+                // Convert string 'true'/'false' to boolean
+                if (status === 'true' || status === true) {
+                    where.isActive = true;
+                }
+                else if (status === 'false' || status === false) {
+                    where.isActive = false;
+                }
             }
             if (search) {
                 where.OR = [
@@ -97,7 +108,8 @@ class ScrapYardService {
                 }
                 return {
                     ...yard,
-                    employees: assignedEmployees
+                    employees: assignedEmployees,
+                    managerId: yard.managerId
                 };
             }));
             return api_result_1.ApiResult.success({
@@ -162,7 +174,8 @@ class ScrapYardService {
             }
             const scrapYardWithEmployees = {
                 ...scrapYard,
-                employees: assignedEmployees
+                employees: assignedEmployees,
+                managerId: scrapYard.managerId
             };
             return api_result_1.ApiResult.success(scrapYardWithEmployees, "Scrap yard retrieved successfully");
         }
@@ -197,6 +210,43 @@ class ScrapYardService {
         }
         catch (error) {
             console.log("Error in deleteScrapYard", error);
+            return api_result_1.ApiResult.error(error.message);
+        }
+    }
+    async getScrapYardStats(query) {
+        try {
+            const { organizationId } = query;
+            const where = {};
+            if (organizationId) {
+                where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
+            }
+            const stats = await config_1.prisma.scrapYard.groupBy({
+                by: ['isActive'],
+                where,
+                _count: {
+                    isActive: true
+                }
+            });
+            const totalValue = await config_1.prisma.scrapYard.count({ where });
+            const statsMap = {
+                total: totalValue,
+                active: 0,
+                inactive: 0,
+                maintenance: 0,
+                byState: {}
+            };
+            stats.forEach(stat => {
+                if (stat.isActive) {
+                    statsMap.active = stat._count.isActive;
+                }
+                else {
+                    statsMap.inactive = stat._count.isActive;
+                }
+            });
+            return api_result_1.ApiResult.success(statsMap, "Scrap yard statistics retrieved successfully");
+        }
+        catch (error) {
+            console.log("Error in getScrapYardStats", error);
             return api_result_1.ApiResult.error(error.message);
         }
     }
