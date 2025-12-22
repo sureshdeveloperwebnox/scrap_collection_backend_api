@@ -230,4 +230,44 @@ export class ScrapYardService {
       return ApiResult.error(error.message);
     }
   }
+  public async getScrapYardStats(query: any): Promise<ApiResult> {
+    try {
+      const { organizationId } = query;
+      const where: any = {};
+      if (organizationId) {
+        where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
+      }
+
+      const stats = await prisma.scrapYard.groupBy({
+        by: ['isActive'],
+        where,
+        _count: {
+          isActive: true
+        }
+      });
+
+      const totalValue = await prisma.scrapYard.count({ where });
+
+      const statsMap = {
+        total: totalValue,
+        active: 0,
+        inactive: 0,
+        maintenance: 0,
+        byState: {}
+      };
+
+      stats.forEach(stat => {
+        if (stat.isActive) {
+          statsMap.active = stat._count.isActive;
+        } else {
+          statsMap.inactive = stat._count.isActive;
+        }
+      });
+
+      return ApiResult.success(statsMap, "Scrap yard statistics retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getScrapYardStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
 }

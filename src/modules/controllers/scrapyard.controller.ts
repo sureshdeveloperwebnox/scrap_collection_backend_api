@@ -3,7 +3,7 @@ import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
 import { ScrapYardService } from '../services/scrapyard';
-import { 
+import {
   createScrapYardSchema,
   updateScrapYardSchema,
   scrapYardQuerySchema,
@@ -39,6 +39,17 @@ export class ScrapYardController {
       result.send(res);
     } catch (error) {
       console.log("Error in getScrapYards", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
+  }
+
+  @GET('/stats')
+  public async getScrapYardStats(req: Request, res: Response): Promise<void> {
+    try {
+      const result = await this.scrapYardService.getScrapYardStats(req.query);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getScrapYardStats", error);
       ApiResult.error((error as any).message, 500).send(res);
     }
   }
