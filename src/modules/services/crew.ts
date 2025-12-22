@@ -50,7 +50,7 @@ export class CrewService {
                 },
             });
 
-            return ApiResult.success(crew, "Crew created successfully", 201);
+            return ApiResult.success({ crew }, "Crew created successfully", 201);
         } catch (error: any) {
             console.error("Error in createCrew", error);
             return ApiResult.error(error.message || "Failed to create crew");
@@ -104,7 +104,7 @@ export class CrewService {
                 return ApiResult.error('Crew not found', 404);
             }
 
-            return ApiResult.success(crew, "Crew fetched successfully");
+            return ApiResult.success({ crew }, "Crew fetched successfully");
         } catch (error: any) {
             console.error("Error in getCrewById", error);
             return ApiResult.error(error.message);
@@ -139,7 +139,7 @@ export class CrewService {
                 },
             });
 
-            return ApiResult.success(crew, "Crew updated successfully");
+            return ApiResult.success({ crew }, "Crew updated successfully");
         } catch (error: any) {
             console.error("Error in updateCrew", error);
             return ApiResult.error(error.message);

@@ -200,6 +200,7 @@ model Crew {
   // Relations
   members              Employee[]
   collectorAssignments CollectorAssignment[]
+  orders               Order[]
 
   @@map("crews")
 }
@@ -317,8 +318,13 @@ model Order {
   actualPrice         Float?
   yardId              String?
   yard                ScrapYard?        @relation(fields: [yardId], references: [id])
+  crewId              String?
+  crew                Crew?             @relation(fields: [crewId], references: [id])
+  routeDistance       String?
+  routeDuration       String?
   customerNotes       String?           @db.Text
   adminNotes          String?           @db.Text
+  instructions        String?           @db.Text
   organizationId      Int
   organization        Organization      @relation(fields: [organizationId], references: [id])
   customerId          String?
