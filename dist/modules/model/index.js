@@ -35,3 +35,4 @@ __exportStar(require("./email-template.interface"), exports);
 __exportStar(require("./chatbot.interface"), exports);
 __exportStar(require("./ai.interface"), exports);
 __exportStar(require("./city.interface"), exports);
+__exportStar(require("./mobile-auth.model"), exports);

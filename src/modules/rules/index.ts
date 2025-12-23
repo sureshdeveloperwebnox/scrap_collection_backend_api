@@ -15,3 +15,4 @@ export * from './scrapyard.rules';
 export * from './scrap-category.rules';
 export * from './scrap-name.rules';
 export * from './city.rules';
+export * from './mobile-auth.rules';

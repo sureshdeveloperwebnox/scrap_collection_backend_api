@@ -19,3 +19,4 @@ export * from './email-template.interface';
 export * from './chatbot.interface';
 export * from './ai.interface';
 export * from './city.interface';
+export * from './mobile-auth.model';

@@ -20,7 +20,8 @@ import {
   UploadController,
   CityController,
   RoleController,
-  CrewController
+  CrewController,
+  MobileAuthController
 } from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
@@ -49,7 +50,8 @@ export const combineRouters = (app: Express) => {
       UploadController,
       CityController,
       RoleController,
-      CrewController
+      CrewController,
+      MobileAuthController
     ],
     {
       middleware: {
