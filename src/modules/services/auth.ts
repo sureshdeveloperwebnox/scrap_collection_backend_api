@@ -5,8 +5,31 @@ import { ApiResult } from '../../utils/api-result';
 import { ISignUpData, ISignInData, UserRole } from '../model';
 import { prisma } from '../../config';
 
+interface TokenPayload {
+  id: string;
+  email: string;
+  firstName: string;
+  role: string;
+  organizationId?: number;
+}
 
 export class Auth {
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+  private readonly JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your_jwt_refresh_secret_key';
+  private readonly ACCESS_TOKEN_EXPIRY = '15m'; // Short-lived access token
+  private readonly REFRESH_TOKEN_EXPIRY = '7d'; // Long-lived refresh token
+
+  private generateTokens(payload: TokenPayload) {
+    const accessToken = jwt.sign(payload, this.JWT_SECRET, {
+      expiresIn: this.ACCESS_TOKEN_EXPIRY
+    });
+
+    const refreshToken = jwt.sign(payload, this.JWT_REFRESH_SECRET, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRY
+    });
+
+    return { accessToken, refreshToken };
+  }
   public async signIn(data: ISignInData): Promise<ApiResult> {
     const { email, password } = data;
 
@@ -30,19 +53,16 @@ export class Auth {
       return ApiResult.error('Invalid password', 401);
     }
 
-    // Create JWT token with user category
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        role: user.role,
-        organizationId: user.organizationId
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    // Create JWT tokens
+    const tokenPayload: TokenPayload = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName || '',
+      role: user.role,
+      organizationId: user.organizationId || undefined
+    };
+
+    const { accessToken, refreshToken } = this.generateTokens(tokenPayload);
 
     return ApiResult.success({
       user: {
@@ -54,7 +74,8 @@ export class Auth {
         role: user.role,
         organizationId: user.organizationId
       },
-      token
+      accessToken,
+      refreshToken
     }, 'Login successful');
   }
 
@@ -101,20 +122,16 @@ export class Auth {
       }
     });
 
-    // Create JWT token with user category
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-    const token = jwt.sign(
-      {
-        id: newUser.id,
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        phone: phone,
-        role: role
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    // Create JWT tokens
+    const tokenPayload: TokenPayload = {
+      id: newUser.id,
+      email: email,
+      firstName: firstName,
+      role: role,
+      organizationId: newOrganization.id
+    };
+
+    const { accessToken, refreshToken } = this.generateTokens(tokenPayload);
 
     return ApiResult.success({
       user: {
@@ -123,9 +140,11 @@ export class Auth {
         lastName: newUser.lastName,
         email: newUser.email,
         phone: newUser.phone,
-        role: newUser.role
+        role: newUser.role,
+        organizationId: newOrganization.id
       },
-      token
+      accessToken,
+      refreshToken
     }, 'User registered successfully', 201);
   }
 
@@ -210,19 +229,16 @@ export class Auth {
         });
       }
 
-      // Create JWT token
-      const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-      const token = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          role: user.role,
-          organizationId: user.organizationId
-        },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      // Create JWT tokens
+      const tokenPayload: TokenPayload = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        role: user.role,
+        organizationId: user.organizationId || undefined
+      };
+
+      const { accessToken, refreshToken } = this.generateTokens(tokenPayload);
 
       return ApiResult.success({
         user: {
@@ -234,7 +250,8 @@ export class Auth {
           role: user.role,
           organizationId: user.organizationId
         },
-        token
+        accessToken,
+        refreshToken
       }, 'Google sign-in successful');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
@@ -242,6 +259,68 @@ export class Auth {
         error.message || 'Google authentication failed',
         401
       );
+    }
+  }
+
+  public async refreshToken(refreshToken: string): Promise<ApiResult> {
+    try {
+      // Verify the refresh token
+      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as TokenPayload;
+
+      // Generate new tokens
+      const tokenPayload: TokenPayload = {
+        id: decoded.id,
+        email: decoded.email,
+        firstName: decoded.firstName,
+        role: decoded.role,
+        organizationId: decoded.organizationId
+      };
+
+      const tokens = this.generateTokens(tokenPayload);
+
+      return ApiResult.success({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
+      }, 'Token refreshed successfully');
+    } catch (error: any) {
+      console.error('Token refresh error:', error);
+      return ApiResult.error('Invalid or expired refresh token', 401);
+    }
+  }
+
+  public async getMe(userId: string): Promise<ApiResult> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          role: true,
+          organizationId: true,
+        }
+      });
+
+      if (!user) {
+        return ApiResult.error('User not found', 404);
+      }
+
+      return ApiResult.success({
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          organizationId: user.organizationId
+        }
+      }, 'User retrieved successfully');
+    } catch (error: any) {
+      console.error('Get me error:', error);
+      return ApiResult.error('Failed to retrieve user', 500);
     }
   }
 

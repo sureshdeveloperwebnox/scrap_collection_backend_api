@@ -7,10 +7,15 @@ import { UserCategory } from '../utils/user-category.enum';
 
 export const createRoleMiddleware = (allowedCategories: UserCategory[]) => {
   return (req: RequestX, res: Response, next: NextFunction) => {
-    
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+
+    // Get token from cookie first, fallback to header for backward compatibility
+    let token = req.cookies?.accessToken;
+
+    if (!token) {
+      // Fallback to Authorization header
+      const authHeader = req.headers.authorization;
+      token = authHeader && authHeader.split(' ')[1];
+    }
 
     if (!token) {
       return ApiResult.error('No token provided, authorization denied', 401).send(res);
@@ -19,22 +24,23 @@ export const createRoleMiddleware = (allowedCategories: UserCategory[]) => {
     try {
       // Verify token
       const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
-      const decoded = jwt.verify(token, JWT_SECRET) as { 
-        id: number, 
-        email: string, 
-        name: string, 
-        category: UserCategory 
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        id: string,
+        email: string,
+        firstName: string,
+        role: string,
+        organizationId?: number
       };
-      
+
       // Check if user category is allowed
-      const hasAccess = allowedCategories.includes(UserCategory.ALL) || 
-                        allowedCategories.includes(decoded.category);
-                        
-      
+      const hasAccess = allowedCategories.includes(UserCategory.ALL) ||
+        allowedCategories.includes(decoded.role as any);
+
+
       if (!hasAccess) {
         return ApiResult.error('Insufficient permissions to access this resource', 403).send(res);
       }
-      
+
       // Add user from payload
       req.user = decoded;
       next();
