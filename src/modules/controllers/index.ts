@@ -19,3 +19,4 @@ export * from './city.controller';
 export * from './role.controller';
 export * from './crew.controller';
 export * from './mobile-auth.controller';
+export * from './mobile-work-order.controller';
