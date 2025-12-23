@@ -262,11 +262,22 @@ export class VehicleTypeService {
         return ApiResult.error("Vehicle type not found", 404);
       }
 
+      // Check if this vehicle type is being used by any vehicle names
+      const vehicleNamesCount = await prisma.vehicleName.count({
+        where: { vehicleTypeId: id }
+      });
+
+      if (vehicleNamesCount > 0) {
+        return ApiResult.error(
+          `Cannot delete vehicle type. It is currently being used by ${vehicleNamesCount} vehicle name(s). Please remove or reassign these vehicle names first.`,
+          400
+        );
+      }
+
       // Note: Since the schema changed:
       // - Leads now use vehicleType enum (VehicleTypeEnum) which is independent of VehicleType table
       // - Orders use vehicleDetails JSON which doesn't reference VehicleType table
-      // So we can't check if a VehicleType is being used in leads or orders
-      // VehicleType is now more of a master/reference table for UI purposes
+      // So we only need to check VehicleNames table for foreign key constraints
 
       await prisma.vehicleType.delete({
         where: { id }
@@ -280,6 +291,15 @@ export class VehicleTypeService {
 
     } catch (error: any) {
       console.log("Error in deleteVehicleType", error);
+
+      // Handle Prisma foreign key constraint errors
+      if (error.code === 'P2003') {
+        return ApiResult.error(
+          "Cannot delete vehicle type due to existing references. Please remove all associated records first.",
+          400
+        );
+      }
+
       return ApiResult.error(error.message);
     }
   }
