@@ -55,6 +55,8 @@ export const mobileUpdateWorkOrderStatusSchema = {
         notes: Joi.string().max(1000).optional(),
         actualPrice: Joi.number().min(0).optional(),
         completionPhotos: Joi.array().items(Joi.string().uri()).optional(),
+        photos: Joi.array().items(Joi.string().uri()).optional(),
+        timestamp: Joi.date().iso().optional(),
         latitude: Joi.number().min(-90).max(90).optional(),
         longitude: Joi.number().min(-180).max(180).optional()
     })

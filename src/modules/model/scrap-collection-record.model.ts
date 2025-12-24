@@ -51,6 +51,8 @@ export interface ICreateScrapCollectionRecord {
     afterPhotos?: string[];
     customerSignature?: string;
     collectorSignature?: string;
+    employeeSignature?: string;
+    scrapCollectedDate?: Date | string;
 
     // Additional Information
     notes?: string;

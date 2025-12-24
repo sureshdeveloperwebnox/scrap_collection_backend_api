@@ -422,10 +422,20 @@ export class MobileWorkOrderService {
                 updateData.actualPrice = data.actualPrice;
             }
 
-            // Merge completion photos with existing photos
+            // Merge all photos (existing + completion + general photos)
+            const existingPhotos = order.photos as any[] || [];
+            const newPhotos: string[] = [];
+
             if (data.completionPhotos && data.completionPhotos.length > 0) {
-                const existingPhotos = order.photos as any[] || [];
-                updateData.photos = [...existingPhotos, ...data.completionPhotos];
+                newPhotos.push(...data.completionPhotos);
+            }
+
+            if (data.photos && data.photos.length > 0) {
+                newPhotos.push(...data.photos);
+            }
+
+            if (newPhotos.length > 0) {
+                updateData.photos = [...existingPhotos, ...newPhotos];
             }
 
             const updatedOrder = await prisma.order.update({
@@ -442,14 +452,23 @@ export class MobileWorkOrderService {
                 }
             });
 
-            // Create timeline entry
+            // Create timeline entry with custom timestamp if provided
+            const timelineData: any = {
+                orderId,
+                status: data.status,
+                notes: data.notes || `Status updated to ${data.status} by collector`,
+                performedBy: collectorId,
+                latitude: data.latitude,
+                longitude: data.longitude
+            };
+
+            // Use custom timestamp if provided, otherwise use current time
+            if (data.timestamp) {
+                timelineData.createdAt = new Date(data.timestamp);
+            }
+
             await prisma.orderTimeline.create({
-                data: {
-                    orderId,
-                    status: data.status,
-                    notes: data.notes || `Status updated to ${data.status} by collector`,
-                    performedBy: collectorId
-                }
+                data: timelineData
             });
 
             const mobileOrder = this.transformOrderToMobile(updatedOrder);

@@ -43,6 +43,8 @@ export const createScrapCollectionRecordSchema = {
         afterPhotos: Joi.array().items(Joi.string().uri()).optional(),
         customerSignature: Joi.string().uri().optional(),
         collectorSignature: Joi.string().uri().optional(),
+        employeeSignature: Joi.string().uri().optional(),
+        scrapCollectedDate: Joi.date().iso().optional(),
 
         notes: Joi.string().max(2000).optional(),
         specialInstructions: Joi.string().max(1000).optional(),
@@ -98,6 +100,8 @@ export const updateScrapCollectionRecordSchema = {
         afterPhotos: Joi.array().items(Joi.string().uri()).optional(),
         customerSignature: Joi.string().uri().optional(),
         collectorSignature: Joi.string().uri().optional(),
+        employeeSignature: Joi.string().uri().optional(),
+        scrapCollectedDate: Joi.date().iso().optional(),
 
         notes: Joi.string().max(2000).optional(),
         specialInstructions: Joi.string().max(1000).optional(),

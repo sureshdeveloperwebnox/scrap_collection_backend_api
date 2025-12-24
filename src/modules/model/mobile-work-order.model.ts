@@ -157,6 +157,8 @@ export interface IMobileUpdateWorkOrderStatusRequest {
     notes?: string;
     actualPrice?: number;
     completionPhotos?: string[]; // Photos taken upon completion
+    photos?: string[]; // General photos (e.g., arrival, location)
+    timestamp?: Date | string; // Timestamp when status was updated
     latitude?: number; // Location where status was updated
     longitude?: number;
 }
