@@ -190,6 +190,7 @@ model Employee {
   payments             Payment[]
   collectorAssignments CollectorAssignment[]
   assignOrders        AssignOrder[]
+  scrapCollectionRecords ScrapCollectionRecord[]
 }
 
 model Crew {
