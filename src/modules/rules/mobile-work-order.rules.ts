@@ -51,13 +51,16 @@ export const mobileUpdateWorkOrderStatusSchema = {
                 'any.only': 'Invalid order status',
                 'any.required': 'Status is required'
             }),
-        notes: Joi.string().max(1000).optional(),
-        actualPrice: Joi.number().min(0).optional(),
-        completionPhotos: Joi.array().items(Joi.string().uri()).optional(),
-        photos: Joi.array().items(Joi.string().uri()).optional(),
         timestamp: Joi.date().iso().optional(),
-        latitude: Joi.number().min(-90).max(90).optional(),
-        longitude: Joi.number().min(-180).max(180).optional(),
-        performedById: Joi.string().uuid().optional()
-    })
+        photos: Joi.array().items(Joi.string()).when('status', {
+            is: 'COMPLETED',
+            then: Joi.array().min(1).required().messages({
+                'any.required': 'Photos are required when marking as COMPLETED',
+                'array.min': 'At least one photo is required'
+            }),
+            otherwise: Joi.forbidden().messages({
+                'any.unknown': 'Photos can only be provided when status is COMPLETED'
+            })
+        })
+    }).unknown(false)
 };

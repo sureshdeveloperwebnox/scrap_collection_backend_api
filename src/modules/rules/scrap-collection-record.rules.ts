@@ -2,25 +2,21 @@ import Joi from 'joi';
 
 export const createScrapCollectionRecordSchema = {
     body: Joi.object({
-        orderId: Joi.string().optional(),
-        customerId: Joi.string().optional(),
-        customerName: Joi.string().required(),
-        customerPhone: Joi.string().required(),
-        customerEmail: Joi.string().email().optional(),
-        customerAddress: Joi.string().required(),
+        orderId: Joi.string().required(),
+        customerId: Joi.string().required(),
 
         scrapCategoryId: Joi.string().required(),
-        scrapNameId: Joi.string().optional(),
+        scrapNameId: Joi.string().required(),
         scrapDescription: Joi.string().required(),
         scrapCondition: Joi.string().valid('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'SCRAP', 'HAZARDOUS').required(),
 
-        make: Joi.string().optional(),
-        model: Joi.string().optional(),
+        make: Joi.string().required(),
+        model: Joi.string().required(),
         yearOfManufacture: Joi.string().optional(),
         serialNumber: Joi.string().optional(),
 
-        weight: Joi.number().min(0).optional(),
-        quantity: Joi.number().integer().min(1).optional(),
+        weight: Joi.number().min(0).required(),
+        quantity: Joi.number().integer().min(1).required(),
         dimensions: Joi.object({
             length: Joi.number().optional(),
             width: Joi.number().optional(),
@@ -28,23 +24,24 @@ export const createScrapCollectionRecordSchema = {
             unit: Joi.string().optional()
         }).optional(),
 
-        quotedAmount: Joi.number().min(0).required(),
-        baseAmount: Joi.number().min(0).required(),
+        // Financial Details made optional as requested
+        quotedAmount: Joi.number().min(0).optional(),
+        baseAmount: Joi.number().min(0).optional(),
         taxPercentage: Joi.number().min(0).max(100).optional(),
         taxAmount: Joi.number().min(0).optional(),
         additionalCharges: Joi.number().min(0).optional(),
         discountAmount: Joi.number().min(0).optional(),
-        finalAmount: Joi.number().min(0).required(),
+        finalAmount: Joi.number().min(0).optional(),
         paymentMethod: Joi.string().valid('CASH', 'CARD', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'ONLINE').optional(),
         paymentStatus: Joi.string().valid('UNPAID', 'PAID', 'REFUNDED').optional(),
 
-        photos: Joi.array().items(Joi.string().uri()).optional(),
+        photos: Joi.array().items(Joi.string().uri()).required(),
         beforePhotos: Joi.array().items(Joi.string().uri()).optional(),
         afterPhotos: Joi.array().items(Joi.string().uri()).optional(),
-        customerSignature: Joi.string().uri().optional(),
+        customerSignature: Joi.string().uri().required(),
         collectorSignature: Joi.string().uri().optional(),
-        employeeSignature: Joi.string().uri().optional(),
-        scrapCollectedDate: Joi.date().iso().optional(),
+        employeeSignature: Joi.string().uri().required(),
+        scrapCollectedDate: Joi.date().iso().required(),
 
         notes: Joi.string().max(2000).optional(),
         specialInstructions: Joi.string().max(1000).optional(),

@@ -154,14 +154,8 @@ export interface IMobileWorkOrder {
  */
 export interface IMobileUpdateWorkOrderStatusRequest {
     status: OrderStatus;
-    notes?: string;
-    actualPrice?: number;
-    completionPhotos?: string[]; // Photos taken upon completion
-    photos?: string[]; // General photos (e.g., arrival, location)
     timestamp?: Date | string; // Timestamp when status was updated
-    latitude?: number; // Location where status was updated
-    longitude?: number;
-    performedById?: string; // Optional: ID of the employee performing the action (defaults to collector)
+    photos?: string[]; // Required ONLY when status is COMPLETED
 }
 
 /**

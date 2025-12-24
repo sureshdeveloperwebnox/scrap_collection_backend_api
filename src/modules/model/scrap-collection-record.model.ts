@@ -5,28 +5,24 @@ import { ScrapConditionEnum, PaymentMethodEnum, PaymentStatusEnum, CollectionRec
  */
 export interface ICreateScrapCollectionRecord {
     // Work Order & Customer Reference
-    orderId?: string;
-    customerId?: string;
-    customerName: string;
-    customerPhone: string;
-    customerEmail?: string;
-    customerAddress: string;
+    orderId: string;
+    customerId: string;
 
     // Scrap Item Details
     scrapCategoryId: string;
-    scrapNameId?: string;
+    scrapNameId: string;
     scrapDescription: string;
     scrapCondition: ScrapConditionEnum;
 
     // Item Specifications
-    make?: string;
-    model?: string;
+    make: string;
+    model: string;
     yearOfManufacture?: string;
     serialNumber?: string;
 
     // Measurements & Pricing
-    weight?: number;
-    quantity?: number;
+    weight: number;
+    quantity: number;
     dimensions?: {
         length?: number;
         width?: number;
@@ -34,25 +30,25 @@ export interface ICreateScrapCollectionRecord {
         unit?: string;
     };
 
-    // Financial Details
-    quotedAmount: number;
-    baseAmount: number;
+    // Financial Details (Optional in payload, fetched from Order or calculated)
+    quotedAmount?: number;
+    baseAmount?: number;
     taxPercentage?: number;
     taxAmount?: number;
     additionalCharges?: number;
     discountAmount?: number;
-    finalAmount: number;
+    finalAmount?: number;
     paymentMethod?: PaymentMethodEnum;
     paymentStatus?: PaymentStatusEnum;
 
     // Documentation
-    photos?: string[];
+    photos: string[];
     beforePhotos?: string[];
     afterPhotos?: string[];
-    customerSignature?: string;
+    customerSignature: string;
     collectorSignature?: string;
-    employeeSignature?: string;
-    scrapCollectedDate?: Date | string;
+    employeeSignature: string;
+    scrapCollectedDate: Date | string;
 
     // Additional Information
     notes?: string;

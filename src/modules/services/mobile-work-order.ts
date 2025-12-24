@@ -1,5 +1,6 @@
 import { prisma } from '../../config';
 import { ApiResult } from '../../utils/api-result';
+import { storageService } from '../../utils/storage.service';
 import {
     IMobileWorkOrderQueryParams,
     IMobileWorkOrderListResponse,
@@ -28,6 +29,50 @@ export class MobileWorkOrderService {
 
     private toRad(degrees: number): number {
         return degrees * (Math.PI / 180);
+    }
+
+    /**
+     * Process image (handle Base64 or pass through URL)
+     */
+    private async processImage(image: string, folder: string): Promise<string> {
+        if (!image || typeof image !== 'string') return image;
+
+        // Check if it's a base64 string
+        if (image.startsWith('data:image')) {
+            try {
+                const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                if (!matches || matches.length !== 3) {
+                    return image;
+                }
+
+                const contentType = matches[1];
+                const base64Data = matches[2];
+                const buffer = Buffer.from(base64Data, 'base64');
+
+                // Get extension from content type
+                const extension = contentType.split('/')[1] || 'jpg';
+                const fileName = `mobile_upload_${Date.now()}.${extension}`;
+
+                // Upload to storage service
+                const path = await storageService.uploadFile(buffer, fileName, folder, contentType);
+                return path;
+            } catch (error) {
+                console.error('Error processing base64 image:', error);
+                return image;
+            }
+        }
+
+        return image;
+    }
+
+    /**
+     * Process multiple images
+     */
+    private async processImages(images: string[], folder: string): Promise<string[]> {
+        if (!images || !Array.isArray(images) || images.length === 0) return [];
+
+        const uploadPromises = images.map(img => this.processImage(img, folder));
+        return Promise.all(uploadPromises);
     }
 
     /**
@@ -434,28 +479,20 @@ export class MobileWorkOrderService {
                 orderStatus: data.status
             };
 
-            if (data.actualPrice !== undefined) {
-                updateData.actualPrice = data.actualPrice;
-            }
+            // Handle photos only on completion
+            if (data.status === 'COMPLETED' && data.photos && data.photos.length > 0) {
+                const processedPhotos = await this.processImages(data.photos, `orders/${order.id}/completion`);
+                const existingPhotos = order.photos as any[] || [];
+                updateData.photos = [...existingPhotos, ...processedPhotos];
 
-            // Merge all photos (existing + completion + general photos)
-            const existingPhotos = order.photos as any[] || [];
-            const newPhotos: string[] = [];
-
-            if (data.completionPhotos && data.completionPhotos.length > 0) {
-                newPhotos.push(...data.completionPhotos);
-            }
-
-            if (data.photos && data.photos.length > 0) {
-                newPhotos.push(...data.photos);
-            }
-
-            if (newPhotos.length > 0) {
-                updateData.photos = [...existingPhotos, ...newPhotos];
+                // Ensure actualPrice is set from quoted price if not already set
+                if (order.quotedPrice && !order.actualPrice) {
+                    updateData.actualPrice = order.quotedPrice;
+                }
             }
 
             const updatedOrder = await prisma.order.update({
-                where: { id: order.id }, // Use the actual internal ID found
+                where: { id: order.id },
                 data: updateData,
                 include: {
                     yard: true,
@@ -468,17 +505,15 @@ export class MobileWorkOrderService {
                 }
             });
 
-            // Create timeline entry with custom timestamp if provided
+            // Create timeline entry
             const timelineData: any = {
                 orderId: order.id,
                 status: data.status,
-                notes: data.notes || `Status updated to ${data.status} by collector`,
-                performedBy: data.performedById || collectorId,
-                latitude: data.latitude,
-                longitude: data.longitude
+                notes: `Status updated to ${data.status} via mobile`,
+                performedBy: collectorId
             };
 
-            // Use custom timestamp if provided, otherwise use current time
+            // Use custom timestamp if provided
             if (data.timestamp) {
                 timelineData.createdAt = new Date(data.timestamp);
             }
