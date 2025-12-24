@@ -31,3 +31,4 @@ __exportStar(require("./scrapyard.rules"), exports);
 __exportStar(require("./scrap-category.rules"), exports);
 __exportStar(require("./scrap-name.rules"), exports);
 __exportStar(require("./city.rules"), exports);
+__exportStar(require("./mobile-auth.rules"), exports);

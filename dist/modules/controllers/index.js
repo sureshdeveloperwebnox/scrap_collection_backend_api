@@ -34,3 +34,4 @@ __exportStar(require("./upload.controller"), exports);
 __exportStar(require("./city.controller"), exports);
 __exportStar(require("./role.controller"), exports);
 __exportStar(require("./crew.controller"), exports);
+__exportStar(require("./mobile-auth.controller"), exports);

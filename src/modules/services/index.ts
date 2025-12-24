@@ -15,3 +15,4 @@ export * from './scrap-category';
 export * from './scrap-name';
 export * from './city';
 export * from './crew';
+export * from './mobile-auth';

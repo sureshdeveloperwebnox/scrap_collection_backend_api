@@ -16,3 +16,4 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./auth.middleware"), exports);
 __exportStar(require("./validator.middleware"), exports);
+__exportStar(require("./mobile-auth.middleware"), exports);
