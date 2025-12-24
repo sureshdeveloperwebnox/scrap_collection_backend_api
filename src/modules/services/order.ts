@@ -421,4 +421,34 @@ export class OrderService {
       return ApiResult.error(error.message);
     }
   }
+
+  public async getOrderStats(organizationId?: number): Promise<ApiResult> {
+    try {
+      const where: any = {};
+      if (organizationId) {
+        where.organizationId = organizationId;
+      }
+
+      const [total, pending, assigned, inProgress, completed, cancelled] = await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.PENDING } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.ASSIGNED } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.IN_PROGRESS } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.COMPLETED } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.CANCELLED } })
+      ]);
+
+      return ApiResult.success({
+        total,
+        pending,
+        assigned,
+        inProgress,
+        completed,
+        cancelled
+      }, "Order stats retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getOrderStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
 }
