@@ -204,6 +204,16 @@ export class OrderService {
             include: {
               members: true
             }
+          },
+          assignOrders: {
+            include: {
+              collector: true,
+              crew: {
+                include: {
+                  members: true
+                }
+              }
+            }
           }
         }
       });
@@ -299,14 +309,50 @@ export class OrderService {
         orderStatus: OrderStatus.ASSIGNED
       };
 
+      // Clear existing assignments for this order
+      await prisma.assignOrder.deleteMany({
+        where: { orderId: id }
+      });
+
       // Handle collector assignment
-      if (data.collectorId) {
-        updateData.assignedCollectorId = data.collectorId;
+      const collectorIds: string[] = (data as any).collectorIds || [];
+      if (data.collectorId && !collectorIds.includes(data.collectorId)) {
+        collectorIds.push(data.collectorId);
+      }
+
+      if (collectorIds.length > 0) {
+        // Create new assignments for collectors
+        await Promise.all(collectorIds.map(cid =>
+          prisma.assignOrder.create({
+            data: {
+              orderId: id,
+              collectorId: cid,
+              startTime: (data as any).startTime,
+              endTime: (data as any).endTime,
+              notes: (data as any).notes
+            }
+          })
+        ));
+
+        // Update Order with primary collector (first one) for backward compatibility
+        updateData.assignedCollectorId = collectorIds[0];
       }
 
       // Handle crew assignment (if provided in the request)
-      if ((data as any).crewId) {
-        updateData.crewId = (data as any).crewId;
+      const crewId = (data as any).crewId;
+      if (crewId) {
+        updateData.crewId = crewId;
+
+        // Add crew assignment record
+        await prisma.assignOrder.create({
+          data: {
+            orderId: id,
+            crewId: crewId,
+            startTime: (data as any).startTime,
+            endTime: (data as any).endTime,
+            notes: (data as any).notes
+          }
+        });
       }
 
       // Handle yard assignment (if provided in the request)
@@ -330,6 +376,12 @@ export class OrderService {
           yard: true,
           customer: true,
           lead: true,
+          assignOrders: {
+            include: {
+              collector: true,
+              crew: true
+            }
+          },
           crew: {
             include: {
               members: true
@@ -342,7 +394,7 @@ export class OrderService {
         data: {
           orderId: id,
           status: OrderStatus.ASSIGNED,
-          notes: `Order assigned`,
+          notes: `Order assigned to ${collectorIds.length} collectors and/or crew`,
           performedBy: 'system'
         }
       });
@@ -366,6 +418,36 @@ export class OrderService {
       return ApiResult.success(timeline, "Order timeline retrieved successfully");
     } catch (error: any) {
       console.log("Error in getOrderTimeline", error);
+      return ApiResult.error(error.message);
+    }
+  }
+
+  public async getOrderStats(organizationId?: number): Promise<ApiResult> {
+    try {
+      const where: any = {};
+      if (organizationId) {
+        where.organizationId = organizationId;
+      }
+
+      const [total, pending, assigned, inProgress, completed, cancelled] = await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.PENDING } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.ASSIGNED } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.IN_PROGRESS } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.COMPLETED } }),
+        prisma.order.count({ where: { ...where, orderStatus: OrderStatus.CANCELLED } })
+      ]);
+
+      return ApiResult.success({
+        total,
+        pending,
+        assigned,
+        inProgress,
+        completed,
+        cancelled
+      }, "Order stats retrieved successfully");
+    } catch (error: any) {
+      console.log("Error in getOrderStats", error);
       return ApiResult.error(error.message);
     }
   }

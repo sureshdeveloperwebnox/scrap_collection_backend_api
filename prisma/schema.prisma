@@ -189,7 +189,7 @@ model Employee {
   pickupRequests       PickupRequest[]
   payments             Payment[]
   collectorAssignments CollectorAssignment[]
-  scrapCollectionRecords ScrapCollectionRecord[]
+  assignOrders        AssignOrder[]
 }
 
 model Crew {
@@ -203,6 +203,7 @@ model Crew {
   // Relations
   members              Employee[]
   collectorAssignments CollectorAssignment[]
+  assignOrders        AssignOrder[]
   orders               Order[]
 
   @@map("crews")
@@ -350,6 +351,9 @@ model Order {
   @@index([assignedCollectorId])
   @@index([yardId])
   @@index([crewId])
+
+  // Relations
+  assignOrders AssignOrder[]
 }
 
 enum OrderStatus {
@@ -545,6 +549,22 @@ model CollectorAssignment {
   updatedAt      DateTime     @updatedAt
 
   @@map("collector_assignments")
+}
+
+model AssignOrder {
+  id          String    @id @default(uuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  collectorId String?
+  collector   Employee? @relation(fields: [collectorId], references: [id])
+  crewId      String?
+  crew        Crew?     @relation(fields: [crewId], references: [id])
+  assignedAt  DateTime  @default(now())
+  startTime   DateTime?
+  endTime     DateTime?
+  notes       String?
+
+  @@map("assign_orders")
 }
 
 // ============================================

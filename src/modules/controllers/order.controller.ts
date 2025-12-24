@@ -3,7 +3,7 @@ import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
 import { OrderService } from '../services/order';
-import { 
+import {
   createOrderSchema,
   updateOrderSchema,
   orderQuerySchema,
@@ -28,6 +28,19 @@ export class OrderController {
       result.send(res);
     } catch (error) {
       console.log("Error in createOrder", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
+  }
+
+  @GET('/stats')
+  public async getOrderStats(req: Request, res: Response): Promise<void> {
+    try {
+      // Extract organizationId from user if available (assuming it might be attached to req.user)
+      const organizationId = (req as any).user?.organizationId ? parseInt((req as any).user.organizationId) : undefined;
+      const result = await this.orderService.getOrderStats(organizationId);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in getOrderStats", error);
       ApiResult.error((error as any).message, 500).send(res);
     }
   }
