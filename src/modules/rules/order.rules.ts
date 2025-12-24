@@ -71,5 +71,13 @@ export const orderIdSchema = Joi.object({
 });
 
 export const assignOrderSchema = Joi.object({
-  collectorId: Joi.string().uuid().required()
+  collectorId: Joi.string().uuid().optional(),
+  collectorIds: Joi.array().items(Joi.string().uuid()).optional(),
+  crewId: Joi.string().uuid().optional(),
+  yardId: Joi.string().uuid().optional(),
+  routeDistance: Joi.string().optional(),
+  routeDuration: Joi.string().optional(),
+  startTime: Joi.date().optional(),
+  endTime: Joi.date().optional(),
+  notes: Joi.string().optional()
 });
