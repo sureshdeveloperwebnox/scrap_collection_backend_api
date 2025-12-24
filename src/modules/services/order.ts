@@ -39,6 +39,39 @@ export class OrderService {
 
   public async createOrder(data: ICreateOrderRequest): Promise<ApiResult> {
     try {
+      // Additional service-level validation
+      if (!data.customerName || data.customerName.trim().length === 0) {
+        return ApiResult.error('Customer name is required', 400);
+      }
+
+      if (!data.customerPhone || data.customerPhone.trim().length === 0) {
+        return ApiResult.error('Customer phone number is required', 400);
+      }
+
+      if (!data.address || data.address.trim().length === 0) {
+        return ApiResult.error('Collection address is required', 400);
+      }
+
+      if (data.address.trim().length < 5) {
+        return ApiResult.error('Collection address must be at least 5 characters long', 400);
+      }
+
+      if (!data.vehicleDetails) {
+        return ApiResult.error('Vehicle details are required', 400);
+      }
+
+      if (!data.vehicleDetails.description || data.vehicleDetails.description.trim().length === 0) {
+        return ApiResult.error('Scrap description is required', 400);
+      }
+
+      if (data.vehicleDetails.description.trim().length < 5) {
+        return ApiResult.error('Scrap description must be at least 5 characters long', 400);
+      }
+
+      if (!data.pickupTime) {
+        return ApiResult.error('Pickup date and time is required', 400);
+      }
+
       // Generate unique order number
       const orderNumber = await this.generateOrderNumber(data.organizationId);
 
@@ -59,10 +92,10 @@ export class OrderService {
           orderNumber,
           organizationId: data.organizationId,
           leadId: data.leadId,
-          customerName: data.customerName,
-          customerPhone: data.customerPhone,
+          customerName: data.customerName.trim(),
+          customerPhone: data.customerPhone.trim(),
           customerEmail: data.customerEmail,
-          address: data.address,
+          address: data.address.trim(),
           latitude: data.latitude,
           longitude: data.longitude,
           vehicleDetails: data.vehicleDetails,
@@ -79,7 +112,7 @@ export class OrderService {
           customerNotes: data.customerNotes,
           adminNotes: data.adminNotes,
           customerId: data.customerId,
-          instructions: data.instructions
+          instructions: data.instructions?.trim()
         },
         include: {
           assignedCollector: true,
@@ -107,7 +140,17 @@ export class OrderService {
       return ApiResult.success(order, "Order created successfully", 201);
     } catch (error: any) {
       console.log("Error in createOrder", error);
-      return ApiResult.error(error.message);
+
+      // Provide more specific error messages
+      if (error.code === 'P2002') {
+        return ApiResult.error('A unique constraint violation occurred. Please check your data.', 400);
+      }
+
+      if (error.code === 'P2003') {
+        return ApiResult.error('Invalid reference: One or more related records do not exist.', 400);
+      }
+
+      return ApiResult.error(error.message || 'Failed to create order', 500);
     }
   }
 
@@ -239,6 +282,39 @@ export class OrderService {
         return ApiResult.error("Order not found", 404);
       }
 
+      // Validate updated fields
+      if (data.customerName !== undefined) {
+        if (!data.customerName || data.customerName.trim().length === 0) {
+          return ApiResult.error('Customer name cannot be empty', 400);
+        }
+        if (data.customerName.trim().length < 2) {
+          return ApiResult.error('Customer name must be at least 2 characters long', 400);
+        }
+      }
+
+      if (data.customerPhone !== undefined) {
+        if (!data.customerPhone || data.customerPhone.trim().length === 0) {
+          return ApiResult.error('Customer phone number cannot be empty', 400);
+        }
+      }
+
+      if (data.address !== undefined) {
+        if (!data.address || data.address.trim().length === 0) {
+          return ApiResult.error('Collection address cannot be empty', 400);
+        }
+        if (data.address.trim().length < 5) {
+          return ApiResult.error('Collection address must be at least 5 characters long', 400);
+        }
+      }
+
+      if (data.quotedPrice !== undefined && data.quotedPrice !== null && data.quotedPrice < 0) {
+        return ApiResult.error('Quoted price cannot be negative', 400);
+      }
+
+      if (data.actualPrice !== undefined && data.actualPrice !== null && data.actualPrice < 0) {
+        return ApiResult.error('Actual price cannot be negative', 400);
+      }
+
       // Remove only core relation fields that should never be updated
       // Allow assignment fields (assignedCollectorId, yardId, crewId) to be updated
       const {
@@ -247,6 +323,12 @@ export class OrderService {
         leadId,
         ...updateData
       } = data as any;
+
+      // Sanitize text fields
+      if (updateData.customerName) updateData.customerName = updateData.customerName.trim();
+      if (updateData.customerPhone) updateData.customerPhone = updateData.customerPhone.trim();
+      if (updateData.address) updateData.address = updateData.address.trim();
+      if (updateData.instructions) updateData.instructions = updateData.instructions.trim();
 
       const order = await prisma.order.update({
         where: { id },
@@ -278,7 +360,21 @@ export class OrderService {
       return ApiResult.success(order, "Order updated successfully");
     } catch (error: any) {
       console.log("Error in updateOrder", error);
-      return ApiResult.error(error.message);
+
+      // Provide more specific error messages
+      if (error.code === 'P2002') {
+        return ApiResult.error('A unique constraint violation occurred. Please check your data.', 400);
+      }
+
+      if (error.code === 'P2003') {
+        return ApiResult.error('Invalid reference: One or more related records do not exist.', 400);
+      }
+
+      if (error.code === 'P2025') {
+        return ApiResult.error('Order not found', 404);
+      }
+
+      return ApiResult.error(error.message || 'Failed to update order', 500);
     }
   }
 

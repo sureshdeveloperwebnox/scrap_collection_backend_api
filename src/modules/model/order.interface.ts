@@ -16,6 +16,7 @@ export interface IOrder {
     model?: string;
     year?: number;
     condition?: string;
+    description?: string;
   };
   photos?: any; // JSON Array of image URLs
   assignedCollectorId?: string;
@@ -52,10 +53,11 @@ export interface ICreateOrderRequest {
     model?: string;
     year?: number;
     condition?: string;
+    description: string; // Required for new orders
   };
   photos?: any; // JSON Array of image URLs
   assignedCollectorId?: string;
-  pickupTime?: Date;
+  pickupTime: Date; // Required for new orders
   quotedPrice?: number;
   yardId?: string;
   crewId?: string;
@@ -79,6 +81,7 @@ export interface IUpdateOrderRequest {
     model?: string;
     year?: number;
     condition?: string;
+    description?: string;
   };
   assignedCollectorId?: string;
   pickupTime?: Date;
