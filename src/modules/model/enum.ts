@@ -111,3 +111,30 @@ export enum QuoteResponseEnum {
   SMS = 'SMS',
   CHATBOT = 'CHATBOT'
 }
+
+export enum ScrapConditionEnum {
+  EXCELLENT = 'EXCELLENT',
+  GOOD = 'GOOD',
+  FAIR = 'FAIR',
+  POOR = 'POOR',
+  SCRAP = 'SCRAP',
+  HAZARDOUS = 'HAZARDOUS'
+}
+
+export enum PaymentMethodEnum {
+  CASH = 'CASH',
+  CARD = 'CARD',
+  UPI = 'UPI',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  CHEQUE = 'CHEQUE',
+  ONLINE = 'ONLINE'
+}
+
+export enum CollectionRecordStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  COMPLETED = 'COMPLETED'
+}
+
