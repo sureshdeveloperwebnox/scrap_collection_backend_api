@@ -2,15 +2,15 @@ import Joi from 'joi';
 
 export const createScrapCollectionRecordSchema = {
     body: Joi.object({
-        orderId: Joi.string().uuid().optional(),
-        customerId: Joi.string().uuid().optional(),
+        orderId: Joi.string().optional(),
+        customerId: Joi.string().optional(),
         customerName: Joi.string().required(),
         customerPhone: Joi.string().required(),
         customerEmail: Joi.string().email().optional(),
         customerAddress: Joi.string().required(),
 
-        scrapCategoryId: Joi.string().uuid().required(),
-        scrapNameId: Joi.string().uuid().optional(),
+        scrapCategoryId: Joi.string().required(),
+        scrapNameId: Joi.string().optional(),
         scrapDescription: Joi.string().required(),
         scrapCondition: Joi.string().valid('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'SCRAP', 'HAZARDOUS').required(),
 
@@ -53,21 +53,21 @@ export const createScrapCollectionRecordSchema = {
 
         pickupLatitude: Joi.number().min(-90).max(90).optional(),
         pickupLongitude: Joi.number().min(-180).max(180).optional(),
-        scrapYardId: Joi.string().uuid().optional()
+        scrapYardId: Joi.string().optional()
     })
 };
 
 export const updateScrapCollectionRecordSchema = {
     body: Joi.object({
-        orderId: Joi.string().uuid().optional(),
-        customerId: Joi.string().uuid().optional(),
+        orderId: Joi.string().optional(),
+        customerId: Joi.string().optional(),
         customerName: Joi.string().optional(),
         customerPhone: Joi.string().optional(),
         customerEmail: Joi.string().email().optional(),
         customerAddress: Joi.string().optional(),
 
-        scrapCategoryId: Joi.string().uuid().optional(),
-        scrapNameId: Joi.string().uuid().optional(),
+        scrapCategoryId: Joi.string().optional(),
+        scrapNameId: Joi.string().optional(),
         scrapDescription: Joi.string().optional(),
         scrapCondition: Joi.string().valid('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'SCRAP', 'HAZARDOUS').optional(),
 
@@ -110,7 +110,7 @@ export const updateScrapCollectionRecordSchema = {
 
         pickupLatitude: Joi.number().min(-90).max(90).optional(),
         pickupLongitude: Joi.number().min(-180).max(180).optional(),
-        scrapYardId: Joi.string().uuid().optional(),
+        scrapYardId: Joi.string().optional(),
 
         status: Joi.string().valid('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'COMPLETED').optional()
     })
@@ -121,9 +121,9 @@ export const scrapCollectionRecordQuerySchema = {
         page: Joi.number().integer().min(1).optional(),
         limit: Joi.number().integer().min(1).max(100).optional(),
         status: Joi.string().optional(),
-        orderId: Joi.string().uuid().optional(),
-        customerId: Joi.string().uuid().optional(),
-        scrapCategoryId: Joi.string().uuid().optional(),
+        orderId: Joi.string().optional(),
+        customerId: Joi.string().optional(),
+        scrapCategoryId: Joi.string().optional(),
         dateFrom: Joi.date().iso().optional(),
         dateTo: Joi.date().iso().optional(),
         search: Joi.string().max(200).optional(),
@@ -134,6 +134,6 @@ export const scrapCollectionRecordQuerySchema = {
 
 export const scrapCollectionRecordIdSchema = {
     params: Joi.object({
-        id: Joi.string().uuid().required()
+        id: Joi.string().required()
     })
 };

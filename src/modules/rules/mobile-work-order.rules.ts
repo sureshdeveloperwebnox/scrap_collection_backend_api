@@ -33,9 +33,8 @@ export const mobileWorkOrderQuerySchema = {
  */
 export const mobileWorkOrderIdSchema = {
     params: Joi.object({
-        id: Joi.string().uuid().required().messages({
-            'string.guid': 'Invalid order ID format',
-            'any.required': 'Order ID is required'
+        id: Joi.string().required().messages({
+            'any.required': 'Order ID or Number is required'
         })
     })
 };
@@ -58,6 +57,7 @@ export const mobileUpdateWorkOrderStatusSchema = {
         photos: Joi.array().items(Joi.string().uri()).optional(),
         timestamp: Joi.date().iso().optional(),
         latitude: Joi.number().min(-90).max(90).optional(),
-        longitude: Joi.number().min(-180).max(180).optional()
+        longitude: Joi.number().min(-180).max(180).optional(),
+        performedById: Joi.string().uuid().optional()
     })
 };

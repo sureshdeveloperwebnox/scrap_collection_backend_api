@@ -161,6 +161,7 @@ export interface IMobileUpdateWorkOrderStatusRequest {
     timestamp?: Date | string; // Timestamp when status was updated
     latitude?: number; // Location where status was updated
     longitude?: number;
+    performedById?: string; // Optional: ID of the employee performing the action (defaults to collector)
 }
 
 /**

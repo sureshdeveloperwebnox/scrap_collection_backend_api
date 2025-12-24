@@ -309,17 +309,25 @@ export class MobileWorkOrderService {
         try {
             const order = await prisma.order.findFirst({
                 where: {
-                    id: orderId,
                     OR: [
-                        { assignedCollectorId: collectorId },
+                        { id: orderId },
+                        { orderNumber: orderId }
+                    ],
+                    // Must be assigned to this collector or their crew
+                    AND: [
                         {
-                            crew: {
-                                members: {
-                                    some: {
-                                        id: collectorId
+                            OR: [
+                                { assignedCollectorId: collectorId },
+                                {
+                                    crew: {
+                                        members: {
+                                            some: {
+                                                id: collectorId
+                                            }
+                                        }
                                     }
                                 }
-                            }
+                            ]
                         }
                     ]
                 },
@@ -377,17 +385,25 @@ export class MobileWorkOrderService {
             // Verify order is assigned to this collector
             const order = await prisma.order.findFirst({
                 where: {
-                    id: orderId,
                     OR: [
-                        { assignedCollectorId: collectorId },
+                        { id: orderId },
+                        { orderNumber: orderId }
+                    ],
+                    // Must be assigned to this collector or their crew
+                    AND: [
                         {
-                            crew: {
-                                members: {
-                                    some: {
-                                        id: collectorId
+                            OR: [
+                                { assignedCollectorId: collectorId },
+                                {
+                                    crew: {
+                                        members: {
+                                            some: {
+                                                id: collectorId
+                                            }
+                                        }
                                     }
                                 }
-                            }
+                            ]
                         }
                     ]
                 }
@@ -399,8 +415,8 @@ export class MobileWorkOrderService {
 
             // Validate status transition
             const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-                [OrderStatus.PENDING]: [OrderStatus.ASSIGNED, OrderStatus.CANCELLED],
-                [OrderStatus.ASSIGNED]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+                [OrderStatus.PENDING]: [OrderStatus.ASSIGNED, OrderStatus.CANCELLED, OrderStatus.COMPLETED],
+                [OrderStatus.ASSIGNED]: [OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED, OrderStatus.COMPLETED],
                 [OrderStatus.IN_PROGRESS]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
                 [OrderStatus.COMPLETED]: [], // Cannot change from completed
                 [OrderStatus.CANCELLED]: [] // Cannot change from cancelled
@@ -439,7 +455,7 @@ export class MobileWorkOrderService {
             }
 
             const updatedOrder = await prisma.order.update({
-                where: { id: orderId },
+                where: { id: order.id }, // Use the actual internal ID found
                 data: updateData,
                 include: {
                     yard: true,
@@ -454,10 +470,10 @@ export class MobileWorkOrderService {
 
             // Create timeline entry with custom timestamp if provided
             const timelineData: any = {
-                orderId,
+                orderId: order.id,
                 status: data.status,
                 notes: data.notes || `Status updated to ${data.status} by collector`,
-                performedBy: collectorId,
+                performedBy: data.performedById || collectorId,
                 latitude: data.latitude,
                 longitude: data.longitude
             };

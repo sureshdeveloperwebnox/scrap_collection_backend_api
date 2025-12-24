@@ -147,10 +147,36 @@ export class ScrapCollectionRecordService {
                 }
             }
 
+            // Resolve actual order ID if provided as orderNumber
+            let resolvedOrderId = data.orderId;
+            let resolvedCustomerId = data.customerId;
+
+            if (data.orderId) {
+                const order = await prisma.order.findFirst({
+                    where: {
+                        OR: [
+                            { id: data.orderId },
+                            { orderNumber: data.orderId }
+                        ]
+                    },
+                    select: { id: true, customerId: true }
+                });
+
+                if (order) {
+                    resolvedOrderId = order.id;
+                    // If customerId wasn't provided, use the one from the order
+                    if (!resolvedCustomerId && order.customerId) {
+                        resolvedCustomerId = order.customerId;
+                    }
+                }
+            }
+
             // Create the record with auto-filled organizationId
             const record = await prisma.scrapCollectionRecord.create({
                 data: {
                     ...data,
+                    orderId: resolvedOrderId,
+                    customerId: resolvedCustomerId,
                     collectorId,
                     organizationId: collector.organizationId,
                     status: CollectionRecordStatus.DRAFT,
