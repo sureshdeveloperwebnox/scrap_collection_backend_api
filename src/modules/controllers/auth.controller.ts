@@ -109,9 +109,19 @@ export class AuthController {
 
   @POST('/signout')
   public signOut(req: RequestX): Promise<ApiResult> {
-    // Clear cookies
-    req.res.clearCookie('accessToken', { path: '/' });
-    req.res.clearCookie('refreshToken', { path: '/' });
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Clear cookies with exact same options plus explicit expiry
+    const cookieOptions: any = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      expires: new Date(0) // 1970-01-01
+    };
+
+    req.res.cookie('accessToken', '', cookieOptions);
+    req.res.cookie('refreshToken', '', cookieOptions);
 
     return this.getInstance().signOut();
   }
