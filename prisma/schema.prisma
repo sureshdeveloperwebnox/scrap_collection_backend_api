@@ -101,7 +101,7 @@ model Organization {
 // ============================================
 
 model Customer {
-  id               String               @id @default(uuid())
+  id               String                @id @default(uuid())
   name             String
   phone            String
   email            String?
@@ -114,14 +114,14 @@ model Customer {
   vehicleNumber    String?
   vehicleYear      Int?
   vehicleCondition VehicleConditionEnum?
-  accountStatus    CustomerStatus       @default(ACTIVE)
-  joinedDate       DateTime             @default(now())
+  accountStatus    CustomerStatus        @default(ACTIVE)
+  joinedDate       DateTime              @default(now())
   organizationId   Int
-  organization     Organization         @relation(fields: [organizationId], references: [id])
+  organization     Organization          @relation(fields: [organizationId], references: [id])
   userId           String?
-  user             User?                @relation(fields: [userId], references: [id])
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  user             User?                 @relation(fields: [userId], references: [id])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   // Relations
   orders                 Order[]
@@ -144,12 +144,12 @@ enum CustomerStatus {
 // ============================================
 
 model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   employees Employee[]
@@ -184,12 +184,13 @@ model Employee {
   updatedAt        DateTime     @updatedAt
 
   // Relations
-  orders               Order[]
-  reviews              Review[]
-  pickupRequests       PickupRequest[]
-  payments             Payment[]
-  collectorAssignments CollectorAssignment[]
-  assignOrders        AssignOrder[]
+  orders                Order[]
+  reviews               Review[]
+  pickupRequests        PickupRequest[]
+  payments              Payment[]
+  collectorAssignments  CollectorAssignment[]
+  assignOrders          AssignOrder[]
+  ScrapCollectionRecord ScrapCollectionRecord[]
 }
 
 model Crew {
@@ -203,7 +204,7 @@ model Crew {
   // Relations
   members              Employee[]
   collectorAssignments CollectorAssignment[]
-  assignOrders        AssignOrder[]
+  assignOrders         AssignOrder[]
   orders               Order[]
 
   @@map("crews")
@@ -345,15 +346,15 @@ model Order {
   orderTimeline          OrderTimeline[]
   scrapCollectionRecords ScrapCollectionRecord[]
 
+  // Relations
+  assignOrders AssignOrder[]
+
   // Indexes for better query performance
   @@index([organizationId, orderStatus])
   @@index([organizationId, createdAt])
   @@index([assignedCollectorId])
   @@index([yardId])
   @@index([crewId])
-
-  // Relations
-  assignOrders AssignOrder[]
 }
 
 enum OrderStatus {
@@ -454,7 +455,7 @@ model VehicleType {
   updatedAt      DateTime      @updatedAt
 
   // Relations
-  vehicleNames   VehicleName[]
+  vehicleNames VehicleName[]
 
   @@unique([name, organizationId])
   @@map("vehicle_types")
@@ -478,15 +479,15 @@ model ScrapCategory {
 }
 
 model ScrapName {
-  id              String       @id @default(uuid())
+  id              String        @id @default(uuid())
   name            String
   scrapCategoryId String
-  scrapCategory          ScrapCategory @relation(fields: [scrapCategoryId], references: [id])
-  organizationId         Int
-  organization           Organization @relation(fields: [organizationId], references: [id])
-  isActive               Boolean      @default(true)
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
+  scrapCategory   ScrapCategory @relation(fields: [scrapCategoryId], references: [id])
+  organizationId  Int
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   // Relations
   scrapCollectionRecords ScrapCollectionRecord[]
@@ -513,10 +514,10 @@ model VehicleName {
   updatedAt      DateTime     @updatedAt
 
   // New Fields
-  vehicleNumber  String?
-  make           String?
-  model          String?
-  year           Int?
+  vehicleNumber String?
+  make          String?
+  model         String?
+  year          Int?
 
   // Relations
   collectorAssignments CollectorAssignment[]
@@ -529,14 +530,13 @@ model VehicleName {
 // COLLECTOR ASSIGNMENTS
 // ============================================
 
-
 model CollectorAssignment {
   id             String       @id @default(uuid())
   collectorId    String?
   collector      Employee?    @relation(fields: [collectorId], references: [id])
   crewId         String?
   crew           Crew?        @relation(fields: [crewId], references: [id])
-  vehicleNameId   String?
+  vehicleNameId  String?
   vehicleName    VehicleName? @relation(fields: [vehicleNameId], references: [id])
   cityId         Int?
   city           City?        @relation(fields: [cityId], references: [id])
@@ -754,15 +754,15 @@ model Country {
 // ============================================
 
 model City {
-  id          Int       @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   latitude    Float
   longitude   Float
-  isActive    Boolean   @default(true)
+  isActive    Boolean    @default(true)
   scrapYardId String?
   scrapYard   ScrapYard? @relation(fields: [scrapYardId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   // Relations
   employees            Employee[]
@@ -777,86 +777,86 @@ model City {
 // ============================================
 
 model ScrapCollectionRecord {
-  id                    String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Work Order & Customer Reference
-  orderId               String?
-  order                 Order?        @relation(fields: [orderId], references: [id])
-  customerId            String?
-  customer              Customer?     @relation(fields: [customerId], references: [id])
-  customerName          String        // Can be filled manually if not linked
-  customerPhone         String
-  customerEmail         String?
-  customerAddress       String        @db.Text
-  
+  orderId         String?
+  order           Order?    @relation(fields: [orderId], references: [id])
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  customerName    String // Can be filled manually if not linked
+  customerPhone   String
+  customerEmail   String?
+  customerAddress String    @db.Text
+
   // Collector Information
-  collectorId           String
-  collector             Employee      @relation(fields: [collectorId], references: [id])
-  collectionDate        DateTime      @default(now())
-  
+  collectorId    String
+  collector      Employee @relation(fields: [collectorId], references: [id])
+  collectionDate DateTime @default(now())
+
   // Scrap Item Details
-  scrapCategoryId       String
-  scrapCategory         ScrapCategory @relation(fields: [scrapCategoryId], references: [id])
-  scrapNameId           String?
-  scrapName             ScrapName?    @relation(fields: [scrapNameId], references: [id])
-  scrapDescription      String        @db.Text // Detailed description by collector
-  scrapCondition        ScrapConditionEnum // Condition assessment
-  
+  scrapCategoryId  String
+  scrapCategory    ScrapCategory      @relation(fields: [scrapCategoryId], references: [id])
+  scrapNameId      String?
+  scrapName        ScrapName?         @relation(fields: [scrapNameId], references: [id])
+  scrapDescription String             @db.Text // Detailed description by collector
+  scrapCondition   ScrapConditionEnum // Condition assessment
+
   // Item Specifications
-  make                  String?       // Manufacturer/Brand
-  model                 String?       // Model name/number
-  yearOfManufacture     String?       // Year if applicable
-  serialNumber          String?       // Serial/VIN if available
-  
+  make              String? // Manufacturer/Brand
+  model             String? // Model name/number
+  yearOfManufacture String? // Year if applicable
+  serialNumber      String? // Serial/VIN if available
+
   // Measurements & Pricing
-  weight                Float?        // Weight in KG
-  quantity              Int           @default(1) // Number of items
-  dimensions            Json?         // {length, width, height} if needed
-  
+  weight     Float? // Weight in KG
+  quantity   Int    @default(1) // Number of items
+  dimensions Json? // {length, width, height} if needed
+
   // Financial Details
-  quotedAmount          Float         // Initial quote given to customer
-  baseAmount            Float         // Amount before tax
-  taxPercentage         Float         @default(0) // GST or other tax %
-  taxAmount             Float         @default(0) // Calculated tax amount
-  additionalCharges     Float         @default(0) // Transport, handling, etc.
-  discountAmount        Float         @default(0) // Any discount given
-  finalAmount           Float         // Total amount = base + tax + additional - discount
-  paymentMethod         PaymentMethodEnum?
-  paymentStatus         PaymentStatusEnum @default(UNPAID)
-  
+  quotedAmount      Float // Initial quote given to customer
+  baseAmount        Float // Amount before tax
+  taxPercentage     Float              @default(0) // GST or other tax %
+  taxAmount         Float              @default(0) // Calculated tax amount
+  additionalCharges Float              @default(0) // Transport, handling, etc.
+  discountAmount    Float              @default(0) // Any discount given
+  finalAmount       Float // Total amount = base + tax + additional - discount
+  paymentMethod     PaymentMethodEnum?
+  paymentStatus     PaymentStatusEnum  @default(UNPAID)
+
   // Documentation
-  photos                Json?         // Array of photo URLs
-  beforePhotos          Json?         // Photos before collection
-  afterPhotos           Json?         // Photos after collection
-  customerSignature     String?       // Digital signature image URL
-  collectorSignature    String?       // Collector's signature
-  employeeSignature     String?       // Employee signature image URL
-  scrapCollectedDate    DateTime?     // Actual date when scrap was collected
-  
+  photos             Json? // Array of photo URLs
+  beforePhotos       Json? // Photos before collection
+  afterPhotos        Json? // Photos after collection
+  customerSignature  String? // Digital signature image URL
+  collectorSignature String? // Collector's signature
+  employeeSignature  String? // Employee signature image URL
+  scrapCollectedDate DateTime? // Actual date when scrap was collected
+
   // Additional Information
-  notes                 String?       @db.Text // Any additional notes
-  specialInstructions   String?       @db.Text // Special handling instructions
-  hazardousMaterial     Boolean       @default(false) // Safety flag
-  requiresDisassembly   Boolean       @default(false)
-  
+  notes               String? @db.Text // Any additional notes
+  specialInstructions String? @db.Text // Special handling instructions
+  hazardousMaterial   Boolean @default(false) // Safety flag
+  requiresDisassembly Boolean @default(false)
+
   // Location & Logistics
-  pickupLatitude        Float?
-  pickupLongitude       Float?
-  scrapYardId           String?
-  scrapYard             ScrapYard?    @relation(fields: [scrapYardId], references: [id])
-  
+  pickupLatitude  Float?
+  pickupLongitude Float?
+  scrapYardId     String?
+  scrapYard       ScrapYard? @relation(fields: [scrapYardId], references: [id])
+
   // Status & Tracking
-  status                CollectionRecordStatus @default(DRAFT)
-  submittedAt           DateTime?
-  approvedAt            DateTime?
-  approvedBy            String?       // Admin/Manager ID
-  
+  status      CollectionRecordStatus @default(DRAFT)
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  approvedBy  String? // Admin/Manager ID
+
   // Organization
-  organizationId        Int
-  organization          Organization  @relation(fields: [organizationId], references: [id])
-  
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([collectorId])
   @@index([orderId])
@@ -867,12 +867,12 @@ model ScrapCollectionRecord {
 }
 
 enum ScrapConditionEnum {
-  EXCELLENT      // Like new, minimal wear
-  GOOD           // Functional, some wear
-  FAIR           // Usable, significant wear
-  POOR           // Damaged, limited use
-  SCRAP          // Non-functional, for parts only
-  HAZARDOUS      // Contains hazardous materials
+  EXCELLENT // Like new, minimal wear
+  GOOD // Functional, some wear
+  FAIR // Usable, significant wear
+  POOR // Damaged, limited use
+  SCRAP // Non-functional, for parts only
+  HAZARDOUS // Contains hazardous materials
 }
 
 enum PaymentMethodEnum {
@@ -885,10 +885,9 @@ enum PaymentMethodEnum {
 }
 
 enum CollectionRecordStatus {
-  DRAFT          // Being filled by collector
-  SUBMITTED      // Submitted for review
-  APPROVED       // Approved by admin
-  REJECTED       // Rejected, needs revision
-  COMPLETED      // Fully processed
+  DRAFT // Being filled by collector
+  SUBMITTED // Submitted for review
+  APPROVED // Approved by admin
+  REJECTED // Rejected, needs revision
+  COMPLETED // Fully processed
 }
-

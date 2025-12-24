@@ -14,81 +14,64 @@ export const ValidatorMiddleware = (
     return next();
   }
 
-  // Take the first rule in the array
-  const rule = rules[0];
+  // Iterate through each rule in the array
+  for (const rule of rules) {
+    // Validate body if body rule exists
+    if (rule.body) {
+      const { error, value } = rule.body.validate(req.body, { abortEarly: false });
 
-  // Validate body if body rule exists
-  if (rule.body) {
-    const { error, value } = rule.body.validate(req.body, { abortEarly: false });
+      if (error) {
+        const validationErrors = error.details.map((detail: any) => ({
+          field: detail.path.join('.'),
+          message: detail.message
+        }));
 
-    if (error) {
-      const validationErrors = error.details.map((detail: any) => ({
-        field: detail.path.join('.'),
-        message: detail.message
-      }));
+        return ResponseGenerator.send(res,
+          ResponseGenerator.error('Validation error', 400, validationErrors)
+        );
+      }
 
-      return ResponseGenerator.send(res,
-        ResponseGenerator.error('Validation error', 400, validationErrors)
-      );
+      // Assign validated body back
+      Object.assign(req.body, value);
     }
 
-    // Assign validated body
-    Object.defineProperty(req, 'body', {
-      value: value,
-      writable: true,
-      configurable: true,
-      enumerable: true
-    });
-  }
+    // Validate params if params rule exists
+    if (rule.params) {
+      const { error, value } = rule.params.validate(req.params, { abortEarly: false });
 
-  // Validate params if params rule exists
-  if (rule.params) {
-    const { error, value } = rule.params.validate(req.params, { abortEarly: false });
+      if (error) {
+        const validationErrors = error.details.map((detail: any) => ({
+          field: detail.path.join('.'),
+          message: detail.message
+        }));
 
-    if (error) {
-      const validationErrors = error.details.map((detail: any) => ({
-        field: detail.path.join('.'),
-        message: detail.message
-      }));
+        return ResponseGenerator.send(res,
+          ResponseGenerator.error('Validation error', 400, validationErrors)
+        );
+      }
 
-      return ResponseGenerator.send(res,
-        ResponseGenerator.error('Validation error', 400, validationErrors)
-      );
+      // Assign coerced params back
+      Object.assign(req.params, value);
     }
 
-    // Assign coerced params back
-    // Assign coerced params back
-    Object.defineProperty(req, 'params', {
-      value: value,
-      writable: true,
-      configurable: true,
-      enumerable: true
-    });
-  }
+    // Validate query if query rule exists
+    if (rule.query) {
+      const { error, value } = rule.query.validate(req.query, { abortEarly: false });
 
-  // Validate query if query rule exists
-  if (rule.query) {
-    const { error, value } = rule.query.validate(req.query, { abortEarly: false });
+      if (error) {
+        const validationErrors = error.details.map((detail: any) => ({
+          field: detail.path.join('.'),
+          message: detail.message
+        }));
 
-    if (error) {
-      const validationErrors = error.details.map((detail: any) => ({
-        field: detail.path.join('.'),
-        message: detail.message
-      }));
+        return ResponseGenerator.send(res,
+          ResponseGenerator.error('Validation error', 400, validationErrors)
+        );
+      }
 
-      return ResponseGenerator.send(res,
-        ResponseGenerator.error('Validation error', 400, validationErrors)
-      );
+      // Assign coerced query back
+      Object.assign(req.query, value);
     }
-
-    // Assign coerced query back
-    // Assign coerced query back
-    Object.defineProperty(req, 'query', {
-      value: value,
-      writable: true,
-      configurable: true,
-      enumerable: true
-    });
   }
 
   // Store validated data in the request object

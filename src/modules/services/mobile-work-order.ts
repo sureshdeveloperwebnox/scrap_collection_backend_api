@@ -522,9 +522,7 @@ export class MobileWorkOrderService {
                 data: timelineData
             });
 
-            const mobileOrder = this.transformOrderToMobile(updatedOrder);
-
-            return ApiResult.success(mobileOrder, 'Work order status updated successfully');
+            return ApiResult.success(null, 'Work order status updated successfully');
         } catch (error: any) {
             console.error('Error in updateWorkOrderStatus:', error);
             return ApiResult.error(error.message || 'Failed to update work order status', 500);
