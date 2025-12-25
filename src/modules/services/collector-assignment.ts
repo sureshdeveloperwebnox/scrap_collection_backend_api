@@ -169,7 +169,23 @@ export class CollectorAssignmentService {
       // Invalidate collector assignments cache
       cacheService.deletePattern('^collector-assignments:');
 
-      return ApiResult.success(assignment, "Collector assignment created successfully", 201);
+      // Transform the response to match frontend expectations
+      const transformedAssignment = {
+        ...assignment,
+        collector: assignment.Employee,
+        crew: assignment.crews,
+        vehicleName: assignment.vehicle_names,
+        scrapYard: assignment.scrap_yards,
+        // Remove the Prisma relation names
+        Employee: undefined,
+        crews: undefined,
+        vehicle_names: undefined,
+        scrap_yards: undefined,
+        Organization: undefined,
+        cities: undefined,
+      };
+
+      return ApiResult.success(transformedAssignment, "Collector assignment created successfully", 201);
 
     } catch (error: any) {
       console.log("Error in createCollectorAssignment", error);
@@ -349,8 +365,24 @@ export class CollectorAssignmentService {
       const hasNextPage = parsedPage < totalPages;
       const hasPreviousPage = parsedPage > 1;
 
+      // Transform assignments to match frontend expectations
+      const transformedAssignments = assignments.map((assignment: any) => ({
+        ...assignment,
+        collector: assignment.Employee,
+        crew: assignment.crews,
+        vehicleName: assignment.vehicle_names,
+        scrapYard: assignment.scrap_yards,
+        // Remove the Prisma relation names
+        Employee: undefined,
+        crews: undefined,
+        vehicle_names: undefined,
+        scrap_yards: undefined,
+        Organization: undefined,
+        cities: undefined,
+      }));
+
       const result = {
-        assignments,
+        assignments: transformedAssignments,
         pagination: {
           page: parsedPage,
           limit: parsedLimit,
@@ -412,6 +444,14 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
+          scrap_yards: {
+            select: {
+              id: true,
+              yardName: true,
+              latitude: true,
+              longitude: true
+            }
+          },
           Organization: {
             select: {
               name: true
@@ -424,7 +464,23 @@ export class CollectorAssignmentService {
         return ApiResult.error("Collector assignment not found", 404);
       }
 
-      return ApiResult.success(assignment, "Collector assignment retrieved successfully");
+      // Transform the response to match frontend expectations
+      const transformedAssignment = {
+        ...assignment,
+        collector: assignment.Employee,
+        crew: assignment.crews,
+        vehicleName: assignment.vehicle_names,
+        scrapYard: assignment.scrap_yards,
+        // Remove the Prisma relation names
+        Employee: undefined,
+        crews: undefined,
+        vehicle_names: undefined,
+        scrap_yards: undefined,
+        Organization: undefined,
+        cities: undefined,
+      };
+
+      return ApiResult.success(transformedAssignment, "Collector assignment retrieved successfully");
 
     } catch (error: any) {
       console.log("Error in getCollectorAssignmentById", error);
@@ -573,7 +629,23 @@ export class CollectorAssignmentService {
       // Invalidate collector assignments cache
       cacheService.deletePattern('^collector-assignments:');
 
-      return ApiResult.success(assignment, "Collector assignment updated successfully");
+      // Transform the response to match frontend expectations
+      const transformedAssignment = {
+        ...assignment,
+        collector: assignment.Employee,
+        crew: assignment.crews,
+        vehicleName: assignment.vehicle_names,
+        scrapYard: assignment.scrap_yards,
+        // Remove the Prisma relation names
+        Employee: undefined,
+        crews: undefined,
+        vehicle_names: undefined,
+        scrap_yards: undefined,
+        Organization: undefined,
+        cities: undefined,
+      };
+
+      return ApiResult.success(transformedAssignment, "Collector assignment updated successfully");
 
     } catch (error: any) {
       console.log("Error in updateCollectorAssignment", error);
