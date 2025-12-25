@@ -1,7 +1,7 @@
 import { RequestX } from '../../utils/request.interface';
 import { Controller, POST, Validate } from '../../decorators';
 import { Authenticate } from '../../decorators/authenticate.decorator';
-import { forSignIn, forSignUp, forGoogleSignIn } from '../rules';
+import { forSignIn, forSignUp, forGoogleSignIn, forProfileUpdate } from '../rules';
 import { Auth } from '../services/auth';
 import { ApiResult } from '../../utils/api-result';
 import { Response } from 'express';
@@ -105,6 +105,19 @@ export class AuthController {
     }
 
     return this.getInstance().getMe(userId);
+  }
+
+  @POST('/profile')
+  @Authenticate([UserCategory.ALL])
+  @Validate([forProfileUpdate])
+  public async updateProfile(req: RequestX): Promise<ApiResult> {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return ApiResult.error('Unauthorized', 401);
+    }
+
+    return this.getInstance().updateProfile(userId, req.body);
   }
 
   @POST('/signout')

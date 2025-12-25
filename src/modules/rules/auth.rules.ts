@@ -60,3 +60,12 @@ export const forGoogleSignIn = {
     })
   })
 };
+export const forProfileUpdate = {
+  body: Joi.object({
+    fullName: Joi.string().optional().allow(''),
+    firstName: Joi.string().optional().allow(''),
+    lastName: Joi.string().optional().allow(''),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().allow('')
+  })
+};

@@ -337,6 +337,66 @@ export class Auth {
     }
   }
 
+  public async updateProfile(userId: string, data: { fullName?: string, firstName?: string, lastName?: string, phone?: string, email?: string }): Promise<ApiResult> {
+    try {
+      // Check if user exists
+      const user = await prisma.users.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return ApiResult.error('User not found', 404);
+      }
+
+      // Handle fullName split if provided
+      let firstName = data.firstName;
+      let lastName = data.lastName;
+
+      if (data.fullName) {
+        const parts = data.fullName.trim().split(' ');
+        firstName = parts[0];
+        lastName = parts.slice(1).join(' ');
+      }
+
+      // Check if email is being updated and if it's already taken
+      if (data.email && data.email !== user.email) {
+        const emailExists = await prisma.users.findUnique({
+          where: { email: data.email }
+        });
+
+        if (emailExists) {
+          return ApiResult.error('Email already in use', 400);
+        }
+      }
+
+      // Update user
+      const updatedUser = await prisma.users.update({
+        where: { id: userId },
+        data: {
+          firstName: firstName !== undefined ? firstName : user.firstName,
+          lastName: lastName !== undefined ? lastName : user.lastName,
+          phone: data.phone !== undefined ? data.phone : user.phone,
+          email: data.email || user.email,
+        }
+      });
+
+      return ApiResult.success({
+        user: {
+          id: updatedUser.id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          role: updatedUser.role,
+          organizationId: updatedUser.organizationId
+        }
+      }, 'Profile updated successfully');
+    } catch (error: any) {
+      console.error('Update profile error:', error);
+      return ApiResult.error('Failed to update profile', 500);
+    }
+  }
+
   public async signOut(): Promise<ApiResult> {
     // For JWT tokens, signout is typically handled client-side by removing the token
     // This endpoint exists for consistency and can be extended to handle token blacklisting if needed
