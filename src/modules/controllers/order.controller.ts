@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { OrderService } from '../services/order';
 import {
   createOrderSchema,
@@ -21,6 +23,7 @@ export class OrderController {
   }
 
   @POST('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([createOrderSchema])
   public async createOrder(req: Request, res: Response): Promise<void> {
     try {
@@ -33,6 +36,7 @@ export class OrderController {
   }
 
   @GET('/stats')
+  @Authenticate([UserCategory.ALL])
   public async getOrderStats(req: Request, res: Response): Promise<void> {
     try {
       // Extract organizationId from user if available (assuming it might be attached to req.user)
@@ -46,10 +50,23 @@ export class OrderController {
   }
 
   @GET('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([orderQuerySchema])
   public async getOrders(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.orderService.getOrders(req.query);
+      // SECURITY: Extract organizationId from authenticated user, not from query params
+      // This prevents users from accessing other organizations' data
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      // Override any organizationId from query params with the authenticated user's organizationId
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.orderService.getOrders(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getOrders", error);

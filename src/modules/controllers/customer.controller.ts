@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { CustomerService } from '../services/customer';
-import { 
+import {
   createCustomerSchema,
   updateCustomerSchema,
   customerQuerySchema,
@@ -21,6 +23,7 @@ export class CustomerController {
   }
 
   @POST('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([createCustomerSchema])
   public async createCustomer(req: Request, res: Response): Promise<void> {
     try {
@@ -33,10 +36,21 @@ export class CustomerController {
   }
 
   @GET('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([customerQuerySchema])
   public async getCustomers(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.customerService.getCustomers(req.query);
+      // SECURITY: Extract organizationId from authenticated user
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.customerService.getCustomers(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getCustomers", error);
@@ -108,10 +122,20 @@ export class CustomerController {
   }
 
   @GET('/stats/:organizationId')
+  @Authenticate([UserCategory.ALL])
   public async getCustomerStats(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = parseInt(req.params.organizationId);
-      const result = await this.customerService.getCustomerStats(organizationId);
+      // SECURITY: Use authenticated user's organizationId, ignore URL param
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      if (!userOrganizationId) {
+        ApiResult.error("Organization ID not found", 400).send(res);
+        return;
+      }
+
+      const result = await this.customerService.getCustomerStats(userOrganizationId);
       result.send(res);
     } catch (error) {
       console.log("Error in getCustomerStats", error);

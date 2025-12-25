@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { LeadService } from '../services/lead';
-import { 
+import {
   createLeadSchema,
   updateLeadSchema,
   leadQuerySchema,
@@ -21,6 +23,7 @@ export class LeadController {
   }
 
   @POST('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([createLeadSchema])
   public async createLead(req: Request, res: Response): Promise<void> {
     try {
@@ -33,10 +36,21 @@ export class LeadController {
   }
 
   @GET('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([leadQuerySchema])
   public async getLeads(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.leadService.getLeads(req.query);
+      // SECURITY: Extract organizationId from authenticated user
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.leadService.getLeads(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getLeads", error);
@@ -110,10 +124,20 @@ export class LeadController {
   }
 
   @GET('/stats/:organizationId')
+  @Authenticate([UserCategory.ALL])
   public async getLeadStats(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = parseInt(req.params.organizationId);
-      const result = await this.leadService.getLeadStats(organizationId);
+      // SECURITY: Use authenticated user's organizationId, ignore URL param
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      if (!userOrganizationId) {
+        ApiResult.error("Organization ID not found", 400).send(res);
+        return;
+      }
+
+      const result = await this.leadService.getLeadStats(userOrganizationId);
       result.send(res);
     } catch (error) {
       console.log("Error in getLeadStats", error);

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { ScrapYardService } from '../services/scrapyard';
 import {
   createScrapYardSchema,
@@ -20,6 +22,7 @@ export class ScrapYardController {
   }
 
   @POST('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([createScrapYardSchema])
   public async createScrapYard(req: Request, res: Response): Promise<void> {
     try {
@@ -32,10 +35,21 @@ export class ScrapYardController {
   }
 
   @GET('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([scrapYardQuerySchema])
   public async getScrapYards(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.scrapYardService.getScrapYards(req.query);
+      // SECURITY: Extract organizationId from authenticated user
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.scrapYardService.getScrapYards(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getScrapYards", error);
@@ -44,9 +58,20 @@ export class ScrapYardController {
   }
 
   @GET('/stats')
+  @Authenticate([UserCategory.ALL])
   public async getScrapYardStats(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.scrapYardService.getScrapYardStats(req.query);
+      // SECURITY: Extract organizationId from authenticated user
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.scrapYardService.getScrapYardStats(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getScrapYardStats", error);

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET, POST, PUT, DELETE } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { EmployeeService } from '../services/employee';
 import {
   createEmployeeSchema,
@@ -20,14 +22,20 @@ export class EmployeeController {
   }
 
   @GET('/stats/:organizationId')
+  @Authenticate([UserCategory.ALL])
   public async getEmployeeStats(req: Request, res: Response): Promise<void> {
     try {
-      const organizationId = parseInt(req.params.organizationId);
-      if (isNaN(organizationId)) {
-        ApiResult.error("Invalid organization ID", 400).send(res);
+      // SECURITY: Use authenticated user's organizationId, ignore URL param
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      if (!userOrganizationId) {
+        ApiResult.error("Organization ID not found", 400).send(res);
         return;
       }
-      const result = await this.employeeService.getEmployeeStats(organizationId);
+
+      const result = await this.employeeService.getEmployeeStats(userOrganizationId);
       result.send(res);
     } catch (error) {
       console.log("Error in getEmployeeStats", error);
@@ -36,6 +44,7 @@ export class EmployeeController {
   }
 
   @POST('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([createEmployeeSchema])
   public async createEmployee(req: Request, res: Response): Promise<void> {
     try {
@@ -48,10 +57,21 @@ export class EmployeeController {
   }
 
   @GET('/')
+  @Authenticate([UserCategory.ALL])
   @Validate([employeeQuerySchema])
   public async getEmployees(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.employeeService.getEmployees(req.query);
+      // SECURITY: Extract organizationId from authenticated user
+      const userOrganizationId = (req as any).user?.organizationId
+        ? parseInt((req as any).user.organizationId)
+        : undefined;
+
+      const queryWithOrgId = {
+        ...req.query,
+        organizationId: userOrganizationId
+      };
+
+      const result = await this.employeeService.getEmployees(queryWithOrgId);
       result.send(res);
     } catch (error) {
       console.log("Error in getEmployees", error);
