@@ -67,8 +67,8 @@ export class ScrapCollectionRecordService {
                     OR: [
                         { assignedCollectorId: collectorId },
                         {
-                            crew: {
-                                members: {
+                            crews: {
+                                Employee: {
                                     some: { id: collectorId }
                                 }
                             }
@@ -100,7 +100,7 @@ export class ScrapCollectionRecordService {
             }
 
             // Get scrap categories
-            const scrapCategories = await prisma.scrapCategory.findMany({
+            const scrapCategories = await prisma.scrap_categories.findMany({
                 where: {
                     organizationId: collector.organizationId,
                     isActive: true
@@ -114,7 +114,7 @@ export class ScrapCollectionRecordService {
             });
 
             // Get all scrap names
-            const scrapNames = await prisma.scrapName.findMany({
+            const scrapNames = await prisma.scrap_names.findMany({
                 where: {
                     organizationId: collector.organizationId,
                     isActive: true
@@ -173,7 +173,7 @@ export class ScrapCollectionRecordService {
             }
 
             // Verify scrap category exists
-            const category = await prisma.scrapCategory.findUnique({
+            const category = await prisma.scrap_categories.findUnique({
                 where: { id: data.scrapCategoryId }
             });
 
@@ -183,7 +183,7 @@ export class ScrapCollectionRecordService {
 
             // Verify scrap name if provided
             if (data.scrapNameId) {
-                const scrapName = await prisma.scrapName.findUnique({
+                const scrapName = await prisma.scrap_names.findUnique({
                     where: { id: data.scrapNameId }
                 });
 
@@ -271,7 +271,7 @@ export class ScrapCollectionRecordService {
             const processedEmployeeSignature = data.employeeSignature ? await this.processImage(data.employeeSignature, `${recordFolder}/signatures`) : undefined;
 
             // Create the record with auto-filled organizationId
-            const record = await prisma.scrapCollectionRecord.create({
+            const record = await prisma.scrap_collection_records.create({
                 data: {
                     ...data,
                     orderId: resolvedOrderId,
@@ -295,22 +295,22 @@ export class ScrapCollectionRecordService {
                     employeeSignature: processedEmployeeSignature
                 },
                 include: {
-                    scrapCategory: true,
-                    scrapName: true,
-                    order: {
+                    scrap_categories: true,
+                    scrap_names: true,
+                    Order: {
                         select: {
                             id: true,
                             orderNumber: true
                         }
                     },
-                    customer: {
+                    Customer: {
                         select: {
                             id: true,
                             name: true,
                             phone: true
                         }
                     },
-                    scrapYard: {
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true
@@ -397,30 +397,30 @@ export class ScrapCollectionRecordService {
             }
 
             const [records, total] = await Promise.all([
-                prisma.scrapCollectionRecord.findMany({
+                prisma.scrap_collection_records.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        scrapCategory: {
+                        scrap_categories: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         },
-                        scrapName: {
+                        scrap_names: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         },
-                        order: {
+                        Order: {
                             select: {
                                 id: true,
                                 orderNumber: true
                             }
                         },
-                        scrapYard: {
+                        scrap_yards: {
                             select: {
                                 id: true,
                                 yardName: true
@@ -431,23 +431,23 @@ export class ScrapCollectionRecordService {
                         [sortBy]: sortOrder
                     }
                 }),
-                prisma.scrapCollectionRecord.count({ where })
+                prisma.scrap_collection_records.count({ where })
             ]);
 
             // Calculate summary
             const summary = {
                 totalRecords: total,
-                totalAmount: await prisma.scrapCollectionRecord.aggregate({
+                totalAmount: await prisma.scrap_collection_records.aggregate({
                     where,
                     _sum: { finalAmount: true }
                 }).then(result => result._sum.finalAmount || 0),
-                draftCount: await prisma.scrapCollectionRecord.count({
+                draftCount: await prisma.scrap_collection_records.count({
                     where: { ...where, status: CollectionRecordStatus.DRAFT }
                 }),
-                submittedCount: await prisma.scrapCollectionRecord.count({
+                submittedCount: await prisma.scrap_collection_records.count({
                     where: { ...where, status: CollectionRecordStatus.SUBMITTED }
                 }),
-                approvedCount: await prisma.scrapCollectionRecord.count({
+                approvedCount: await prisma.scrap_collection_records.count({
                     where: { ...where, status: CollectionRecordStatus.APPROVED }
                 })
             };
@@ -475,18 +475,18 @@ export class ScrapCollectionRecordService {
      */
     public async getRecordById(collectorId: string, recordId: string): Promise<ApiResult> {
         try {
-            const record = await prisma.scrapCollectionRecord.findFirst({
+            const record = await prisma.scrap_collection_records.findFirst({
                 where: {
                     id: recordId,
                     collectorId
                 },
                 include: {
-                    scrapCategory: true,
-                    scrapName: true,
-                    order: true,
-                    customer: true,
-                    scrapYard: true,
-                    collector: {
+                    scrap_categories: true,
+                    scrap_names: true,
+                    Order: true,
+                    Customer: true,
+                    scrap_yards: true,
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -517,7 +517,7 @@ export class ScrapCollectionRecordService {
     ): Promise<ApiResult> {
         try {
             // Verify record exists and belongs to collector
-            const existingRecord = await prisma.scrapCollectionRecord.findFirst({
+            const existingRecord = await prisma.scrap_collection_records.findFirst({
                 where: {
                     id: recordId,
                     collectorId
@@ -566,15 +566,15 @@ export class ScrapCollectionRecordService {
                 updateData.submittedAt = new Date();
             }
 
-            const record = await prisma.scrapCollectionRecord.update({
+            const record = await prisma.scrap_collection_records.update({
                 where: { id: recordId },
                 data: updateData,
                 include: {
-                    scrapCategory: true,
-                    scrapName: true,
-                    order: true,
-                    customer: true,
-                    scrapYard: true
+                    scrap_categories: true,
+                    scrap_names: true,
+                    Order: true,
+                    Customer: true,
+                    scrap_yards: true
                 }
             });
 
@@ -590,7 +590,7 @@ export class ScrapCollectionRecordService {
      */
     public async deleteRecord(collectorId: string, recordId: string): Promise<ApiResult> {
         try {
-            const record = await prisma.scrapCollectionRecord.findFirst({
+            const record = await prisma.scrap_collection_records.findFirst({
                 where: {
                     id: recordId,
                     collectorId
@@ -606,7 +606,7 @@ export class ScrapCollectionRecordService {
                 return ApiResult.error('Can only delete draft records', 400);
             }
 
-            await prisma.scrapCollectionRecord.delete({
+            await prisma.scrap_collection_records.delete({
                 where: { id: recordId }
             });
 

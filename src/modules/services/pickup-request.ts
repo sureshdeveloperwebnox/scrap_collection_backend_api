@@ -6,7 +6,7 @@ import { PickupRequestStatus } from "../model/enum";
 export class PickupRequestService {
   public async createPickupRequest(data: ICreatePickupRequestRequest): Promise<ApiResult> {
     try {
-      const pickupRequest = await prisma.pickupRequest.create({
+      const pickupRequest = await prisma.pickup_requests.create({
         data: {
           customerId: data.customerId,
           vehicleDetails: data.vehicleDetails,
@@ -17,8 +17,8 @@ export class PickupRequestService {
           status: PickupRequestStatus.PENDING
         },
         include: {
-          customer: true,
-          assignedCollector: true
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -62,20 +62,20 @@ export class PickupRequestService {
       }
 
       const [pickupRequests, total] = await Promise.all([
-        prisma.pickupRequest.findMany({
+        prisma.pickup_requests.findMany({
           where,
           skip,
           take: parsedLimit,
           include: {
-            customer: true,
-            assignedCollector: true,
-            order: true
+            Customer: true,
+            Employee: true,
+            Order: true
           },
           orderBy: {
             createdAt: 'desc'
           }
         }),
-        prisma.pickupRequest.count({ where })
+        prisma.pickup_requests.count({ where })
       ]);
 
       return ApiResult.success({
@@ -95,12 +95,12 @@ export class PickupRequestService {
 
   public async getPickupRequestById(id: string): Promise<ApiResult> {
     try {
-      const pickupRequest = await prisma.pickupRequest.findUnique({
+      const pickupRequest = await prisma.pickup_requests.findUnique({
         where: { id },
         include: {
-          customer: true,
-          assignedCollector: true,
-          order: true
+          Customer: true,
+          Employee: true,
+          Order: true
         }
       });
 
@@ -117,12 +117,12 @@ export class PickupRequestService {
 
   public async updatePickupRequest(id: string, data: IUpdatePickupRequestRequest): Promise<ApiResult> {
     try {
-      const pickupRequest = await prisma.pickupRequest.update({
+      const pickupRequest = await prisma.pickup_requests.update({
         where: { id },
         data,
         include: {
-          customer: true,
-          assignedCollector: true
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -135,7 +135,7 @@ export class PickupRequestService {
 
   public async deletePickupRequest(id: string): Promise<ApiResult> {
     try {
-      await prisma.pickupRequest.delete({
+      await prisma.pickup_requests.delete({
         where: { id }
       });
 
@@ -148,15 +148,15 @@ export class PickupRequestService {
 
   public async assignPickupRequest(id: string, data: IAssignPickupRequestRequest): Promise<ApiResult> {
     try {
-      const pickupRequest = await prisma.pickupRequest.update({
+      const pickupRequest = await prisma.pickup_requests.update({
         where: { id },
         data: {
           assignedTo: data.collectorId,
           status: PickupRequestStatus.ASSIGNED
         },
         include: {
-          assignedCollector: true,
-          customer: true
+          Employee: true,
+          Customer: true
         }
       });
 

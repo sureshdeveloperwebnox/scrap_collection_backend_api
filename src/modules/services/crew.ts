@@ -9,7 +9,7 @@ export class CrewService {
             const { name, description, memberIds } = data;
 
             // Check if crew name already exists
-            const existing = await prisma.crew.findUnique({
+            const existing = await prisma.crews.findUnique({
                 where: { name }
             });
 
@@ -30,16 +30,16 @@ export class CrewService {
                 }
             }
 
-            const crew = await prisma.crew.create({
-                data: {
+            const crew = await prisma.crews.create({
+                data: { updatedAt: new Date(), 
                     name,
                     description,
-                    members: {
+                    Employee: {
                         connect: memberIds?.map((id) => ({ id })) || [],
                     },
                 },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -59,10 +59,10 @@ export class CrewService {
 
     public async getAllCrews(): Promise<ApiResult> {
         try {
-            const crews = await prisma.crew.findMany({
+            const crews = await prisma.crews.findMany({
                 where: { isActive: true },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -71,7 +71,7 @@ export class CrewService {
                         }
                     },
                     _count: {
-                        select: { members: true },
+                        select: { Employee: true },
                     },
                 },
                 orderBy: { createdAt: 'desc' },
@@ -86,10 +86,10 @@ export class CrewService {
 
     public async getCrewById(id: string): Promise<ApiResult> {
         try {
-            const crew = await prisma.crew.findUnique({
+            const crew = await prisma.crews.findUnique({
                 where: { id },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -124,11 +124,11 @@ export class CrewService {
                 };
             }
 
-            const crew = await prisma.crew.update({
+            const crew = await prisma.crews.update({
                 where: { id },
                 data: updateData,
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -148,9 +148,9 @@ export class CrewService {
 
     public async deleteCrew(id: string): Promise<ApiResult> {
         try {
-            await prisma.crew.update({
+            await prisma.crews.update({
                 where: { id },
-                data: { isActive: false },
+                data: { updatedAt: new Date(),  isActive: false },
             });
             return ApiResult.success(null, "Crew deleted successfully");
         } catch (error: any) {

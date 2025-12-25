@@ -24,7 +24,8 @@ import {
   CrewController,
   MobileAuthController,
   MobileWorkOrderController,
-  MobileScrapCollectionController
+  MobileScrapCollectionController,
+  OrganizationController
 } from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 
@@ -57,7 +58,8 @@ export const combineRouters = (app: Express) => {
       CrewController,
       MobileAuthController,
       MobileWorkOrderController,
-      MobileScrapCollectionController
+      MobileScrapCollectionController,
+      OrganizationController
     ],
     {
       middleware: {

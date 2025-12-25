@@ -19,7 +19,7 @@ export class ScrapCategoryService {
       }
 
       // Ensure unique name within organization
-      const existing = await prisma.scrapCategory.findFirst({
+      const existing = await prisma.scrap_categories.findFirst({
         where: {
           name: data.name,
           organizationId: data.organizationId,
@@ -30,7 +30,7 @@ export class ScrapCategoryService {
         return ApiResult.error("Scrap category with this name already exists for this organization", 400);
       }
 
-      const scrapCategory = await prisma.scrapCategory.create({
+      const scrapCategory = await prisma.scrap_categories.create({
         data: {
           organizationId: data.organizationId,
           name: data.name,
@@ -38,7 +38,7 @@ export class ScrapCategoryService {
           isActive: data.isActive ?? true,
         },
         include: {
-          organization: true,
+          Organization: true,
         },
       });
 
@@ -82,18 +82,18 @@ export class ScrapCategoryService {
       }
 
       const [scrapCategories, total] = await Promise.all([
-        prisma.scrapCategory.findMany({
+        prisma.scrap_categories.findMany({
           where,
           skip,
           take: parsedLimit,
           include: {
-            organization: true,
+            Organization: true,
           },
           orderBy: {
             createdAt: "desc",
           },
         }),
-        prisma.scrapCategory.count({ where }),
+        prisma.scrap_categories.count({ where }),
       ]);
 
       return ApiResult.success(
@@ -116,11 +116,11 @@ export class ScrapCategoryService {
 
   public async getScrapCategoryById(id: string): Promise<ApiResult> {
     try {
-      const scrapCategory = await prisma.scrapCategory.findUnique({
+      const scrapCategory = await prisma.scrap_categories.findUnique({
         where: { id },
         include: {
-          organization: true,
-          scrapNames: true,
+          Organization: true,
+          scrap_names: true,
         },
       });
 
@@ -137,7 +137,7 @@ export class ScrapCategoryService {
 
   public async updateScrapCategory(id: string, data: IUpdateScrapCategoryRequest): Promise<ApiResult> {
     try {
-      const existing = await prisma.scrapCategory.findUnique({
+      const existing = await prisma.scrap_categories.findUnique({
         where: { id },
       });
 
@@ -146,7 +146,7 @@ export class ScrapCategoryService {
       }
 
       if (data.name && data.name !== existing.name) {
-        const duplicate = await prisma.scrapCategory.findFirst({
+        const duplicate = await prisma.scrap_categories.findFirst({
           where: {
             name: data.name,
             organizationId: existing.organizationId,
@@ -162,11 +162,11 @@ export class ScrapCategoryService {
         }
       }
 
-      const scrapCategory = await prisma.scrapCategory.update({
+      const scrapCategory = await prisma.scrap_categories.update({
         where: { id },
         data,
         include: {
-          organization: true,
+          Organization: true,
         },
       });
 
@@ -179,23 +179,23 @@ export class ScrapCategoryService {
 
   public async deleteScrapCategory(id: string): Promise<ApiResult> {
     try {
-      const existing = await prisma.scrapCategory.findUnique({
+      const existing = await prisma.scrap_categories.findUnique({
         where: { id },
-        include: { scrapNames: true },
+        include: { scrap_names: true },
       });
 
       if (!existing) {
         return ApiResult.error("Scrap category not found", 404);
       }
 
-      if (existing.scrapNames && existing.scrapNames.length > 0) {
+      if (existing.scrap_names && existing.scrap_names.length > 0) {
         return ApiResult.error(
           "Cannot delete scrap category while scrap names are still linked to it",
           400,
         );
       }
 
-      await prisma.scrapCategory.delete({
+      await prisma.scrap_categories.delete({
         where: { id },
       });
 

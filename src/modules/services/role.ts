@@ -7,7 +7,7 @@ export class RoleService {
   public async createRole(data: ICreateRoleRequest): Promise<ApiResult> {
     try {
       // Check if role name already exists
-      const existingRole = await prisma.role.findUnique({
+      const existingRole = await prisma.roles.findUnique({
         where: { name: data.name }
       });
 
@@ -15,11 +15,12 @@ export class RoleService {
         return ApiResult.error("Role with this name already exists", 400);
       }
 
-      const role = await prisma.role.create({
+      const role = await prisma.roles.create({
         data: {
           name: data.name,
           description: data.description,
-          isActive: data.isActive ?? true
+          isActive: data.isActive ?? true,
+          updatedAt: new Date()
         }
       });
 
@@ -104,7 +105,7 @@ export class RoleService {
       orderBy[finalSortBy] = finalSortOrder;
 
       const [roles, total] = await Promise.all([
-        prisma.role.findMany({
+        prisma.roles.findMany({
           where,
           skip,
           take: parsedLimit,
@@ -112,12 +113,12 @@ export class RoleService {
           include: {
             _count: {
               select: {
-                employees: true
+                Employee: true
               }
             }
           }
         }),
-        prisma.role.count({ where })
+        prisma.roles.count({ where })
       ]);
 
       const totalPages = Math.ceil(total / parsedLimit);
@@ -149,12 +150,12 @@ export class RoleService {
 
   public async getRoleById(id: number): Promise<ApiResult> {
     try {
-      const role = await prisma.role.findUnique({
+      const role = await prisma.roles.findUnique({
         where: { id },
         include: {
           _count: {
             select: {
-              employees: true
+              Employee: true
             }
           }
         }
@@ -174,7 +175,7 @@ export class RoleService {
 
   public async updateRole(id: number, data: IUpdateRoleRequest): Promise<ApiResult> {
     try {
-      const existingRole = await prisma.role.findUnique({
+      const existingRole = await prisma.roles.findUnique({
         where: { id }
       });
 
@@ -184,7 +185,7 @@ export class RoleService {
 
       // If name is being updated, check if it already exists
       if (data.name && data.name !== existingRole.name) {
-        const duplicateRole = await prisma.role.findUnique({
+        const duplicateRole = await prisma.roles.findUnique({
           where: { name: data.name }
         });
 
@@ -193,7 +194,7 @@ export class RoleService {
         }
       }
 
-      const role = await prisma.role.update({
+      const role = await prisma.roles.update({
         where: { id },
         data
       });
@@ -211,12 +212,12 @@ export class RoleService {
 
   public async deleteRole(id: number): Promise<ApiResult> {
     try {
-      const existingRole = await prisma.role.findUnique({
+      const existingRole = await prisma.roles.findUnique({
         where: { id },
         include: {
           _count: {
             select: {
-              employees: true
+              Employee: true
             }
           }
         }
@@ -227,14 +228,14 @@ export class RoleService {
       }
 
       // Check if any employees are assigned to this role
-      if (existingRole._count.employees > 0) {
+      if (existingRole._count.Employee > 0) {
         return ApiResult.error(
-          `Cannot delete role. There are ${existingRole._count.employees} employee(s) assigned to this role. Please reassign or remove those employees first.`,
+          `Cannot delete role. There are ${existingRole._count.Employee} employee(s) assigned to this role. Please reassign or remove those employees first.`,
           400
         );
       }
 
-      await prisma.role.delete({
+      await prisma.roles.delete({
         where: { id }
       });
 
@@ -251,7 +252,7 @@ export class RoleService {
 
   public async activateRole(id: number): Promise<ApiResult> {
     try {
-      const role = await prisma.role.update({
+      const role = await prisma.roles.update({
         where: { id },
         data: { isActive: true }
       });
@@ -268,7 +269,7 @@ export class RoleService {
 
   public async deactivateRole(id: number): Promise<ApiResult> {
     try {
-      const role = await prisma.role.update({
+      const role = await prisma.roles.update({
         where: { id },
         data: { isActive: false }
       });
@@ -286,9 +287,9 @@ export class RoleService {
   public async getRoleStats(): Promise<ApiResult> {
     try {
       const [total, active, inactive] = await Promise.all([
-        prisma.role.count(),
-        prisma.role.count({ where: { isActive: true } }),
-        prisma.role.count({ where: { isActive: false } })
+        prisma.roles.count(),
+        prisma.roles.count({ where: { isActive: true } }),
+        prisma.roles.count({ where: { isActive: false } })
       ]);
 
       return ApiResult.success({

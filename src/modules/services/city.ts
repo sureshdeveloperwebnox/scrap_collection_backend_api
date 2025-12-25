@@ -7,7 +7,7 @@ export class CityService {
   public async createCity(data: ICreateCityRequest): Promise<ApiResult> {
     try {
       // Check if city name already exists
-      const existingCity = await prisma.city.findUnique({
+      const existingCity = await prisma.cities.findUnique({
         where: { name: data.name }
       });
 
@@ -15,7 +15,7 @@ export class CityService {
         return ApiResult.error("City with this name already exists", 400);
       }
 
-      const city = await prisma.city.create({
+      const city = await prisma.cities.create({
         data: {
           name: data.name,
           latitude: data.latitude,
@@ -104,13 +104,13 @@ export class CityService {
       orderBy[finalSortBy] = finalSortOrder;
 
       const [cities, total] = await Promise.all([
-        prisma.city.findMany({
+        prisma.cities.findMany({
           where,
           skip,
           take: parsedLimit,
           orderBy
         }),
-        prisma.city.count({ where })
+        prisma.cities.count({ where })
       ]);
 
       const totalPages = Math.ceil(total / parsedLimit);
@@ -142,7 +142,7 @@ export class CityService {
 
   public async getCityById(id: number): Promise<ApiResult> {
     try {
-      const city = await prisma.city.findUnique({
+      const city = await prisma.cities.findUnique({
         where: { id }
       });
 
@@ -160,7 +160,7 @@ export class CityService {
 
   public async updateCity(id: number, data: IUpdateCityRequest): Promise<ApiResult> {
     try {
-      const existingCity = await prisma.city.findUnique({
+      const existingCity = await prisma.cities.findUnique({
         where: { id }
       });
 
@@ -170,7 +170,7 @@ export class CityService {
 
       // If name is being updated, check if it already exists
       if (data.name && data.name !== existingCity.name) {
-        const duplicateCity = await prisma.city.findUnique({
+        const duplicateCity = await prisma.cities.findUnique({
           where: { name: data.name }
         });
 
@@ -179,7 +179,7 @@ export class CityService {
         }
       }
 
-      const city = await prisma.city.update({
+      const city = await prisma.cities.update({
         where: { id },
         data
       });
@@ -197,12 +197,12 @@ export class CityService {
 
   public async deleteCity(id: number): Promise<ApiResult> {
     try {
-      const existingCity = await prisma.city.findUnique({
+      const existingCity = await prisma.cities.findUnique({
         where: { id },
         include: {
           _count: {
             select: {
-              employees: true
+              Employee: true
             }
           }
         }
@@ -213,14 +213,14 @@ export class CityService {
       }
 
       // Check if any employees are assigned to this city
-      if (existingCity._count.employees > 0) {
+      if (existingCity._count.Employee > 0) {
         return ApiResult.error(
-          `Cannot delete city. There are ${existingCity._count.employees} employee(s) assigned to this workzone. Please reassign or remove those employees first.`,
+          `Cannot delete city. There are ${existingCity._count.Employee} employee(s) assigned to this workzone. Please reassign or remove those employees first.`,
           400
         );
       }
 
-      await prisma.city.delete({
+      await prisma.cities.delete({
         where: { id }
       });
 

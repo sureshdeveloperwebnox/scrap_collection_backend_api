@@ -115,20 +115,19 @@ export class OrderService {
           instructions: data.instructions?.trim()
         },
         include: {
-          assignedCollector: true,
-          yard: true,
-          customer: true,
-          lead: true,
-          crew: {
+          Employee: true,
+          scrap_yards: true,
+          Customer: true,
+          Lead: true,
+          crews: {
             include: {
-              members: true
             }
           }
         }
       });
 
       // Create timeline entry
-      await prisma.orderTimeline.create({
+      await prisma.order_timelines.create({
         data: {
           orderId: order.id,
           status: order.orderStatus,
@@ -200,13 +199,12 @@ export class OrderService {
           skip,
           take: parsedLimit,
           include: {
-            assignedCollector: true,
-            yard: true,
-            customer: true,
-            lead: true,
-            crew: {
+            Employee: true,
+            scrap_yards: true,
+            Customer: true,
+            Lead: true,
+            crews: {
               include: {
-                members: true
               }
             }
           },
@@ -237,23 +235,21 @@ export class OrderService {
       const order = await prisma.order.findUnique({
         where: { id },
         include: {
-          assignedCollector: true,
-          yard: true,
-          customer: true,
-          lead: true,
-          payment: true,
-          review: true,
-          crew: {
+          Employee: true,
+          scrap_yards: true,
+          Customer: true,
+          Lead: true,
+          Payment: true,
+          Review: true,
+          crews: {
             include: {
-              members: true
             }
           },
-          assignOrders: {
+          assign_orders: {
             include: {
-              collector: true,
-              crew: {
+              Employee: true,
+              crews: {
                 include: {
-                  members: true
                 }
               }
             }
@@ -334,12 +330,11 @@ export class OrderService {
         where: { id },
         data: updateData,
         include: {
-          assignedCollector: true,
-          yard: true,
-          customer: true,
-          crew: {
+          Employee: true,
+          scrap_yards: true,
+          Customer: true,
+          crews: {
             include: {
-              members: true
             }
           }
         }
@@ -347,7 +342,7 @@ export class OrderService {
 
       // Create timeline entry if status changed
       if (data.orderStatus && data.orderStatus !== existingOrder.orderStatus) {
-        await prisma.orderTimeline.create({
+        await prisma.order_timelines.create({
           data: {
             orderId: id,
             status: data.orderStatus,
@@ -406,7 +401,7 @@ export class OrderService {
       };
 
       // Clear existing assignments for this order
-      await prisma.assignOrder.deleteMany({
+      await prisma.assign_orders.deleteMany({
         where: { orderId: id }
       });
 
@@ -419,7 +414,7 @@ export class OrderService {
       if (collectorIds.length > 0) {
         // Create new assignments for collectors
         await Promise.all(collectorIds.map(cid =>
-          prisma.assignOrder.create({
+          prisma.assign_orders.create({
             data: {
               orderId: id,
               collectorId: cid,
@@ -440,7 +435,7 @@ export class OrderService {
         updateData.crewId = crewId;
 
         // Add crew assignment record
-        await prisma.assignOrder.create({
+        await prisma.assign_orders.create({
           data: {
             orderId: id,
             crewId: crewId,
@@ -468,25 +463,24 @@ export class OrderService {
         where: { id },
         data: updateData,
         include: {
-          assignedCollector: true,
-          yard: true,
-          customer: true,
-          lead: true,
-          assignOrders: {
+          Employee: true,
+          scrap_yards: true,
+          Customer: true,
+          Lead: true,
+          assign_orders: {
             include: {
-              collector: true,
-              crew: true
+              Employee: true,
+              crews: true
             }
           },
-          crew: {
+          crews: {
             include: {
-              members: true
             }
           }
         }
       });
 
-      await prisma.orderTimeline.create({
+      await prisma.order_timelines.create({
         data: {
           orderId: id,
           status: OrderStatus.ASSIGNED,
@@ -504,7 +498,7 @@ export class OrderService {
 
   public async getOrderTimeline(id: string): Promise<ApiResult> {
     try {
-      const timeline = await prisma.orderTimeline.findMany({
+      const timeline = await prisma.order_timelines.findMany({
         where: { orderId: id },
         orderBy: {
           createdAt: 'asc'

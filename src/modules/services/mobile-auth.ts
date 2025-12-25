@@ -30,14 +30,14 @@ export class MobileAuth {
                     ? { email: identifier }
                     : { phone: identifier },
                 include: {
-                    role: true,
-                    scrapYard: {
+                    roles: true,
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true
                         }
                     },
-                    crew: {
+                    crews: {
                         select: {
                             id: true,
                             name: true
@@ -51,7 +51,7 @@ export class MobileAuth {
             }
 
             // Check if employee role is COLLECTOR
-            if (employee.role.name.toLowerCase() !== 'collector') {
+            if (employee.roles.name.toLowerCase() !== 'collector') {
                 return ApiResult.error('Access denied. Only collectors can login to mobile app', 403);
             }
 
@@ -78,7 +78,7 @@ export class MobileAuth {
                 email: employee.email,
                 phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -91,7 +91,7 @@ export class MobileAuth {
                 email: employee.email,
                 phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -107,14 +107,14 @@ export class MobileAuth {
                     email: employee.email,
                     phone: employee.phone || '',
                     role: {
-                        id: employee.role.id,
-                        name: employee.role.name
+                        id: employee.roles.id,
+                        name: employee.roles.name
                     },
                     profilePhoto: employee.profilePhoto || undefined,
                     rating: employee.rating || 0,
                     completedPickups: employee.completedPickups,
-                    scrapYard: employee.scrapYard || undefined,
-                    crew: employee.crew || undefined
+                    scrapYard: employee.scrap_yards || undefined,
+                    crew: employee.crews || undefined
                 },
                 accessToken,
                 refreshToken
@@ -153,15 +153,15 @@ export class MobileAuth {
             const employee = await prisma.employee.findUnique({
                 where: { id: decoded.id },
                 include: {
-                    role: true,
-                    user: true,
-                    scrapYard: {
+                    roles: true,
+                    users: true,
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true
                         }
                     },
-                    crew: {
+                    crews: {
                         select: {
                             id: true,
                             name: true
@@ -180,17 +180,17 @@ export class MobileAuth {
             }
 
             // Check if user is still active
-            if (!employee.user?.isActive) {
+            if (!employee.users?.isActive) {
                 return ApiResult.error('Your account is inactive. Please contact administrator', 403);
             }
 
             // Generate new tokens
             const newAccessToken = this.generateAccessToken({
                 id: employee.id,
-                email: employee.user.email,
-                phone: employee.user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -200,10 +200,10 @@ export class MobileAuth {
 
             const newRefreshToken = this.generateRefreshToken({
                 id: employee.id,
-                email: employee.user.email,
-                phone: employee.user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,

@@ -7,7 +7,7 @@ export class EmployeeService {
   public async createEmployee(data: ICreateEmployeeRequest): Promise<ApiResult> {
     try {
       // Verify role exists
-      const role = await prisma.role.findUnique({
+      const role = await prisma.roles.findUnique({
         where: { id: data.roleId }
       });
 
@@ -21,7 +21,7 @@ export class EmployeeService {
 
       // Verify city exists if provided
       if (data.cityId) {
-        const city = await prisma.city.findUnique({
+        const city = await prisma.cities.findUnique({
           where: { id: data.cityId }
         });
 
@@ -32,7 +32,7 @@ export class EmployeeService {
 
       // Verify scrap yard exists if provided
       if (data.scrapYardId) {
-        const scrapYard = await prisma.scrapYard.findUnique({
+        const scrapYard = await prisma.scrap_yards.findUnique({
           where: { id: data.scrapYardId }
         });
 
@@ -63,10 +63,10 @@ export class EmployeeService {
           rating: 0
         },
         include: {
-          organization: true,
-          scrapYard: true,
-          role: true,
-          city: true
+          Organization: true,
+          scrap_yards: true,
+          roles: true,
+          cities: true
         }
       });
 
@@ -96,7 +96,7 @@ export class EmployeeService {
       }
 
       if (role) {
-        where.role = {
+        where.roles = {
           name: {
             equals: role,
             mode: 'insensitive'
@@ -131,10 +131,10 @@ export class EmployeeService {
           skip,
           take: parsedLimit,
           include: {
-            organization: true,
-            scrapYard: true,
-            role: true,
-            city: true
+            Organization: true,
+            scrap_yards: true,
+            roles: true,
+            cities: true
           },
           orderBy: {
             createdAt: 'desc'
@@ -163,10 +163,10 @@ export class EmployeeService {
       const employee = await prisma.employee.findUnique({
         where: { id },
         include: {
-          organization: true,
-          scrapYard: true,
-          role: true,
-          city: true
+          Organization: true,
+          scrap_yards: true,
+          roles: true,
+          cities: true
         }
       });
 
@@ -193,7 +193,7 @@ export class EmployeeService {
 
       // Verify role exists if being updated
       if (data.roleId) {
-        const role = await prisma.role.findUnique({
+        const role = await prisma.roles.findUnique({
           where: { id: data.roleId }
         });
 
@@ -208,7 +208,7 @@ export class EmployeeService {
 
       // Verify city exists if being updated
       if (data.cityId !== undefined && data.cityId !== null) {
-        const city = await prisma.city.findUnique({
+        const city = await prisma.cities.findUnique({
           where: { id: data.cityId }
         });
 
@@ -219,7 +219,7 @@ export class EmployeeService {
 
       // Verify scrap yard exists if being updated
       if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
-        const scrapYard = await prisma.scrapYard.findUnique({
+        const scrapYard = await prisma.scrap_yards.findUnique({
           where: { id: data.scrapYardId }
         });
 
@@ -238,10 +238,10 @@ export class EmployeeService {
         where: { id },
         data: updateData,
         include: {
-          organization: true,
-          scrapYard: true,
-          role: true,
-          city: true
+          Organization: true,
+          scrap_yards: true,
+          roles: true,
+          cities: true
         }
       });
 
@@ -279,7 +279,7 @@ export class EmployeeService {
         where: { id },
         data: { isActive: true },
         include: {
-          organization: true
+          Organization: true
         }
       });
 
@@ -296,7 +296,7 @@ export class EmployeeService {
         where: { id },
         data: { isActive: false },
         include: {
-          organization: true
+          Organization: true
         }
       });
 
@@ -312,12 +312,12 @@ export class EmployeeService {
       const employee = await prisma.employee.findUnique({
         where: { id },
         include: {
-          orders: {
+          Order: {
             where: {
               orderStatus: 'COMPLETED'
             }
           },
-          reviews: true
+          Review: true
         }
       });
 
@@ -326,7 +326,7 @@ export class EmployeeService {
       }
 
       const totalPickups = employee.completedPickups;
-      const completedOrders = employee.orders.length;
+      const completedOrders = employee.Order.length;
       const cancelledOrders = await prisma.order.count({
         where: {
           assignedCollectorId: id,
@@ -344,8 +344,8 @@ export class EmployeeService {
         }
       });
 
-      const avgRating = employee.reviews.length > 0
-        ? employee.reviews.reduce((sum, r) => sum + r.rating, 0) / employee.reviews.length
+      const avgRating = employee.Review.length > 0
+        ? employee.Review.reduce((sum, r) => sum + r.rating, 0) / employee.Review.length
         : 0;
 
       return ApiResult.success({

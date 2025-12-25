@@ -18,9 +18,9 @@ export class PaymentService {
           organizationId: (await prisma.order.findUnique({ where: { id: data.orderId } }))?.organizationId || 0
         },
         include: {
-          order: true,
-          customer: true,
-          collector: true
+          Order: true,
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -79,10 +79,10 @@ export class PaymentService {
           skip,
           take: parsedLimit,
           include: {
-            order: true,
-            customer: true,
-            collector: true,
-            refund: true
+            Order: true,
+            Customer: true,
+            Employee: true,
+            refunds: true
           },
           orderBy: {
             createdAt: 'desc'
@@ -111,10 +111,10 @@ export class PaymentService {
       const payment = await prisma.payment.findUnique({
         where: { id },
         include: {
-          order: true,
-          customer: true,
-          collector: true,
-          refund: true
+          Order: true,
+          Customer: true,
+          Employee: true,
+          refunds: true
         }
       });
 
@@ -135,9 +135,9 @@ export class PaymentService {
         where: { id },
         data,
         include: {
-          order: true,
-          customer: true,
-          collector: true
+          Order: true,
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -158,7 +158,7 @@ export class PaymentService {
         return ApiResult.error("Payment not found", 404);
       }
 
-      const refund = await prisma.refund.create({
+      const refund = await prisma.refunds.create({
         data: {
           paymentId,
           amount: data.amount,
@@ -166,7 +166,7 @@ export class PaymentService {
           processedByAdmin: data.processedByAdmin
         },
         include: {
-          payment: true
+          Payment: true
         }
       });
 

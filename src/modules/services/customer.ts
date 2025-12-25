@@ -55,12 +55,12 @@ export class CustomerService {
           accountStatus: accountStatus
         },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          user: {
+          users: {
             select: {
               id: true,
               email: true,
@@ -119,12 +119,12 @@ export class CustomerService {
           skip,
           take: parsedLimit,
           include: {
-            organization: {
+            Organization: {
               select: {
                 name: true
               }
             },
-            user: {
+            users: {
               select: {
                 id: true,
                 email: true,
@@ -164,12 +164,12 @@ export class CustomerService {
       const customer = await prisma.customer.findUnique({
         where: { id },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          user: {
+          users: {
             select: {
               id: true,
               email: true,
@@ -180,13 +180,13 @@ export class CustomerService {
               isActive: true
             }
           },
-          orders: {
+          Order: {
             take: 10,
             orderBy: {
               createdAt: 'desc'
             }
           },
-          payments: {
+          Payment: {
             take: 10,
             orderBy: {
               createdAt: 'desc'
@@ -233,12 +233,12 @@ export class CustomerService {
         where: { id },
         data: updateData,
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          user: {
+          users: {
             select: {
               id: true,
               email: true,

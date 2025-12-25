@@ -18,7 +18,7 @@ export class VehicleTypeService {
       }
 
       // Check if vehicle type name already exists for this organization
-      const existingVehicleType = await prisma.vehicleType.findFirst({
+      const existingVehicleType = await prisma.vehicle_types.findFirst({
         where: {
           name: data.name,
           organizationId: data.organizationId || null
@@ -29,15 +29,15 @@ export class VehicleTypeService {
         return ApiResult.error("Vehicle type with this name already exists for this organization", 400);
       }
 
-      const vehicleType = await prisma.vehicleType.create({
+      const vehicleType = await prisma.vehicle_types.create({
         data: {
-          organizationId: data.organizationId,
+          organizationId: data.organizationId || null,
           name: data.name,
 
           isActive: data.isActive ?? true
         },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -135,12 +135,12 @@ export class VehicleTypeService {
       orderBy[finalSortBy] = finalSortOrder;
 
       const [vehicleTypes, total] = await Promise.all([
-        prisma.vehicleType.findMany({
+        prisma.vehicle_types.findMany({
           where,
           skip,
           take: parsedLimit,
           include: {
-            organization: {
+            Organization: {
               select: {
                 name: true
               }
@@ -148,7 +148,7 @@ export class VehicleTypeService {
           },
           orderBy
         }),
-        prisma.vehicleType.count({ where })
+        prisma.vehicle_types.count({ where })
       ]);
 
       const totalPages = Math.ceil(total / parsedLimit);
@@ -180,10 +180,10 @@ export class VehicleTypeService {
 
   public async getVehicleTypeById(id: number): Promise<ApiResult> {
     try {
-      const vehicleType = await prisma.vehicleType.findUnique({
+      const vehicleType = await prisma.vehicle_types.findUnique({
         where: { id },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -205,7 +205,7 @@ export class VehicleTypeService {
 
   public async updateVehicleType(id: number, data: IUpdateVehicleTypeRequest): Promise<ApiResult> {
     try {
-      const existingVehicleType = await prisma.vehicleType.findUnique({
+      const existingVehicleType = await prisma.vehicle_types.findUnique({
         where: { id }
       });
 
@@ -215,7 +215,7 @@ export class VehicleTypeService {
 
       // If name is being updated, check if it already exists for this organization
       if (data.name && data.name !== existingVehicleType.name) {
-        const duplicateVehicleType = await prisma.vehicleType.findFirst({
+        const duplicateVehicleType = await prisma.vehicle_types.findFirst({
           where: {
             name: data.name,
             organizationId: existingVehicleType.organizationId,
@@ -228,11 +228,11 @@ export class VehicleTypeService {
         }
       }
 
-      const vehicleType = await prisma.vehicleType.update({
+      const vehicleType = await prisma.vehicle_types.update({
         where: { id },
         data,
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -254,7 +254,7 @@ export class VehicleTypeService {
 
   public async deleteVehicleType(id: number): Promise<ApiResult> {
     try {
-      const existingVehicleType = await prisma.vehicleType.findUnique({
+      const existingVehicleType = await prisma.vehicle_types.findUnique({
         where: { id }
       });
 
@@ -263,7 +263,7 @@ export class VehicleTypeService {
       }
 
       // Check if this vehicle type is being used by any vehicle names
-      const vehicleNamesCount = await prisma.vehicleName.count({
+      const vehicleNamesCount = await prisma.vehicle_names.count({
         where: { vehicleTypeId: id }
       });
 
@@ -279,7 +279,7 @@ export class VehicleTypeService {
       // - Orders use vehicleDetails JSON which doesn't reference VehicleType table
       // So we only need to check VehicleNames table for foreign key constraints
 
-      await prisma.vehicleType.delete({
+      await prisma.vehicle_types.delete({
         where: { id }
       });
 
@@ -315,7 +315,7 @@ export class VehicleTypeService {
         return ApiResult.success(cachedResult, "Vehicle type statistics retrieved successfully (cached)");
       }
 
-      const stats = await prisma.vehicleType.groupBy({
+      const stats = await prisma.vehicle_types.groupBy({
         by: ['isActive'],
         where: { organizationId },
         _count: {
@@ -323,7 +323,7 @@ export class VehicleTypeService {
         }
       });
 
-      const totalVehicleTypes = await prisma.vehicleType.count({
+      const totalVehicleTypes = await prisma.vehicle_types.count({
         where: { organizationId }
       });
 

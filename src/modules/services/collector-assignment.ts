@@ -34,7 +34,7 @@ export class CollectorAssignmentService {
       // Check if crew exists (if provided)
       let crew;
       if (data.crewId) {
-        crew = await prisma.crew.findUnique({
+        crew = await prisma.crews.findUnique({
           where: { id: data.crewId }
         });
 
@@ -49,7 +49,7 @@ export class CollectorAssignmentService {
 
       // Check if vehicle name exists (if provided)
       if (data.vehicleNameId) {
-        const vehicleName = await prisma.vehicleName.findUnique({
+        const vehicleName = await prisma.vehicle_names.findUnique({
           where: { id: data.vehicleNameId }
         });
 
@@ -64,7 +64,7 @@ export class CollectorAssignmentService {
 
       // Check if city exists (if provided)
       if (data.cityId) {
-        const city = await prisma.city.findUnique({
+        const city = await prisma.cities.findUnique({
           where: { id: data.cityId }
         });
 
@@ -75,7 +75,7 @@ export class CollectorAssignmentService {
 
       // Check if scrap yard exists (if provided)
       if (data.scrapYardId) {
-        const scrapYard = await prisma.scrapYard.findUnique({
+        const scrapYard = await prisma.scrap_yards.findUnique({
           where: { id: data.scrapYardId }
         });
 
@@ -89,7 +89,7 @@ export class CollectorAssignmentService {
       }
 
       // Check if assignment already exists
-      const existingAssignment = await prisma.collectorAssignment.findFirst({
+      const existingAssignment = await prisma.collector_assignments.findFirst({
         where: {
           collectorId: data.collectorId || null,
           crewId: data.crewId || null,
@@ -104,7 +104,7 @@ export class CollectorAssignmentService {
         return ApiResult.error("This assignment already exists", 400);
       }
 
-      const assignment = await prisma.collectorAssignment.create({
+      const assignment = await prisma.collector_assignments.create({
         data: {
           organizationId: data.organizationId,
           collectorId: data.collectorId || null,
@@ -115,7 +115,7 @@ export class CollectorAssignmentService {
           isActive: data.isActive ?? true
         },
         include: {
-          collector: {
+          Employee: {
             select: {
               id: true,
               fullName: true,
@@ -123,18 +123,18 @@ export class CollectorAssignmentService {
               phone: true
             }
           },
-          crew: {
+          crews: {
             select: {
               id: true,
               name: true,
               description: true
             }
           },
-          vehicleName: {
+          vehicle_names: {
             select: {
               id: true,
               name: true,
-              vehicleType: {
+              vehicle_types: {
                 select: {
                   id: true,
                   name: true
@@ -142,7 +142,7 @@ export class CollectorAssignmentService {
               }
             }
           },
-          city: {
+          cities: {
             select: {
               id: true,
               name: true,
@@ -150,7 +150,7 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
-          scrapYard: {
+          scrap_yards: {
             select: {
               id: true,
               yardName: true,
@@ -158,7 +158,7 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -268,11 +268,11 @@ export class CollectorAssignmentService {
 
       if (search) {
         where.OR = [
-          { collector: { fullName: { contains: search, mode: 'insensitive' } } },
-          { crew: { name: { contains: search, mode: 'insensitive' } } },
-          { vehicleName: { name: { contains: search, mode: 'insensitive' } } },
-          { city: { name: { contains: search, mode: 'insensitive' } } },
-          { scrapYard: { yardName: { contains: search, mode: 'insensitive' } } }
+          { Employee: { fullName: { contains: search, mode: 'insensitive' } } },
+          { crews: { name: { contains: search, mode: 'insensitive' } } },
+          { vehicle_names: { name: { contains: search, mode: 'insensitive' } } },
+          { cities: { name: { contains: search, mode: 'insensitive' } } },
+          { scrap_yards: { yardName: { contains: search, mode: 'insensitive' } } }
         ];
       }
 
@@ -286,12 +286,12 @@ export class CollectorAssignmentService {
       orderBy[finalSortBy] = finalSortOrder;
 
       const [assignments, total] = await Promise.all([
-        prisma.collectorAssignment.findMany({
+        prisma.collector_assignments.findMany({
           where,
           skip,
           take: parsedLimit,
           include: {
-            collector: {
+            Employee: {
               select: {
                 id: true,
                 fullName: true,
@@ -299,18 +299,18 @@ export class CollectorAssignmentService {
                 phone: true
               }
             },
-            crew: {
+            crews: {
               select: {
                 id: true,
                 name: true,
                 description: true
               }
             },
-            vehicleName: {
+            vehicle_names: {
               select: {
                 id: true,
                 name: true,
-                vehicleType: {
+                vehicle_types: {
                   select: {
                     id: true,
                     name: true
@@ -318,7 +318,7 @@ export class CollectorAssignmentService {
                 }
               }
             },
-            city: {
+            cities: {
               select: {
                 id: true,
                 name: true,
@@ -326,7 +326,7 @@ export class CollectorAssignmentService {
                 longitude: true
               }
             },
-            scrapYard: {
+            scrap_yards: {
               select: {
                 id: true,
                 yardName: true,
@@ -334,7 +334,7 @@ export class CollectorAssignmentService {
                 longitude: true
               }
             },
-            organization: {
+            Organization: {
               select: {
                 name: true
               }
@@ -342,7 +342,7 @@ export class CollectorAssignmentService {
           },
           orderBy
         }),
-        prisma.collectorAssignment.count({ where })
+        prisma.collector_assignments.count({ where })
       ]);
 
       const totalPages = Math.ceil(total / parsedLimit);
@@ -374,10 +374,10 @@ export class CollectorAssignmentService {
 
   public async getCollectorAssignmentById(id: string): Promise<ApiResult> {
     try {
-      const assignment = await prisma.collectorAssignment.findUnique({
+      const assignment = await prisma.collector_assignments.findUnique({
         where: { id },
         include: {
-          collector: {
+          Employee: {
             select: {
               id: true,
               fullName: true,
@@ -385,18 +385,18 @@ export class CollectorAssignmentService {
               phone: true
             }
           },
-          crew: {
+          crews: {
             select: {
               id: true,
               name: true,
               description: true
             }
           },
-          vehicleName: {
+          vehicle_names: {
             select: {
               id: true,
               name: true,
-              vehicleType: {
+              vehicle_types: {
                 select: {
                   id: true,
                   name: true
@@ -404,7 +404,7 @@ export class CollectorAssignmentService {
               }
             }
           },
-          city: {
+          cities: {
             select: {
               id: true,
               name: true,
@@ -412,7 +412,7 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -434,7 +434,7 @@ export class CollectorAssignmentService {
 
   public async updateCollectorAssignment(id: string, data: IUpdateCollectorAssignmentRequest): Promise<ApiResult> {
     try {
-      const existingAssignment = await prisma.collectorAssignment.findUnique({
+      const existingAssignment = await prisma.collector_assignments.findUnique({
         where: { id }
       });
 
@@ -444,7 +444,7 @@ export class CollectorAssignmentService {
 
       // Check if vehicle name exists (if being updated)
       if (data.vehicleNameId !== undefined && data.vehicleNameId !== null) {
-        const vehicleName = await prisma.vehicleName.findUnique({
+        const vehicleName = await prisma.vehicle_names.findUnique({
           where: { id: data.vehicleNameId }
         });
 
@@ -459,7 +459,7 @@ export class CollectorAssignmentService {
 
       // Check if city exists (if being updated)
       if (data.cityId !== undefined && data.cityId !== null) {
-        const city = await prisma.city.findUnique({
+        const city = await prisma.cities.findUnique({
           where: { id: data.cityId }
         });
 
@@ -470,7 +470,7 @@ export class CollectorAssignmentService {
 
       // Check if scrap yard exists (if being updated)
       if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
-        const scrapYard = await prisma.scrapYard.findUnique({
+        const scrapYard = await prisma.scrap_yards.findUnique({
           where: { id: data.scrapYardId }
         });
 
@@ -494,7 +494,7 @@ export class CollectorAssignmentService {
 
       // Check for duplicate assignment
       if (data.vehicleNameId !== undefined || data.cityId !== undefined || data.scrapYardId !== undefined) {
-        const duplicateAssignment = await prisma.collectorAssignment.findFirst({
+        const duplicateAssignment = await prisma.collector_assignments.findFirst({
           where: {
             collectorId: existingAssignment.collectorId,
             vehicleNameId: finalVehicleNameId || null,
@@ -510,7 +510,7 @@ export class CollectorAssignmentService {
         }
       }
 
-      const assignment = await prisma.collectorAssignment.update({
+      const assignment = await prisma.collector_assignments.update({
         where: { id },
         data: {
           vehicleNameId: data.vehicleNameId !== undefined ? data.vehicleNameId : undefined,
@@ -519,7 +519,7 @@ export class CollectorAssignmentService {
           isActive: data.isActive
         },
         include: {
-          collector: {
+          Employee: {
             select: {
               id: true,
               fullName: true,
@@ -527,18 +527,18 @@ export class CollectorAssignmentService {
               phone: true
             }
           },
-          crew: {
+          crews: {
             select: {
               id: true,
               name: true,
               description: true
             }
           },
-          vehicleName: {
+          vehicle_names: {
             select: {
               id: true,
               name: true,
-              vehicleType: {
+              vehicle_types: {
                 select: {
                   id: true,
                   name: true
@@ -546,7 +546,7 @@ export class CollectorAssignmentService {
               }
             }
           },
-          city: {
+          cities: {
             select: {
               id: true,
               name: true,
@@ -554,7 +554,7 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
-          scrapYard: {
+          scrap_yards: {
             select: {
               id: true,
               yardName: true,
@@ -562,7 +562,7 @@ export class CollectorAssignmentService {
               longitude: true
             }
           },
-          organization: {
+          Organization: {
             select: {
               name: true
             }
@@ -583,7 +583,7 @@ export class CollectorAssignmentService {
 
   public async deleteCollectorAssignment(id: string): Promise<ApiResult> {
     try {
-      const existingAssignment = await prisma.collectorAssignment.findUnique({
+      const existingAssignment = await prisma.collector_assignments.findUnique({
         where: { id }
       });
 
@@ -591,7 +591,7 @@ export class CollectorAssignmentService {
         return ApiResult.error("Collector assignment not found", 404);
       }
 
-      await prisma.collectorAssignment.delete({
+      await prisma.collector_assignments.delete({
         where: { id }
       });
 

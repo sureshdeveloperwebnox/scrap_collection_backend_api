@@ -34,7 +34,7 @@ export class Auth {
     const { email, password } = data;
 
     // check Email
-    const checkEmail = await prisma.user.findUnique({
+    const checkEmail = await prisma.users.findUnique({
       where: {
         email: email
       }
@@ -83,7 +83,7 @@ export class Auth {
     const { name, firstName, lastName, phone, email, password, countryId, role = 'ADMIN' } = data;
 
     // Check if user already exists
-    const userExists = await prisma.user.findUnique({
+    const userExists = await prisma.users.findUnique({
       where: {
         email: email
       }
@@ -105,16 +105,16 @@ export class Auth {
         email: email,
         phone: phone,
         isActive: true,
-        countryId: countryId
+        ...(countryId && { countryId: countryId })
       }
     });
 
     // Create new user
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.users.create({
       data: {
         organizationId: newOrganization.id,
-        firstName: firstName,
-        lastName: lastName,
+        firstName: firstName || name.split(' ')[0] || name,
+        lastName: lastName || name.split(' ').slice(1).join(' ') || '',
         email: email,
         hashPassword: hashedPassword,
         phone: phone,
@@ -177,9 +177,9 @@ export class Auth {
       }
 
       // Check if user exists
-      let user = await prisma.user.findUnique({
+      let user = await prisma.users.findUnique({
         where: { email },
-        include: { organization: true }
+        include: { Organization: true }
       });
 
       if (!user) {
@@ -215,7 +215,7 @@ export class Auth {
         });
 
         // Create new user
-        user = await prisma.user.create({
+        const createdUser = await prisma.users.create({
           data: {
             organizationId: newOrganization.id,
             firstName: given_name || fullName,
@@ -224,9 +224,22 @@ export class Auth {
             hashPassword: '', // No password for Google OAuth users
             phone: '',
             role: UserRole.ADMIN
-          },
-          include: { organization: true }
+          }
         });
+
+        // Fetch user with organization
+        user = await prisma.users.findUnique({
+          where: { id: createdUser.id },
+          include: { Organization: true }
+        }) as any;
+
+        if (!user) {
+          return ApiResult.error('Failed to create user', 500);
+        }
+      }
+
+      if (!user) {
+        return ApiResult.error('User not found', 404);
       }
 
       // Create JWT tokens
@@ -290,7 +303,7 @@ export class Auth {
 
   public async getMe(userId: string): Promise<ApiResult> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         select: {
           id: true,

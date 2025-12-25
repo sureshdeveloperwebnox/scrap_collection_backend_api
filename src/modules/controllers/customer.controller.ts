@@ -64,8 +64,8 @@ export class CustomerController {
       const customer = await prisma.customer.findFirst({
         where: { userId },
         include: {
-          organization: true,
-          user: true
+          Organization: true,
+          users: true
         }
       });
 
@@ -127,9 +127,9 @@ export class CustomerController {
       const orders = await prisma.order.findMany({
         where: { customerId: id },
         include: {
-          assignedCollector: true,
-          yard: true,
-          payment: true
+          Employee: true,
+          scrap_yards: true,
+          Payment: true
         },
         orderBy: {
           createdAt: 'desc'
@@ -151,9 +151,9 @@ export class CustomerController {
       const payments = await prisma.payment.findMany({
         where: { customerId: id },
         include: {
-          order: true,
-          collector: true,
-          refund: true
+          Order: true,
+          Employee: true,
+          refunds: true
         },
         orderBy: {
           createdAt: 'desc'
@@ -175,8 +175,8 @@ export class CustomerController {
       const reviews = await prisma.review.findMany({
         where: { customerId: id },
         include: {
-          order: true,
-          collector: true
+          Order: true,
+          Employee: true
         },
         orderBy: {
           createdAt: 'desc'

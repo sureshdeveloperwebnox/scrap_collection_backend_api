@@ -30,4 +30,20 @@ export class CountryService {
       return ApiResult.error(error.message);
     }
   }
+
+  public async getCountries(): Promise<ApiResult> {
+    try {
+      const countries = await prisma.country.findMany({
+        orderBy: {
+          name: 'asc'
+        }
+      });
+
+      return ApiResult.success(countries, "Countries retrieved successfully");
+
+    } catch (error: any) {
+      console.log("Error in getCountries", error);
+      return ApiResult.error(error.message);
+    }
+  }
 }

@@ -7,10 +7,15 @@ export const forSignIn = {
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required'
     }),
-    password: Joi.string().min(6).required().messages({
-      'string.min': 'Password must be at least 6 characters',
-      'any.required': 'Password is required'
-    }),
+    password: Joi.string()
+      .min(8)
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'password strength')
+      .required()
+      .messages({
+        'string.min': 'Password must be at least 8 characters',
+        'string.pattern.name': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)',
+        'any.required': 'Password is required'
+      }),
     role: Joi.string().required().messages({
       'any.required': 'Role is required'
     })
@@ -25,12 +30,6 @@ export const forSignUp = {
     address: Joi.string().required().messages({
       'any.required': 'Address is required'
     }),
-    firstName: Joi.string().required().messages({
-      'any.required': 'First name is required'
-    }),
-    lastName: Joi.string().required().messages({
-      'any.required': 'Last name is required'
-    }),
     phone: Joi.string().custom(phoneCustomValidation, 'phone validation').required().messages({
       'any.required': 'Phone is required',
       'any.custom': '{{#error.message}}'
@@ -39,12 +38,17 @@ export const forSignUp = {
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required'
     }),
-    password: Joi.string().min(6).required().messages({
-      'string.min': 'Password must be at least 6 characters',
-      'any.required': 'Password is required'
-    }),
-    countryId: Joi.number().required().messages({
-      'any.required': 'Country is required'
+    password: Joi.string()
+      .min(8)
+      .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'password strength')
+      .required()
+      .messages({
+        'string.min': 'Password must be at least 8 characters',
+        'string.pattern.name': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)',
+        'any.required': 'Password is required'
+      }),
+    countryId: Joi.number().optional().messages({
+      'number.base': 'Country ID must be a number'
     })
   })
 };

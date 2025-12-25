@@ -116,15 +116,15 @@ export class MobileWorkOrderService {
             assignment: {
                 assignedAt: order.updatedAt,
                 pickupTime: order.pickupTime || undefined,
-                yard: order.yard ? {
-                    id: order.yard.id,
-                    name: order.yard.yardName,
-                    address: order.yard.address
+                yard: order.scrap_yards ? {
+                    id: order.scrap_yards.id,
+                    name: order.scrap_yards.yardName,
+                    address: order.scrap_yards.address
                 } : undefined,
-                crew: order.crew ? {
-                    id: order.crew.id,
-                    name: order.crew.name,
-                    memberCount: order.crew.members?.length || 0
+                crew: order.crews ? {
+                    id: order.crews.id,
+                    name: order.crews.name,
+                    memberCount: order.crews.Employee?.length || 0
                 } : undefined
             },
             status: {
@@ -144,7 +144,7 @@ export class MobileWorkOrderService {
                 admin: order.adminNotes || undefined,
                 instructions: order.instructions || undefined
             },
-            timeline: order.orderTimeline?.map((t: any) => ({
+            timeline: order.order_timelines?.map((t: any) => ({
                 status: t.status,
                 notes: t.notes || undefined,
                 performedBy: t.performedBy || undefined,
@@ -194,8 +194,8 @@ export class MobileWorkOrderService {
                 OR: [
                     { assignedCollectorId: collectorId },
                     {
-                        crew: {
-                            members: {
+                        crews: {
+                            Employee: {
                                 some: {
                                     id: collectorId
                                 }
@@ -271,10 +271,10 @@ export class MobileWorkOrderService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        yard: true,
-                        crew: {
+                        scrap_yards: true,
+                        crews: {
                             include: {
-                                members: {
+                                Employee: {
                                     select: {
                                         id: true,
                                         fullName: true
@@ -282,7 +282,7 @@ export class MobileWorkOrderService {
                                 }
                             }
                         },
-                        orderTimeline: {
+                        order_timelines: {
                             orderBy: {
                                 createdAt: 'asc'
                             }
@@ -364,8 +364,8 @@ export class MobileWorkOrderService {
                             OR: [
                                 { assignedCollectorId: collectorId },
                                 {
-                                    crew: {
-                                        members: {
+                                    crews: {
+                                        Employee: {
                                             some: {
                                                 id: collectorId
                                             }
@@ -377,10 +377,10 @@ export class MobileWorkOrderService {
                     ]
                 },
                 include: {
-                    yard: true,
-                    crew: {
+                    scrap_yards: true,
+                    crews: {
                         include: {
-                            members: {
+                            Employee: {
                                 select: {
                                     id: true,
                                     fullName: true,
@@ -389,19 +389,19 @@ export class MobileWorkOrderService {
                             }
                         }
                     },
-                    orderTimeline: {
+                    order_timelines: {
                         orderBy: {
                             createdAt: 'asc'
                         }
                     },
-                    customer: {
+                    Customer: {
                         select: {
                             id: true,
                             email: true,
                             phone: true
                         }
                     },
-                    payment: true
+                    Payment: true
                 }
             });
 
@@ -440,8 +440,8 @@ export class MobileWorkOrderService {
                             OR: [
                                 { assignedCollectorId: collectorId },
                                 {
-                                    crew: {
-                                        members: {
+                                    crews: {
+                                        Employee: {
                                             some: {
                                                 id: collectorId
                                             }
@@ -495,13 +495,13 @@ export class MobileWorkOrderService {
                 where: { id: order.id },
                 data: updateData,
                 include: {
-                    yard: true,
-                    crew: {
+                    scrap_yards: true,
+                    crews: {
                         include: {
-                            members: true
+                            Employee: true
                         }
                     },
-                    orderTimeline: true
+                    order_timelines: true
                 }
             });
 
@@ -518,7 +518,7 @@ export class MobileWorkOrderService {
                 timelineData.createdAt = new Date(data.timestamp);
             }
 
-            await prisma.orderTimeline.create({
+            await prisma.order_timelines.create({
                 data: timelineData
             });
 
@@ -547,8 +547,8 @@ export class MobileWorkOrderService {
                 OR: [
                     { assignedCollectorId: collectorId },
                     {
-                        crew: {
-                            members: {
+                        crews: {
+                            Employee: {
                                 some: {
                                     id: collectorId
                                 }

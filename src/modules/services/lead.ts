@@ -40,17 +40,17 @@ export class LeadService {
           ...(data.customerId && { customerId: data.customerId })
         },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          customer: true
+          Customer: true
         }
       });
 
       // Create timeline entry
-      await prisma.leadTimeline.create({
+      await prisma.lead_timelines.create({
         data: {
           leadId: lead.id,
           activity: 'Lead created',
@@ -133,12 +133,12 @@ export class LeadService {
           skip,
           take: parsedLimit,
           include: {
-            organization: {
+            Organization: {
               select: {
                 name: true
               }
             },
-            customer: true
+            Customer: true
           },
           orderBy
         }),
@@ -165,13 +165,13 @@ export class LeadService {
       const lead = await prisma.lead.findUnique({
         where: { id },
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          customer: true,
-          order: true
+          Customer: true,
+          Order: true
         }
       });
 
@@ -250,19 +250,19 @@ export class LeadService {
         where: { id },
         data: updateData,
         include: {
-          organization: {
+          Organization: {
             select: {
               name: true
             }
           },
-          customer: true
+          Customer: true
         }
       });
       
       console.log('Update lead - updated lead:', lead);
 
       // Create timeline entry
-      await prisma.leadTimeline.create({
+      await prisma.lead_timelines.create({
         data: {
           leadId: id,
           activity: 'Lead updated',
@@ -368,7 +368,7 @@ export class LeadService {
       cacheService.deletePattern('^lead-stats:');
 
       // Create timeline entries
-      await prisma.leadTimeline.create({
+      await prisma.lead_timelines.create({
         data: {
           leadId: id,
           activity: 'Lead converted to order',
@@ -376,7 +376,7 @@ export class LeadService {
         }
       });
 
-      await prisma.orderTimeline.create({
+      await prisma.order_timelines.create({
         data: {
           orderId: order.id,
           status: 'PENDING',
@@ -394,7 +394,7 @@ export class LeadService {
 
   public async getLeadTimeline(id: string): Promise<ApiResult> {
     try {
-      const timeline = await prisma.leadTimeline.findMany({
+      const timeline = await prisma.lead_timelines.findMany({
         where: { leadId: id },
         orderBy: {
           createdAt: 'asc'

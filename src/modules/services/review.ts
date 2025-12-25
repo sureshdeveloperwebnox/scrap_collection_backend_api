@@ -15,9 +15,9 @@ export class ReviewService {
           organizationId: data.organizationId
         },
         include: {
-          order: true,
-          customer: true,
-          collector: true
+          Order: true,
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -26,7 +26,7 @@ export class ReviewService {
         where: { collectorId: data.collectorId }
       });
 
-      const avgRating = collectorReviews.reduce((sum, r) => sum + r.rating, 0) / collectorReviews.length;
+      const avgRating = collectorReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / collectorReviews.length;
 
       await prisma.employee.update({
         where: { id: data.collectorId },
@@ -72,9 +72,9 @@ export class ReviewService {
           skip,
           take: parsedLimit,
           include: {
-            order: true,
-            customer: true,
-            collector: true
+            Order: true,
+            Customer: true,
+            Employee: true
           },
           orderBy: {
             createdAt: 'desc'
@@ -103,9 +103,9 @@ export class ReviewService {
       const review = await prisma.review.findUnique({
         where: { id },
         include: {
-          order: true,
-          customer: true,
-          collector: true
+          Order: true,
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -126,9 +126,9 @@ export class ReviewService {
         where: { id },
         data,
         include: {
-          order: true,
-          customer: true,
-          collector: true
+          Order: true,
+          Customer: true,
+          Employee: true
         }
       });
 
@@ -137,7 +137,7 @@ export class ReviewService {
         where: { collectorId: review.collectorId }
       });
 
-      const avgRating = collectorReviews.reduce((sum, r) => sum + r.rating, 0) / collectorReviews.length;
+      const avgRating = collectorReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / collectorReviews.length;
 
       await prisma.employee.update({
         where: { id: review.collectorId },
