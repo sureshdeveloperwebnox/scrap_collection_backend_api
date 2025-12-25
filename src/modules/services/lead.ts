@@ -198,7 +198,7 @@ export class LeadService {
 
       // Build update data object, including all provided fields
       const updateData: any = {};
-      
+
       // Always update fullName and phone if provided (they are required fields)
       // These should always be provided in update requests
       if (data.fullName !== undefined && data.fullName !== null) {
@@ -213,7 +213,7 @@ export class LeadService {
           updateData.phone = trimmedPhone;
         }
       }
-      
+
       // Include optional fields
       if (data.email !== undefined) updateData.email = data.email;
       if (data.vehicleType !== undefined) updateData.vehicleType = data.vehicleType;
@@ -231,16 +231,16 @@ export class LeadService {
       }
       if (data.notes !== undefined) updateData.notes = data.notes;
       if (data.status !== undefined) updateData.status = data.status;
-      
+
       // Log for debugging
       console.log('Update lead - received data:', JSON.stringify(data, null, 2));
       console.log('Update lead - updateData:', JSON.stringify(updateData, null, 2));
-      
+
       // Ensure we have at least one field to update
       if (Object.keys(updateData).length === 0) {
         return ApiResult.error("No fields provided for update", 400);
       }
-      
+
       // Ensure fullName and phone are present if they're being updated
       if (updateData.fullName === undefined && updateData.phone === undefined) {
         console.warn('Warning: Neither fullName nor phone provided in update');
@@ -258,7 +258,7 @@ export class LeadService {
           Customer: true
         }
       });
-      
+
       console.log('Update lead - updated lead:', lead);
 
       // Create timeline entry
@@ -451,6 +451,109 @@ export class LeadService {
       return ApiResult.success(statsMap, "Lead statistics retrieved successfully");
     } catch (error: any) {
       console.log("Error in getLeadStats", error);
+      return ApiResult.error(error.message);
+    }
+  }
+
+  public async convertLeadToCustomer(id: string): Promise<ApiResult> {
+    try {
+      const existingLead = await prisma.lead.findUnique({
+        where: { id }
+      });
+
+      if (!existingLead) {
+        return ApiResult.error("Lead not found", 404);
+      }
+
+      if (existingLead.status === LeadStatus.CONVERTED) {
+        return ApiResult.error("Lead is already converted", 400);
+      }
+
+      // Check if customer already exists for this phone in this organization
+      const existingCustomer = await prisma.customer.findFirst({
+        where: {
+          phone: existingLead.phone,
+          organizationId: existingLead.organizationId
+        }
+      });
+
+      if (existingCustomer) {
+        // Update lead status to CONVERTED and link to existing customer
+        await prisma.lead.update({
+          where: { id },
+          data: {
+            status: LeadStatus.CONVERTED,
+            customerId: existingCustomer.id
+          }
+        });
+
+        // Create timeline entry
+        await prisma.lead_timelines.create({
+          data: {
+            leadId: id,
+            activity: 'Lead converted to existing customer',
+            performedBy: 'system'
+          }
+        });
+
+        // Invalidate leads cache and stats cache
+        cacheService.deletePattern('^leads:');
+        cacheService.deletePattern('^lead-stats:');
+
+        return ApiResult.success({
+          leadId: id,
+          customerId: existingCustomer.id,
+          message: 'Lead linked to existing customer'
+        }, "Lead converted to existing customer successfully");
+      }
+
+      // Create new customer from lead
+      const customer = await prisma.customer.create({
+        data: {
+          organizationId: existingLead.organizationId,
+          name: existingLead.fullName,
+          phone: existingLead.phone,
+          email: existingLead.email,
+          address: existingLead.locationAddress,
+          latitude: existingLead.latitude,
+          longitude: existingLead.longitude,
+          vehicleType: existingLead.vehicleType,
+          vehicleMake: existingLead.vehicleMake,
+          vehicleModel: existingLead.vehicleModel,
+          vehicleYear: existingLead.vehicleYear,
+          vehicleCondition: existingLead.vehicleCondition,
+          accountStatus: 'ACTIVE'
+        }
+      });
+
+      // Update lead status to CONVERTED and link to new customer
+      await prisma.lead.update({
+        where: { id },
+        data: {
+          status: LeadStatus.CONVERTED,
+          customerId: customer.id
+        }
+      });
+
+      // Create timeline entry
+      await prisma.lead_timelines.create({
+        data: {
+          leadId: id,
+          activity: 'Lead converted to customer',
+          performedBy: 'system'
+        }
+      });
+
+      // Invalidate leads cache and stats cache
+      cacheService.deletePattern('^leads:');
+      cacheService.deletePattern('^lead-stats:');
+
+      return ApiResult.success({
+        leadId: id,
+        customerId: customer.id
+      }, "Lead converted to customer successfully");
+    } catch (error: any) {
+      console.log("Error in convertLeadToCustomer", error);
       return ApiResult.error(error.message);
     }
   }

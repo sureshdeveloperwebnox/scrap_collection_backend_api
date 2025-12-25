@@ -206,6 +206,7 @@ model Organization {
   users                    users[]
   vehicle_names            vehicle_names[]
   vehicle_types            vehicle_types[]
+  crews                    crews[]
 }
 
 model Payment {
@@ -329,15 +330,19 @@ model collector_assignments {
 
 model crews {
   id                    String                  @id @default(uuid())
-  name                  String                  @unique
+  name                  String
   description           String?
   isActive              Boolean                 @default(true)
+  organizationId        Int
+  Organization          Organization            @relation(fields: [organizationId], references: [id])
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   Employee              Employee[]
   Order                 Order[]
   assign_orders         assign_orders[]
   collector_assignments collector_assignments[]
+
+  @@unique([name, organizationId])
 }
 
 model email_templates {

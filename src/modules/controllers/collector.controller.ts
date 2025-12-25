@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Controller } from '../../decorators/controller.decorator';
 import { GET } from '../../decorators/method.decorator';
 import { Validate } from '../../decorators/middleware.decorator';
+import { Authenticate } from '../../decorators/authenticate.decorator';
+import { UserCategory } from '../../utils/user-category.enum';
 import { EmployeeService } from '../services/employee';
 import { employeeQuerySchema } from '../rules/employee.rules';
 import { ApiResult } from '../../utils/api-result';
@@ -15,16 +17,21 @@ export class CollectorController {
     }
 
     @GET('/stats')
+    @Authenticate([UserCategory.ALL])
     public async getCollectorStats(req: Request, res: Response): Promise<void> {
         try {
-            const organizationId = parseInt(req.query.organizationId as string);
-            if (isNaN(organizationId)) {
-                ApiResult.error("Invalid organization ID", 400).send(res);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = (req as any).user?.organizationId
+                ? parseInt((req as any).user.organizationId)
+                : undefined;
+
+            if (!userOrganizationId) {
+                ApiResult.error("Organization ID not found", 400).send(res);
                 return;
             }
 
             // Get employee stats filtered by collector role
-            const result = await this.employeeService.getEmployeeStats(organizationId);
+            const result = await this.employeeService.getEmployeeStats(userOrganizationId);
 
             // Rename the response for collectors context
             if (result && typeof result.send === 'function') {
@@ -39,11 +46,21 @@ export class CollectorController {
     }
 
     @GET('/')
+    @Authenticate([UserCategory.ALL])
     @Validate([employeeQuerySchema])
     public async getCollectors(req: Request, res: Response): Promise<void> {
         try {
-            // Pass query parameters directly
-            const result = await this.employeeService.getEmployees(req.query as any);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = (req as any).user?.organizationId
+                ? parseInt((req as any).user.organizationId)
+                : undefined;
+
+            const queryWithOrgId = {
+                ...req.query,
+                organizationId: userOrganizationId
+            };
+
+            const result = await this.employeeService.getEmployees(queryWithOrgId);
             result.send(res);
         } catch (error) {
             console.log("Error in getCollectors", error);
@@ -52,6 +69,7 @@ export class CollectorController {
     }
 
     @GET('/:id')
+    @Authenticate([UserCategory.ALL])
     public async getCollectorById(req: Request, res: Response): Promise<void> {
         try {
             const id = req.params.id;
@@ -64,6 +82,7 @@ export class CollectorController {
     }
 
     @GET('/:id/performance')
+    @Authenticate([UserCategory.ALL])
     public async getCollectorPerformance(req: Request, res: Response): Promise<void> {
         try {
             const id = req.params.id;

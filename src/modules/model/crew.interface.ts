@@ -5,6 +5,7 @@ export interface CreateCrewDto {
     name: string;
     description?: string;
     memberIds: string[];
+    organizationId: number;
 }
 
 export interface UpdateCrewDto {
@@ -18,6 +19,7 @@ export interface CrewResponse {
     id: string;
     name: string;
     description?: string;
+    organizationId: number;
     members: Employee[];
     isActive: boolean;
     createdAt: Date;

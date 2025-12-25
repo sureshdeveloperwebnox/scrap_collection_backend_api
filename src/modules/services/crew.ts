@@ -6,15 +6,18 @@ import { ApiResult } from "../../utils/api-result";
 export class CrewService {
     public async createCrew(data: CreateCrewDto): Promise<ApiResult> {
         try {
-            const { name, description, memberIds } = data;
+            const { name, description, memberIds, organizationId } = data;
 
-            // Check if crew name already exists
-            const existing = await prisma.crews.findUnique({
-                where: { name }
+            // Check if crew name already exists in this organization
+            const existing = await prisma.crews.findFirst({
+                where: {
+                    name,
+                    organizationId
+                }
             });
 
             if (existing) {
-                return ApiResult.error('Crew with this name already exists', 400);
+                return ApiResult.error('Crew with this name already exists in your organization', 400);
             }
 
             // Verify all members exist if provided
@@ -31,9 +34,11 @@ export class CrewService {
             }
 
             const crew = await prisma.crews.create({
-                data: { updatedAt: new Date(), 
+                data: {
+                    updatedAt: new Date(),
                     name,
                     description,
+                    organizationId,
                     Employee: {
                         connect: memberIds?.map((id) => ({ id })) || [],
                     },
@@ -57,10 +62,13 @@ export class CrewService {
         }
     }
 
-    public async getAllCrews(): Promise<ApiResult> {
+    public async getAllCrews(organizationId: number): Promise<ApiResult> {
         try {
             const crews = await prisma.crews.findMany({
-                where: { isActive: true },
+                where: {
+                    isActive: true,
+                    organizationId
+                },
                 include: {
                     Employee: {
                         select: {
@@ -150,7 +158,7 @@ export class CrewService {
         try {
             await prisma.crews.update({
                 where: { id },
-                data: { updatedAt: new Date(),  isActive: false },
+                data: { updatedAt: new Date(), isActive: false },
             });
             return ApiResult.success(null, "Crew deleted successfully");
         } catch (error: any) {

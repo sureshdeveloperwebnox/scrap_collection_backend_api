@@ -2,6 +2,7 @@ import { ICreateCustomerRequest, IUpdateCustomerRequest, ICustomerQueryParams } 
 import { prisma } from "../../config";
 import { ApiResult } from "../../utils/api-result";
 import { CustomerStatus } from "../model/enum";
+import { cacheService } from "../../utils/cache";
 
 export class CustomerService {
   public async createCustomer(data: ICreateCustomerRequest): Promise<ApiResult> {
@@ -73,6 +74,38 @@ export class CustomerService {
           }
         }
       });
+
+      // Check if there's a lead associated with this phone number and update its status to CONVERTED
+      const associatedLead = await prisma.lead.findFirst({
+        where: {
+          phone: data.phone,
+          organizationId: data.organizationId,
+          status: { not: 'CONVERTED' }
+        }
+      });
+
+      if (associatedLead) {
+        await prisma.lead.update({
+          where: { id: associatedLead.id },
+          data: {
+            status: 'CONVERTED',
+            customerId: customer.id
+          }
+        });
+
+        // Create timeline entry for the lead
+        await prisma.lead_timelines.create({
+          data: {
+            leadId: associatedLead.id,
+            activity: 'Lead automatically converted when customer was created',
+            performedBy: 'system'
+          }
+        });
+
+        // Invalidate leads cache and stats cache
+        cacheService.deletePattern('^leads:');
+        cacheService.deletePattern('^lead-stats:');
+      }
 
       return ApiResult.success(customer, "Customer created successfully", 201);
 
@@ -219,7 +252,7 @@ export class CustomerService {
 
       // Remove organizationId from update data as it's a relation field and cannot be updated directly
       const { organizationId, ...updateData } = data as any;
-      
+
       // Validate accountStatus if provided
       if (updateData.accountStatus) {
         const validStatuses = ['ACTIVE', 'INACTIVE', 'VIP', 'BLOCKED'];
@@ -251,6 +284,40 @@ export class CustomerService {
           }
         }
       });
+
+      // Check if there's a lead associated with this phone number and update its status to CONVERTED
+      if (customer.phone) {
+        const associatedLead = await prisma.lead.findFirst({
+          where: {
+            phone: customer.phone,
+            organizationId: existingCustomer.organizationId,
+            status: { not: 'CONVERTED' }
+          }
+        });
+
+        if (associatedLead) {
+          await prisma.lead.update({
+            where: { id: associatedLead.id },
+            data: {
+              status: 'CONVERTED',
+              customerId: customer.id
+            }
+          });
+
+          // Create timeline entry for the lead
+          await prisma.lead_timelines.create({
+            data: {
+              leadId: associatedLead.id,
+              activity: 'Lead automatically converted when customer was updated',
+              performedBy: 'system'
+            }
+          });
+
+          // Invalidate leads cache and stats cache
+          cacheService.deletePattern('^leads:');
+          cacheService.deletePattern('^lead-stats:');
+        }
+      }
 
       return ApiResult.success(customer, "Customer updated successfully");
 

@@ -144,4 +144,17 @@ export class LeadController {
       ApiResult.error((error as any).message, 500).send(res);
     }
   }
-} 
+
+  @POST('/:id/convert-to-customer')
+  @Validate([leadIdSchema])
+  public async convertLeadToCustomer(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id;
+      const result = await this.leadService.convertLeadToCustomer(id);
+      result.send(res);
+    } catch (error) {
+      console.log("Error in convertLeadToCustomer", error);
+      ApiResult.error((error as any).message, 500).send(res);
+    }
+  }
+}
