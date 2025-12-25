@@ -185,51 +185,24 @@ export class Auth {
       });
 
       if (!user) {
-        // Create new user and organization
+        // Create new user WITHOUT organization - they will set it up later
         const fullName = `${given_name || ''} ${family_name || ''}`.trim() || email.split('@')[0];
 
-        // Get the first active country, or create a default one if none exists
-        let country = await prisma.country.findFirst({
-          where: { isActive: true },
-          orderBy: { id: 'asc' }
-        });
-
-        if (!country) {
-          // Create a default country if none exists
-          country = await prisma.country.create({
-            data: {
-              name: 'Default',
-              currency: 'USD',
-              isActive: true
-            }
-          });
-        }
-
-        // Create new organization
-        const newOrganization = await prisma.organization.create({
-          data: {
-            name: fullName,
-            email: email,
-            phone: '',
-            isActive: true,
-            countryId: country.id
-          }
-        });
-
-        // Create new user
+        // Create new user without organization
         const createdUser = await prisma.users.create({
           data: {
-            organizationId: newOrganization.id,
+            organizationId: null, // No organization yet
             firstName: given_name || fullName,
             lastName: family_name || '',
             email: email,
             hashPassword: '', // No password for Google OAuth users
             phone: '',
-            role: UserRole.ADMIN
+            role: UserRole.ADMIN,
+            profileImg: picture || null
           }
         });
 
-        // Fetch user with organization
+        // Fetch user (without organization)
         user = await prisma.users.findUnique({
           where: { id: createdUser.id },
           include: { Organization: true }
