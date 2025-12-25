@@ -66,6 +66,7 @@ export const forProfileUpdate = {
     firstName: Joi.string().optional().allow(''),
     lastName: Joi.string().optional().allow(''),
     email: Joi.string().email().optional(),
-    phone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().allow('')
+    phone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().allow(''),
+    profileImg: Joi.string().optional().allow('')
   })
 };

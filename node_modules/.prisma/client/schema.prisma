@@ -551,6 +551,7 @@ model users {
   hashPassword   String?
   firstName      String?
   lastName       String?
+  profileImg     String?
   role           UserRole        @default(USER)
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())

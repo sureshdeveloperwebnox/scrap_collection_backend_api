@@ -337,7 +337,7 @@ export class Auth {
     }
   }
 
-  public async updateProfile(userId: string, data: { fullName?: string, firstName?: string, lastName?: string, phone?: string, email?: string }): Promise<ApiResult> {
+  public async updateProfile(userId: string, data: { fullName?: string, firstName?: string, lastName?: string, phone?: string, email?: string, profileImg?: string }): Promise<ApiResult> {
     try {
       // Check if user exists
       const user = await prisma.users.findUnique({
@@ -377,6 +377,7 @@ export class Auth {
           lastName: lastName !== undefined ? lastName : user.lastName,
           phone: data.phone !== undefined ? data.phone : user.phone,
           email: data.email || user.email,
+          profileImg: data.profileImg !== undefined ? data.profileImg : user.profileImg,
         }
       });
 
@@ -387,6 +388,7 @@ export class Auth {
           lastName: updatedUser.lastName,
           email: updatedUser.email,
           phone: updatedUser.phone,
+          profileImg: updatedUser.profileImg,
           role: updatedUser.role,
           organizationId: updatedUser.organizationId
         }
