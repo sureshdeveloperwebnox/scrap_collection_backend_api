@@ -70,6 +70,7 @@ export class Auth {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        profileImg: user.profileImg,
         email: user.email,
         role: user.role,
         organizationId: user.organizationId
@@ -140,6 +141,7 @@ export class Auth {
         lastName: newUser.lastName,
         email: newUser.email,
         phone: newUser.phone,
+        profileImg: newUser.profileImg,
         role: newUser.role,
         organizationId: newOrganization.id
       },
@@ -259,6 +261,7 @@ export class Auth {
           firstName: user.firstName,
           lastName: user.lastName,
           phone: user.phone,
+          profileImg: user.profileImg,
           email: user.email,
           role: user.role,
           organizationId: user.organizationId
@@ -311,6 +314,7 @@ export class Auth {
           lastName: true,
           email: true,
           phone: true,
+          profileImg: true,
           role: true,
           organizationId: true,
         }
@@ -327,6 +331,7 @@ export class Auth {
           lastName: user.lastName,
           email: user.email,
           phone: user.phone,
+          profileImg: user.profileImg,
           role: user.role,
           organizationId: user.organizationId
         }
