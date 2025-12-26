@@ -39,8 +39,8 @@ export class UploadController {
   public async uploadImages(req: Request, res: Response): Promise<void> {
     try {
       const files = req.files as Express.Multer.File[];
-      // Default folder structure: lead/vehicles/images
-      const folder = (req.query.type as string) || 'lead/vehicles/images';
+      // Folder parameter: 'assignments', 'orders', 'leads', 'general', etc.
+      const folder = (req.query.folder as string) || 'general';
 
       if (!files || files.length === 0) {
         ApiResult.error('No files provided', 400).send(res);

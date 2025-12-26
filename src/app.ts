@@ -24,6 +24,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true // Important for cookies
 }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
+
 // Setup routes
 combineRouters(app);
 

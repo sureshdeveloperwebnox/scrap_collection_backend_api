@@ -138,3 +138,8 @@ export enum CollectionRecordStatus {
   COMPLETED = 'COMPLETED'
 }
 
+export enum AssignmentStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED'
+}

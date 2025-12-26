@@ -28,6 +28,7 @@ import {
   OrganizationController
 } from '../modules/controllers';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
+import assignmentRoutes from '../modules/routes/assignment.routes';
 
 export const combineRouters = (app: Express) => {
   const apiRouter = Router();
@@ -68,6 +69,9 @@ export const combineRouters = (app: Express) => {
       },
     }
   );
+
+  // Register assignment routes
+  apiRouter.use('/assignments', assignmentRoutes);
 
   app.use('/api/v1', apiRouter);
 };

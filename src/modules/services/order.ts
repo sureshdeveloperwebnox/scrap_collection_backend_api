@@ -121,6 +121,7 @@ export class OrderService {
           Lead: true,
           crews: {
             include: {
+              Employee: true
             }
           }
         }
@@ -136,7 +137,22 @@ export class OrderService {
         }
       });
 
-      return ApiResult.success(order, "Order created successfully", 201);
+      // Transform the response to match frontend expectations
+      const transformedOrder = {
+        ...order,
+        collector: order.Employee,
+        yard: order.scrap_yards,
+        crew: order.crews ? {
+          ...order.crews,
+          members: order.crews.Employee || []
+        } : null,
+        // Keep original fields for backward compatibility
+        Employee: order.Employee,
+        scrap_yards: order.scrap_yards,
+        crews: order.crews
+      };
+
+      return ApiResult.success(transformedOrder, "Order created successfully", 201);
     } catch (error: any) {
       console.log("Error in createOrder", error);
 
@@ -205,6 +221,7 @@ export class OrderService {
             Lead: true,
             crews: {
               include: {
+                Employee: true
               }
             }
           },
@@ -215,8 +232,23 @@ export class OrderService {
         prisma.order.count({ where })
       ]);
 
+      // Transform orders to match frontend expectations
+      const transformedOrders = orders.map((order: any) => ({
+        ...order,
+        collector: order.Employee,
+        yard: order.scrap_yards,
+        crew: order.crews ? {
+          ...order.crews,
+          members: order.crews.Employee || []
+        } : null,
+        // Keep original fields for backward compatibility
+        Employee: order.Employee,
+        scrap_yards: order.scrap_yards,
+        crews: order.crews
+      }));
+
       return ApiResult.success({
-        orders,
+        orders: transformedOrders,
         pagination: {
           page: parsedPage,
           limit: parsedLimit,
@@ -243,6 +275,7 @@ export class OrderService {
           Review: true,
           crews: {
             include: {
+              Employee: true
             }
           },
           assign_orders: {
@@ -250,6 +283,7 @@ export class OrderService {
               Employee: true,
               crews: {
                 include: {
+                  Employee: true
                 }
               }
             }
@@ -261,7 +295,31 @@ export class OrderService {
         return ApiResult.error("Order not found", 404);
       }
 
-      return ApiResult.success(order, "Order retrieved successfully");
+      // Transform the response to match frontend expectations
+      const transformedOrder: any = {
+        ...order,
+        collector: order.Employee,
+        yard: order.scrap_yards,
+        crew: order.crews ? {
+          ...order.crews,
+          members: order.crews.Employee || []
+        } : null,
+        assignOrders: order.assign_orders?.map((ao: any) => ({
+          ...ao,
+          collector: ao.Employee,
+          crew: ao.crews ? {
+            ...ao.crews,
+            members: ao.crews.Employee || []
+          } : null
+        })) || [],
+        // Keep original fields for backward compatibility
+        Employee: order.Employee,
+        scrap_yards: order.scrap_yards,
+        crews: order.crews,
+        assign_orders: order.assign_orders
+      };
+
+      return ApiResult.success(transformedOrder, "Order retrieved successfully");
     } catch (error: any) {
       console.log("Error in getOrderById", error);
       return ApiResult.error(error.message);
@@ -335,6 +393,7 @@ export class OrderService {
           Customer: true,
           crews: {
             include: {
+              Employee: true
             }
           }
         }
@@ -352,7 +411,22 @@ export class OrderService {
         });
       }
 
-      return ApiResult.success(order, "Order updated successfully");
+      // Transform the response to match frontend expectations
+      const transformedOrder: any = {
+        ...order,
+        collector: order.Employee,
+        yard: order.scrap_yards,
+        crew: order.crews ? {
+          ...order.crews,
+          members: order.crews.Employee || []
+        } : null,
+        // Keep original fields for backward compatibility
+        Employee: order.Employee,
+        scrap_yards: order.scrap_yards,
+        crews: order.crews
+      };
+
+      return ApiResult.success(transformedOrder, "Order updated successfully");
     } catch (error: any) {
       console.log("Error in updateOrder", error);
 
@@ -470,11 +544,16 @@ export class OrderService {
           assign_orders: {
             include: {
               Employee: true,
-              crews: true
+              crews: {
+                include: {
+                  Employee: true
+                }
+              }
             }
           },
           crews: {
             include: {
+              Employee: true
             }
           }
         }
@@ -489,7 +568,31 @@ export class OrderService {
         }
       });
 
-      return ApiResult.success(order, "Order assigned successfully");
+      // Transform the response to match frontend expectations
+      const transformedOrder: any = {
+        ...order,
+        collector: order.Employee,
+        yard: order.scrap_yards,
+        crew: order.crews ? {
+          ...order.crews,
+          members: order.crews.Employee || []
+        } : null,
+        assignOrders: order.assign_orders?.map((ao: any) => ({
+          ...ao,
+          collector: ao.Employee,
+          crew: ao.crews ? {
+            ...ao.crews,
+            members: ao.crews.Employee || []
+          } : null
+        })) || [],
+        // Keep original fields for backward compatibility
+        Employee: order.Employee,
+        scrap_yards: order.scrap_yards,
+        crews: order.crews,
+        assign_orders: order.assign_orders
+      };
+
+      return ApiResult.success(transformedOrder, "Order assigned successfully");
     } catch (error: any) {
       console.log("Error in assignOrder", error);
       return ApiResult.error(error.message);

@@ -269,17 +269,21 @@ model ai_price_estimators {
 }
 
 model assign_orders {
-  id          String    @id @default(uuid())
-  orderId     String
-  collectorId String?
-  crewId      String?
-  assignedAt  DateTime  @default(now())
-  endTime     DateTime?
-  notes       String?
-  startTime   DateTime?
-  Employee    Employee? @relation(fields: [collectorId], references: [id])
-  crews       crews?    @relation(fields: [crewId], references: [id])
-  Order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id               String           @id @default(uuid())
+  orderId          String
+  collectorId      String?
+  crewId           String?
+  assignedAt       DateTime         @default(now())
+  startTime        DateTime?
+  endTime          DateTime?
+  notes            String?
+  status           AssignmentStatus @default(PENDING)
+  completedAt      DateTime?
+  completionNotes  String?
+  completionPhotos Json?
+  Employee         Employee?        @relation(fields: [collectorId], references: [id])
+  crews            crews?           @relation(fields: [crewId], references: [id])
+  Order            Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model chatbot_leads {
@@ -597,6 +601,12 @@ model vehicle_types {
   Organization   Organization?   @relation(fields: [organizationId], references: [id])
 
   @@unique([name, organizationId])
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum AdminRoleType {

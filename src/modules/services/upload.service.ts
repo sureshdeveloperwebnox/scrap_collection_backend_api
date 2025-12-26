@@ -1,4 +1,4 @@
-import { storageService } from '../../utils/storage.service';
+import { localStorageService } from '../../utils/local-storage.service';
 import { ApiResult } from '../../utils/api-result';
 
 export interface UploadConfig {
@@ -60,11 +60,14 @@ export class UploadService {
   }
 
   /**
-   * Upload images
+   * Upload images to local storage
+   * @param files - Array of files to upload
+   * @param folder - Folder to store files (e.g., 'assignments', 'orders', 'leads')
+   * @returns Relative paths that should be stored in database
    */
   async uploadImages(
     files: Express.Multer.File[],
-    folder: string = 'lead/vehicles/images'
+    folder: string = 'general'
   ): Promise<ApiResult> {
     try {
       if (!files || files.length === 0) {
@@ -95,19 +98,19 @@ export class UploadService {
         );
       }
 
-      // Upload valid files
+      // Upload valid files to local storage
       const fileObjects = validFiles.map((file) => ({
         buffer: file.buffer,
         originalname: file.originalname,
         mimetype: file.mimetype,
       }));
 
-      // Upload files and get relative paths (not full URLs)
-      const paths = await storageService.uploadFiles(fileObjects, folder);
+      // Upload files and get relative paths (e.g., 'assignments/uuid.jpg')
+      const paths = await localStorageService.uploadFiles(fileObjects, folder);
 
       return ApiResult.success(
         {
-          paths, // Return relative paths
+          paths, // Return relative paths to store in database
           count: paths.length,
           errors: validationErrors.length > 0 ? validationErrors : undefined,
         },
@@ -120,8 +123,8 @@ export class UploadService {
   }
 
   /**
-   * Delete a single image
-   * @param imagePath - Relative path or full URL of the image
+   * Delete a single image from local storage
+   * @param imagePath - Relative path of the image (e.g., 'assignments/uuid.jpg')
    */
   async deleteImage(imagePath: string): Promise<ApiResult> {
     try {
@@ -129,7 +132,7 @@ export class UploadService {
         return ApiResult.error('Invalid image path', 400);
       }
 
-      const deleted = await storageService.deleteFile(imagePath);
+      const deleted = await localStorageService.deleteFile(imagePath);
 
       if (deleted) {
         return ApiResult.success(null, 'Image deleted successfully');
@@ -143,8 +146,8 @@ export class UploadService {
   }
 
   /**
-   * Delete multiple images
-   * @param imagePaths - Array of relative paths or full URLs
+   * Delete multiple images from local storage
+   * @param imagePaths - Array of relative paths
    */
   async deleteImages(imagePaths: string[]): Promise<ApiResult> {
     try {
@@ -152,7 +155,7 @@ export class UploadService {
         return ApiResult.error('Invalid image paths', 400);
       }
 
-      const result = await storageService.deleteFiles(imagePaths);
+      const result = await localStorageService.deleteFiles(imagePaths);
 
       return ApiResult.success(
         result,
@@ -162,6 +165,15 @@ export class UploadService {
       console.error('Error in deleteImages:', error);
       return ApiResult.error(error.message || 'Failed to delete images', 500);
     }
+  }
+
+  /**
+   * Get full URL for a relative path
+   * @param relativePath - Relative path from database (e.g., 'assignments/uuid.jpg')
+   * @returns Full URL for frontend access (e.g., '/uploads/assignments/uuid.jpg')
+   */
+  getFileUrl(relativePath: string): string {
+    return localStorageService.getFullUrl(relativePath);
   }
 }
 
