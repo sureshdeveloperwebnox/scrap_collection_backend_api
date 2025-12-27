@@ -1,72 +1,45 @@
-import { ScrapConditionEnum, PaymentMethodEnum, PaymentStatusEnum, CollectionRecordStatus } from './enum';
+import { ScrapConditionEnum, CollectionRecordStatus } from './enum';
 
 /**
  * Interface for creating a scrap collection record
+ * Simplified to match the new schema
  */
 export interface ICreateScrapCollectionRecord {
-    // Work Order & Customer Reference
-    orderId: string;
-    customerId: string;
-
-    // Scrap Item Details
+    // Foreign Keys (IDs)
+    workOrderId?: string;
+    assignOrderId?: string;
+    customerId?: string;
     scrapCategoryId: string;
-    scrapNameId: string;
+    scrapNameId?: string;
+
+    // Collection Details
+    collectionDate?: Date | string;
     scrapDescription: string;
     scrapCondition: ScrapConditionEnum;
-
-    // Item Specifications
-    make: string;
-    model: string;
+    make?: string;
+    model?: string;
     yearOfManufacture?: string;
-    serialNumber?: string;
+    weight?: number;
+    quantity?: number; // Optional
 
-    // Measurements & Pricing
-    weight: number;
-    quantity: number;
-    dimensions?: {
-        length?: number;
-        width?: number;
-        height?: number;
-        unit?: string;
-    };
+    // Amounts
+    quotedAmount: number;
+    finalAmount: number;
 
-    // Financial Details (Optional in payload, fetched from Order or calculated)
-    quotedAmount?: number;
-    baseAmount?: number;
-    taxPercentage?: number;
-    taxAmount?: number;
-    additionalCharges?: number;
-    discountAmount?: number;
-    finalAmount?: number;
-    paymentMethod?: PaymentMethodEnum;
-    paymentStatus?: PaymentStatusEnum;
+    // Photos & Signatures (Digital Ocean paths)
+    photos?: string[]; // Array of photo URLs
+    customerSignature?: string; // Customer signature URL
+    collectorSignature?: string; // Collector signature URL
 
-    // Documentation
-    photos: string[];
-    beforePhotos?: string[];
-    afterPhotos?: string[];
-    customerSignature: string;
-    collectorSignature?: string;
-    employeeSignature: string;
-    scrapCollectedDate: Date | string;
-
-    // Additional Information
-    notes?: string;
-    specialInstructions?: string;
-    hazardousMaterial?: boolean;
-    requiresDisassembly?: boolean;
-
-    // Location
-    pickupLatitude?: number;
-    pickupLongitude?: number;
-    scrapYardId?: string;
+    // Status
+    collectionStatus?: CollectionRecordStatus;
 }
 
 /**
  * Interface for updating a scrap collection record
  */
 export interface IUpdateScrapCollectionRecord extends Partial<ICreateScrapCollectionRecord> {
-    status?: CollectionRecordStatus;
+    collectionStatus?: CollectionRecordStatus;
 }
 
 /**
@@ -75,15 +48,15 @@ export interface IUpdateScrapCollectionRecord extends Partial<ICreateScrapCollec
 export interface IScrapCollectionRecordQueryParams {
     page?: number;
     limit?: number;
-    status?: CollectionRecordStatus | CollectionRecordStatus[];
+    collectionStatus?: CollectionRecordStatus | CollectionRecordStatus[];
     collectorId?: string;
-    orderId?: string;
+    workOrderId?: string;
     customerId?: string;
     scrapCategoryId?: string;
     dateFrom?: string;
     dateTo?: string;
     search?: string;
-    sortBy?: 'collectionDate' | 'finalAmount' | 'createdAt' | 'customerName';
+    sortBy?: 'collectionDate' | 'finalAmount' | 'createdAt';
     sortOrder?: 'asc' | 'desc';
 }
 
@@ -101,9 +74,7 @@ export interface IScrapCollectionRecordListResponse {
     summary?: {
         totalRecords: number;
         totalAmount: number;
-        draftCount: number;
         submittedCount: number;
-        approvedCount: number;
     };
 }
 

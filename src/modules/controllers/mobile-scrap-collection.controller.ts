@@ -15,9 +15,9 @@ import { ApiResult } from '../../utils/api-result';
  * Mobile Scrap Collection Record Controller
  * Handles scrap collection form operations for mobile collectors
  * 
- * Base path: /mobile/collection-records
+ * Base path: /mobile/scrap-collections
  */
-@Controller('/mobile/collection-records')
+@Controller('/mobile/scrap-collections')
 export class MobileScrapCollectionController {
     private service: ScrapCollectionRecordService;
 

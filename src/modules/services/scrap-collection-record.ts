@@ -62,18 +62,9 @@ export class ScrapCollectionRecordService {
     public async getFormHelpers(collectorId: string): Promise<ApiResult> {
         try {
             // Get assigned work orders for this collector
-            const workOrders = await prisma.order.findMany({
+            const workOrders = await (prisma.order as any).findMany({
                 where: {
-                    OR: [
-                        { assignedCollectorId: collectorId },
-                        {
-                            crews: {
-                                Employee: {
-                                    some: { id: collectorId }
-                                }
-                            }
-                        }
-                    ],
+                    assignedCollectorId: collectorId,
                     orderStatus: { in: ['ASSIGNED', 'IN_PROGRESS'] }
                 },
                 select: {
@@ -87,7 +78,7 @@ export class ScrapCollectionRecordService {
                 },
                 orderBy: { createdAt: 'desc' },
                 take: 50
-            });
+            }) as any[];
 
             // Get collector's organization
             const collector = await prisma.employee.findUnique({
@@ -130,7 +121,7 @@ export class ScrapCollectionRecordService {
             const helpers: ICollectionFormHelpers = {
                 workOrders: workOrders.map(wo => ({
                     id: wo.id,
-                    orderNumber: wo.orderNumber || 'N/A',
+                    orderNumber: (wo as any).orderNumber || 'N/A',
                     customerName: wo.customerName,
                     customerPhone: wo.customerPhone,
                     address: wo.address
@@ -172,6 +163,18 @@ export class ScrapCollectionRecordService {
                 return ApiResult.error('Collector not found', 404);
             }
 
+            // Resolve workOrderId if it's an orderNumber
+            let resolvedWorkOrderId = data.workOrderId;
+            if (data.workOrderId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.workOrderId)) {
+                const order = await (prisma.order as any).findUnique({
+                    where: { orderNumber: data.workOrderId },
+                    select: { id: true }
+                });
+                if (order) {
+                    resolvedWorkOrderId = order.id;
+                }
+            }
+
             // Verify scrap category exists
             const category = await prisma.scrap_categories.findUnique({
                 where: { id: data.scrapCategoryId }
@@ -192,107 +195,36 @@ export class ScrapCollectionRecordService {
                 }
             }
 
-            // Resolve detailed data from Order or Customer
-            let resolvedOrderId = data.orderId;
-            let resolvedCustomerId = data.customerId;
-            let customerName = (data as any).customerName;
-            let customerPhone = (data as any).customerPhone;
-            let customerAddress = (data as any).customerAddress;
-            let customerEmail = (data as any).customerEmail;
-
-            // Financial defaults
-            let quotedAmount = data.quotedAmount || 0;
-            let baseAmount = data.baseAmount || 0;
-            let finalAmount = data.finalAmount || 0;
-
-            if (data.orderId) {
-                const order = await prisma.order.findFirst({
-                    where: {
-                        OR: [
-                            { id: data.orderId },
-                            { orderNumber: data.orderId }
-                        ]
-                    },
-                    select: {
-                        id: true,
-                        customerId: true,
-                        customerName: true,
-                        customerPhone: true,
-                        customerEmail: true,
-                        address: true,
-                        quotedPrice: true
-                    }
-                });
-
-                if (order) {
-                    resolvedOrderId = order.id;
-                    resolvedCustomerId = order.customerId || resolvedCustomerId;
-                    customerName = customerName || order.customerName;
-                    customerPhone = customerPhone || order.customerPhone;
-                    customerEmail = customerEmail || order.customerEmail;
-                    customerAddress = customerAddress || order.address;
-
-                    // Default amounts from order if not provided in payload
-                    quotedAmount = data.quotedAmount ?? order.quotedPrice ?? 0;
-                    baseAmount = data.baseAmount ?? order.quotedPrice ?? 0;
-                    finalAmount = data.finalAmount ?? order.quotedPrice ?? 0;
-                }
-            }
-
-            // Fallback: If still missing customer info, try to fetch from Customer model directly
-            if (resolvedCustomerId && (!customerName || !customerPhone || !customerAddress)) {
-                const customer = await prisma.customer.findUnique({
-                    where: { id: resolvedCustomerId },
-                    select: { name: true, phone: true, address: true, email: true }
-                });
-
-                if (customer) {
-                    customerName = customerName || customer.name;
-                    customerPhone = customerPhone || customer.phone;
-                    customerAddress = customerAddress || customer.address;
-                    customerEmail = customerEmail || customer.email;
-                }
-            }
-
-            // Final validation for mandatory DB fields
-            if (!customerName || !customerPhone || !customerAddress) {
-                return ApiResult.error('Customer name, phone, and address are required and could not be resolved from the order or customer ID', 400);
-            }
-
             // Process photos and signatures (handle Base64)
-            const recordFolder = `collections/${resolvedOrderId || 'standalone'}/${Date.now()}`;
+            const recordFolder = `collections/${resolvedWorkOrderId || 'standalone'}/${Date.now()}`;
 
             const processedPhotos = data.photos ? await this.processImages(data.photos, `${recordFolder}/photos`) : [];
-            const processedBeforePhotos = data.beforePhotos ? await this.processImages(data.beforePhotos, `${recordFolder}/before`) : [];
-            const processedAfterPhotos = data.afterPhotos ? await this.processImages(data.afterPhotos, `${recordFolder}/after`) : [];
-
             const processedCustomerSignature = data.customerSignature ? await this.processImage(data.customerSignature, `${recordFolder}/signatures`) : undefined;
             const processedCollectorSignature = data.collectorSignature ? await this.processImage(data.collectorSignature, `${recordFolder}/signatures`) : undefined;
-            const processedEmployeeSignature = data.employeeSignature ? await this.processImage(data.employeeSignature, `${recordFolder}/signatures`) : undefined;
 
-            // Create the record with auto-filled organizationId
+            // Create the record
             const record = await prisma.scrap_collection_records.create({
                 data: {
-                    ...data,
-                    orderId: resolvedOrderId,
-                    customerId: resolvedCustomerId,
-                    customerName,
-                    customerPhone,
-                    customerEmail,
-                    customerAddress,
-                    quotedAmount,
-                    baseAmount,
-                    finalAmount,
+                    workOrderId: resolvedWorkOrderId,
+                    assignOrderId: data.assignOrderId,
+                    customerId: data.customerId,
+                    scrapCategoryId: data.scrapCategoryId,
+                    scrapNameId: data.scrapNameId,
                     collectorId,
-                    organizationId: collector.organizationId,
-                    status: CollectionRecordStatus.DRAFT,
-                    dimensions: data.dimensions as any,
+                    collectionDate: data.collectionDate ? new Date(data.collectionDate) : new Date(),
+                    scrapDescription: data.scrapDescription,
+                    scrapCondition: data.scrapCondition as any,
+                    make: data.make,
+                    model: data.model,
+                    yearOfManufacture: data.yearOfManufacture,
+                    weight: data.weight,
+                    quantity: data.quantity,
+                    quotedAmount: data.quotedAmount || 0,
+                    finalAmount: data.finalAmount || 0,
                     photos: processedPhotos as any,
-                    beforePhotos: processedBeforePhotos as any,
-                    afterPhotos: processedAfterPhotos as any,
                     customerSignature: processedCustomerSignature,
                     collectorSignature: processedCollectorSignature,
-                    employeeSignature: processedEmployeeSignature
+                    collectionStatus: CollectionRecordStatus.SUBMITTED as any
                 },
                 include: {
                     scrap_categories: true,
@@ -301,19 +233,13 @@ export class ScrapCollectionRecordService {
                         select: {
                             id: true,
                             orderNumber: true
-                        }
+                        } as any
                     },
                     Customer: {
                         select: {
                             id: true,
                             name: true,
                             phone: true
-                        }
-                    },
-                    scrap_yards: {
-                        select: {
-                            id: true,
-                            yardName: true
                         }
                     }
                 }
@@ -337,8 +263,8 @@ export class ScrapCollectionRecordService {
             const {
                 page = 1,
                 limit = 20,
-                status,
-                orderId,
+                collectionStatus,
+                workOrderId,
                 customerId,
                 scrapCategoryId,
                 dateFrom,
@@ -357,17 +283,17 @@ export class ScrapCollectionRecordService {
             };
 
             // Status filter
-            if (status) {
-                if (Array.isArray(status)) {
-                    where.status = { in: status };
+            if (collectionStatus) {
+                if (Array.isArray(collectionStatus)) {
+                    where.collectionStatus = { in: collectionStatus };
                 } else {
-                    where.status = status;
+                    where.collectionStatus = collectionStatus;
                 }
             }
 
-            // Order filter
-            if (orderId) {
-                where.orderId = orderId;
+            // Work Order filter
+            if (workOrderId) {
+                where.workOrderId = workOrderId;
             }
 
             // Customer filter
@@ -390,9 +316,9 @@ export class ScrapCollectionRecordService {
             // Search filter
             if (search) {
                 where.OR = [
-                    { customerName: { contains: search, mode: 'insensitive' } },
-                    { customerPhone: { contains: search, mode: 'insensitive' } },
-                    { scrapDescription: { contains: search, mode: 'insensitive' } }
+                    { scrapDescription: { contains: search, mode: 'insensitive' } },
+                    { make: { contains: search, mode: 'insensitive' } },
+                    { model: { contains: search, mode: 'insensitive' } }
                 ];
             }
 
@@ -418,13 +344,7 @@ export class ScrapCollectionRecordService {
                             select: {
                                 id: true,
                                 orderNumber: true
-                            }
-                        },
-                        scrap_yards: {
-                            select: {
-                                id: true,
-                                yardName: true
-                            }
+                            } as any
                         }
                     },
                     orderBy: {
@@ -441,14 +361,8 @@ export class ScrapCollectionRecordService {
                     where,
                     _sum: { finalAmount: true }
                 }).then(result => result._sum.finalAmount || 0),
-                draftCount: await prisma.scrap_collection_records.count({
-                    where: { ...where, status: CollectionRecordStatus.DRAFT }
-                }),
                 submittedCount: await prisma.scrap_collection_records.count({
-                    where: { ...where, status: CollectionRecordStatus.SUBMITTED }
-                }),
-                approvedCount: await prisma.scrap_collection_records.count({
-                    where: { ...where, status: CollectionRecordStatus.APPROVED }
+                    where: { ...where, collectionStatus: CollectionRecordStatus.SUBMITTED }
                 })
             };
 
@@ -485,7 +399,6 @@ export class ScrapCollectionRecordService {
                     scrap_names: true,
                     Order: true,
                     Customer: true,
-                    scrap_yards: true,
                     Employee: {
                         select: {
                             id: true,
@@ -528,25 +441,28 @@ export class ScrapCollectionRecordService {
                 return ApiResult.error('Collection record not found or not authorized', 404);
             }
 
-            // Don't allow updates to approved/completed records
-            if (existingRecord.status === CollectionRecordStatus.APPROVED ||
-                existingRecord.status === CollectionRecordStatus.COMPLETED) {
-                return ApiResult.error('Cannot update approved or completed records', 400);
-            }
-
             const updateData: any = { ...data };
 
+            if (data.collectionDate) {
+                updateData.collectionDate = new Date(data.collectionDate);
+            }
+
+            // Resolve workOrderId if it's an orderNumber
+            if (data.workOrderId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.workOrderId)) {
+                const order = await (prisma.order as any).findUnique({
+                    where: { orderNumber: data.workOrderId },
+                    select: { id: true }
+                });
+                if (order) {
+                    updateData.workOrderId = order.id;
+                }
+            }
+
             // Process photos and signatures if provided (handle Base64)
-            const recordFolder = `collections/${existingRecord.orderId || 'standalone'}/${existingRecord.id}`;
+            const recordFolder = `collections/${existingRecord.workOrderId || 'standalone'}/${existingRecord.id}`;
 
             if (data.photos) {
                 updateData.photos = await this.processImages(data.photos, `${recordFolder}/photos`);
-            }
-            if (data.beforePhotos) {
-                updateData.beforePhotos = await this.processImages(data.beforePhotos, `${recordFolder}/before`);
-            }
-            if (data.afterPhotos) {
-                updateData.afterPhotos = await this.processImages(data.afterPhotos, `${recordFolder}/after`);
             }
             if (data.customerSignature) {
                 updateData.customerSignature = await this.processImage(data.customerSignature, `${recordFolder}/signatures`);
@@ -554,27 +470,15 @@ export class ScrapCollectionRecordService {
             if (data.collectorSignature) {
                 updateData.collectorSignature = await this.processImage(data.collectorSignature, `${recordFolder}/signatures`);
             }
-            if (data.employeeSignature) {
-                updateData.employeeSignature = await this.processImage(data.employeeSignature, `${recordFolder}/signatures`);
-            }
-
-            // Handle JSON fields
-            if (data.dimensions) updateData.dimensions = data.dimensions as any;
-
-            // Set submittedAt if status is being changed to SUBMITTED
-            if (data.status === CollectionRecordStatus.SUBMITTED && !existingRecord.submittedAt) {
-                updateData.submittedAt = new Date();
-            }
 
             const record = await prisma.scrap_collection_records.update({
                 where: { id: recordId },
-                data: updateData,
+                data: updateData as any,
                 include: {
                     scrap_categories: true,
                     scrap_names: true,
                     Order: true,
-                    Customer: true,
-                    scrap_yards: true
+                    Customer: true
                 }
             });
 
@@ -586,7 +490,7 @@ export class ScrapCollectionRecordService {
     }
 
     /**
-     * Delete a collection record (only drafts)
+     * Delete a collection record
      */
     public async deleteRecord(collectorId: string, recordId: string): Promise<ApiResult> {
         try {
@@ -599,11 +503,6 @@ export class ScrapCollectionRecordService {
 
             if (!record) {
                 return ApiResult.error('Collection record not found or not authorized', 404);
-            }
-
-            // Only allow deleting draft records
-            if (record.status !== CollectionRecordStatus.DRAFT) {
-                return ApiResult.error('Can only delete draft records', 400);
             }
 
             await prisma.scrap_collection_records.delete({

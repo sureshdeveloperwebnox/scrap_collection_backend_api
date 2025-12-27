@@ -113,12 +113,11 @@ export enum QuoteResponseEnum {
 }
 
 export enum ScrapConditionEnum {
-  EXCELLENT = 'EXCELLENT',
-  GOOD = 'GOOD',
-  FAIR = 'FAIR',
-  POOR = 'POOR',
-  SCRAP = 'SCRAP',
-  HAZARDOUS = 'HAZARDOUS'
+  JUNK = 'JUNK',
+  DAMAGED = 'DAMAGED',
+  WRECKED = 'WRECKED',
+  ACCIDENTAL = 'ACCIDENTAL',
+  FULLY_SCRAP = 'FULLY_SCRAP'
 }
 
 export enum PaymentMethodEnum {

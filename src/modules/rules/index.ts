@@ -16,3 +16,4 @@ export * from './scrap-category.rules';
 export * from './scrap-name.rules';
 export * from './city.rules';
 export * from './mobile-auth.rules';
+export * from './scrap-collection-record.rules';
