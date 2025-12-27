@@ -58,9 +58,17 @@ export const createOrderSchema = Joi.object({
     condition: Joi.string().max(200).optional().messages({
       'string.max': 'Condition cannot exceed 200 characters'
     }),
-    description: Joi.string().min(5).max(1000).required().messages({
-      'any.required': 'Scrap description is required',
-      'string.empty': 'Scrap description cannot be empty',
+    description: Joi.string().allow('').optional().custom((value, helpers) => {
+      if (value && value.trim().length > 0) {
+        if (value.trim().length < 5) {
+          return helpers.error('string.min');
+        }
+        if (value.length > 1000) {
+          return helpers.error('string.max');
+        }
+      }
+      return value;
+    }).messages({
       'string.min': 'Scrap description must be at least 5 characters long',
       'string.max': 'Scrap description cannot exceed 1000 characters'
     }),

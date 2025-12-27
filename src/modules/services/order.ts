@@ -60,12 +60,11 @@ export class OrderService {
         return ApiResult.error('Vehicle details are required', 400);
       }
 
-      if (!data.vehicleDetails.description || data.vehicleDetails.description.trim().length === 0) {
-        return ApiResult.error('Scrap description is required', 400);
-      }
-
-      if (data.vehicleDetails.description.trim().length < 5) {
-        return ApiResult.error('Scrap description must be at least 5 characters long', 400);
+      // Validate description only if provided
+      if (data.vehicleDetails.description && data.vehicleDetails.description.trim().length > 0) {
+        if (data.vehicleDetails.description.trim().length < 5) {
+          return ApiResult.error('Scrap description must be at least 5 characters long', 400);
+        }
       }
 
       if (!data.pickupTime) {

@@ -53,7 +53,7 @@ export interface ICreateOrderRequest {
     model?: string;
     year?: number;
     condition?: string;
-    description: string; // Required for new orders
+    description?: string; // Optional field
   };
   photos?: any; // JSON Array of image URLs
   assignedCollectorId?: string;
