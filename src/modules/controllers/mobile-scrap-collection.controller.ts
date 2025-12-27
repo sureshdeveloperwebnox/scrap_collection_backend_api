@@ -171,4 +171,29 @@ export class MobileScrapCollectionController {
             ApiResult.error((error as any).message || 'Failed to delete collection record', 500).send(res);
         }
     }
+
+    /**
+     * GET /mobile/scrap-collections/:id/pdf
+     * Generate PDF for a collection record
+     */
+    @GET('/:id/pdf')
+    @Middleware([mobileAuthMiddleware])
+    @Validate([scrapCollectionRecordIdSchema])
+    public async downloadPDF(req: Request, res: Response): Promise<void> {
+        try {
+            const collectorId = (req as any).user?.id;
+
+            if (!collectorId) {
+                ApiResult.error('Collector not authenticated', 401).send(res);
+                return;
+            }
+
+            const { id } = req.params;
+            const result = await this.service.generatePDF(collectorId, id);
+            result.send(res);
+        } catch (error) {
+            console.error('Error in downloadPDF:', error);
+            ApiResult.error((error as any).message || 'Failed to generate PDF', 500).send(res);
+        }
+    }
 }

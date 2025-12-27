@@ -226,26 +226,12 @@ export class ScrapCollectionRecordService {
                     collectorSignature: processedCollectorSignature,
                     collectionStatus: CollectionRecordStatus.SUBMITTED as any
                 },
-                include: {
-                    scrap_categories: true,
-                    scrap_names: true,
-                    Order: {
-                        select: {
-                            id: true,
-                            orderNumber: true
-                        } as any
-                    },
-                    Customer: {
-                        select: {
-                            id: true,
-                            name: true,
-                            phone: true
-                        }
-                    }
+                select: {
+                    id: true
                 }
             });
 
-            return ApiResult.success(record, 'Collection record created successfully', 201);
+            return ApiResult.success({ id: record.id }, 'Collection record created successfully', 201);
         } catch (error: any) {
             console.error('Error in createRecord:', error);
             return ApiResult.error(error.message || 'Failed to create collection record', 500);
@@ -385,6 +371,62 @@ export class ScrapCollectionRecordService {
     }
 
     /**
+     * Get collection records by work order ID (for dashboard/admin access)
+     */
+    public async getRecordsByWorkOrder(workOrderId: string): Promise<ApiResult> {
+        try {
+            const records = await prisma.scrap_collection_records.findMany({
+                where: {
+                    workOrderId
+                },
+                include: {
+                    scrap_categories: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
+                    scrap_names: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    },
+                    Order: {
+                        select: {
+                            id: true,
+                            orderNumber: true
+                        } as any
+                    },
+                    Customer: {
+                        select: {
+                            id: true,
+                            name: true,
+                            phone: true
+                        }
+                    },
+                    Employee: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            phone: true,
+                            email: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+
+            return ApiResult.success({ records }, 'Collection records retrieved successfully');
+        } catch (error: any) {
+            console.error('Error in getRecordsByWorkOrder:', error);
+            return ApiResult.error(error.message || 'Failed to fetch collection records', 500);
+        }
+    }
+
+    /**
      * Get single collection record by ID
      */
     public async getRecordById(collectorId: string, recordId: string): Promise<ApiResult> {
@@ -514,5 +556,218 @@ export class ScrapCollectionRecordService {
             console.error('Error in deleteRecord:', error);
             return ApiResult.error(error.message || 'Failed to delete collection record', 500);
         }
+    }
+
+    /**
+     * Generate PDF for a scrap collection record
+     */
+    public async generatePDF(collectorId: string, recordId: string): Promise<ApiResult> {
+        try {
+            const record = await prisma.scrap_collection_records.findFirst({
+                where: {
+                    id: recordId,
+                    collectorId
+                },
+                include: {
+                    scrap_categories: true,
+                    scrap_names: true,
+                    Order: true,
+                    Customer: true,
+                    Employee: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            phone: true,
+                            email: true
+                        }
+                    }
+                }
+            });
+
+            if (!record) {
+                return ApiResult.error('Collection record not found or not authorized', 404);
+            }
+
+            // Generate HTML for PDF
+            const html = this.generatePDFHTML(record);
+
+            return ApiResult.success({ html, record }, 'PDF data generated successfully');
+        } catch (error: any) {
+            console.error('Error in generatePDF:', error);
+            return ApiResult.error(error.message || 'Failed to generate PDF', 500);
+        }
+    }
+
+    /**
+     * Get PDF data by record ID (for dashboard/admin access)
+     */
+    public async getPDFDataById(recordId: string): Promise<ApiResult> {
+        try {
+            const record = await prisma.scrap_collection_records.findFirst({
+                where: { id: recordId },
+                include: {
+                    scrap_categories: true,
+                    scrap_names: true,
+                    Order: true,
+                    Customer: true,
+                    Employee: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            phone: true,
+                            email: true
+                        }
+                    }
+                }
+            });
+
+            if (!record) {
+                return ApiResult.error('Collection record not found', 404);
+            }
+
+            // Generate HTML for PDF
+            const html = this.generatePDFHTML(record);
+
+            return ApiResult.success({ html, record }, 'PDF data generated successfully');
+        } catch (error: any) {
+            console.error('Error in getPDFDataById:', error);
+            return ApiResult.error(error.message || 'Failed to generate PDF data', 500);
+        }
+    }
+
+    /**
+     * Generate HTML content for PDF
+     */
+    private generatePDFHTML(record: any): string {
+        const formatDate = (date: Date) => {
+            return new Date(date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        };
+
+        return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Scrap Collection Record - ${record.Order?.orderNumber || record.id}</title>
+    <style>
+        @page { size: A4; margin: 15mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { padding: 10px; text-align: left; vertical-align: top; }
+        th { background: #1e40af; color: white; font-weight: bold; font-size: 10pt; text-transform: uppercase; }
+        td { border: 1px solid #e5e7eb; background: #f9fafb; }
+        .label { font-size: 8pt; color: #6b7280; font-weight: bold; text-transform: uppercase; margin-bottom: 3px; }
+        .value { font-size: 10pt; color: #1a1a1a; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 8pt; font-weight: bold; text-transform: uppercase; }
+        .status-submitted { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
+        .status-approved { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .status-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .status-completed { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+        @media print { body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }
+    </style>
+</head>
+<body>
+    <div style="border-bottom: 4px solid #1e40af; padding-bottom: 15px; margin-bottom: 20px;">
+        <h1 style="font-size: 24pt; font-weight: bold; color: #1e40af; margin-bottom: 5px;">AUSSIE SCRAPX</h1>
+        <h2 style="font-size: 14pt; color: #4b5563; font-weight: 600; margin-bottom: 8px;">Scrap Collection Record</h2>
+        <div style="font-size: 9pt; color: #6b7280;">
+            <span><strong>Record ID:</strong> ${record.id.substring(0, 8).toUpperCase()}</span> | 
+            <span><strong>Generated:</strong> ${formatDate(new Date())} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+    </div>
+
+    <table><thead><tr><th colspan="2">📋 WORK ORDER INFORMATION</th></tr></thead><tbody>
+        <tr>
+            <td style="width: 50%;"><div class="label">WORK ORDER NUMBER</div><div class="value">${record.Order?.orderNumber || 'N/A'}</div></td>
+            <td style="width: 50%;"><div class="label">COLLECTION DATE</div><div class="value">${formatDate(record.collectionDate)}</div></td>
+        </tr>
+        <tr>
+            <td><div class="label">STATUS</div><div class="value"><span class="status-badge status-${record.collectionStatus.toLowerCase()}">${record.collectionStatus}</span></div></td>
+            <td><div class="label">COLLECTOR</div><div class="value">${record.Employee?.fullName || 'N/A'}</div></td>
+        </tr>
+    </tbody></table>
+
+    <table><thead><tr><th colspan="2">👤 CUSTOMER INFORMATION</th></tr></thead><tbody>
+        <tr>
+            <td style="width: 50%;"><div class="label">CUSTOMER NAME</div><div class="value">${record.Customer?.name || 'N/A'}</div></td>
+            <td style="width: 50%;"><div class="label">PHONE NUMBER</div><div class="value">${record.Customer?.phone || 'N/A'}</div></td>
+        </tr>
+    </tbody></table>
+
+    <table><thead><tr><th colspan="3">♻️ SCRAP DETAILS</th></tr></thead><tbody>
+        <tr>
+            <td style="width: 33.33%;"><div class="label">CATEGORY</div><div class="value">${record.scrap_categories?.name || 'N/A'}</div></td>
+            <td style="width: 33.33%;"><div class="label">SCRAP NAME</div><div class="value">${record.scrap_names?.name || 'N/A'}</div></td>
+            <td style="width: 33.33%;"><div class="label">CONDITION</div><div class="value">${record.scrapCondition}</div></td>
+        </tr>
+        <tr>
+            <td><div class="label">WEIGHT (KG)</div><div class="value">${record.weight ? `${record.weight} kg` : 'N/A'}</div></td>
+            <td><div class="label">QUANTITY</div><div class="value">${record.quantity || 'N/A'}</div></td>
+            <td><div class="label">MAKE</div><div class="value">${record.make || 'N/A'}</div></td>
+        </tr>
+        <tr>
+            <td><div class="label">MODEL</div><div class="value">${record.model || 'N/A'}</div></td>
+            <td><div class="label">YEAR</div><div class="value">${record.yearOfManufacture || 'N/A'}</div></td>
+            <td></td>
+        </tr>
+        ${record.scrapDescription ? `<tr><td colspan="3"><div class="label">DESCRIPTION</div><div class="value">${record.scrapDescription}</div></td></tr>` : ''}
+    </tbody></table>
+
+    <table><thead><tr><th colspan="2">💰 PRICING INFORMATION</th></tr></thead><tbody>
+        <tr>
+            <td style="width: 50%; text-align: center; padding: 20px; border: 2px solid #e5e7eb;">
+                <div class="label">QUOTED AMOUNT</div>
+                <div style="font-size: 18pt; font-weight: bold; color: #1a1a1a; margin-top: 5px;">₹${record.quotedAmount.toFixed(2)}</div>
+            </td>
+            <td style="width: 50%; text-align: center; padding: 20px; border: 2px solid #10b981; background: #f0fdf4;">
+                <div class="label">FINAL AMOUNT</div>
+                <div style="font-size: 18pt; font-weight: bold; color: #059669; margin-top: 5px;">₹${record.finalAmount.toFixed(2)}</div>
+            </td>
+        </tr>
+    </tbody></table>
+
+    ${record.photos && Array.isArray(record.photos) && record.photos.length > 0 ? `
+    <table><thead><tr><th colspan="3">📸 COLLECTION PHOTOS</th></tr></thead><tbody>
+        <tr>
+            ${record.photos.slice(0, 3).map((photo: string, index: number) => `
+                <td style="width: 33.33%; text-align: center; padding: 10px;">
+                    <img src="${photo}" alt="Photo ${index + 1}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;" />
+                    <div style="font-size: 8pt; color: #6b7280; margin-top: 5px;">Photo ${index + 1}</div>
+                </td>
+            `).join('')}
+        </tr>
+    </tbody></table>
+    ` : ''}
+
+    <table><thead><tr><th colspan="2">✍️ SIGNATURES</th></tr></thead><tbody>
+        <tr>
+            <td style="width: 50%; text-align: center; padding: 20px; border: 2px dashed #d1d5db; background: #f9fafb;">
+                <div class="label" style="margin-bottom: 10px;">CUSTOMER SIGNATURE</div>
+                ${record.customerSignature ? `
+                    <img src="${record.customerSignature}" alt="Customer Signature" style="max-width: 180px; max-height: 80px;" />
+                    <div style="font-size: 9pt; font-weight: 600; margin-top: 8px;">${record.Customer?.name || ''}</div>
+                ` : '<div style="color: #9ca3af; font-style: italic;">No signature</div>'}
+            </td>
+            <td style="width: 50%; text-align: center; padding: 20px; border: 2px dashed #d1d5db; background: #f9fafb;">
+                <div class="label" style="margin-bottom: 10px;">COLLECTOR SIGNATURE</div>
+                ${record.collectorSignature ? `
+                    <img src="${record.collectorSignature}" alt="Collector Signature" style="max-width: 180px; max-height: 80px;" />
+                    <div style="font-size: 9pt; font-weight: 600; margin-top: 8px;">${record.Employee?.fullName || ''}</div>
+                ` : '<div style="color: #9ca3af; font-style: italic;">No signature</div>'}
+            </td>
+        </tr>
+    </tbody></table>
+
+    <div style="margin-top: 30px; padding-top: 15px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 8pt;">
+        <div>This is a computer-generated document. Generated on ${formatDate(new Date())} at ${new Date().toLocaleTimeString('en-GB')} | AUSSIE SCRAPX © ${new Date().getFullYear()}</div>
+    </div>
+</body>
+</html>
+        `;
     }
 }

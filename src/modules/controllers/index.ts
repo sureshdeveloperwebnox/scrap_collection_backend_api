@@ -23,3 +23,4 @@ export * from './crew.controller';
 export * from './mobile-auth.controller';
 export * from './mobile-work-order.controller';
 export * from './mobile-scrap-collection.controller';
+export * from './scrap-collection-record.controller';
