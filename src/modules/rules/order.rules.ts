@@ -63,9 +63,7 @@ export const createOrderSchema = Joi.object({
         if (value.trim().length < 5) {
           return helpers.error('string.min');
         }
-        if (value.length > 1000) {
-          return helpers.error('string.max');
-        }
+
       }
       return value;
     }).messages({
