@@ -180,6 +180,23 @@ export class InvoiceController {
         }
     }
 
+    @GET('/:id/history')
+    @Authenticate([UserCategory.ALL])
+    public async getHistory(req: RequestX): Promise<ApiResult> {
+        try {
+            const organizationId = req.user?.organizationId;
+            if (!organizationId) {
+                return ApiResult.error('Unauthorized', 401);
+            }
+
+            const { id } = req.params;
+            const history = await this.getInstance().getInvoiceHistory(id, organizationId);
+            return ApiResult.success(history, 'Invoice history retrieved successfully');
+        } catch (error: any) {
+            return ApiResult.error(error.message || 'Failed to retrieve history', 500);
+        }
+    }
+
     @GET('/:id/download')
     @Authenticate([UserCategory.ALL])
     public async downloadInvoice(req: RequestX): Promise<ApiResult> {

@@ -42,6 +42,16 @@ export class InvoiceService {
             },
         });
 
+        // Record history
+        await prisma.invoiceHistory.create({
+            data: {
+                invoiceId: invoice.id,
+                action: 'CREATED',
+                newData: invoice as any,
+                performedBy: 'System', // This could be updated if user info is passed
+            }
+        });
+
         return invoice;
     }
 
@@ -156,6 +166,9 @@ export class InvoiceService {
     async updateInvoice(id: string, data: UpdateInvoiceDto, organizationId: number) {
         const { items, ...updateData } = data;
 
+        // Get old data for history
+        const oldInvoice = await this.getInvoiceById(id, organizationId);
+
         const updatedInvoice = await prisma.invoice.update({
             where: { id, organizationId },
             data: {
@@ -194,16 +207,65 @@ export class InvoiceService {
             },
         });
 
+        // Determine changed fields
+        const changedFields = Object.keys(data).filter(key => {
+            if (key === 'items') return true; // Items are always replaced in this logic
+            return (data as any)[key] !== (oldInvoice as any)[key];
+        });
+
+        // Record history
+        await prisma.invoiceHistory.create({
+            data: {
+                invoiceId: id,
+                action: 'UPDATED',
+                previousData: oldInvoice as any,
+                newData: updatedInvoice as any,
+                changedFields: changedFields,
+                performedBy: 'System',
+            }
+        });
+
         return updatedInvoice;
     }
 
     async updateInvoiceStatus(id: string, status: InvoiceStatus, organizationId: number) {
+        const oldInvoice = await prisma.invoice.findFirst({
+            where: { id, organizationId },
+            select: { status: true }
+        });
+
         const invoice = await prisma.invoice.update({
             where: { id, organizationId },
             data: { status },
         });
 
+        // Record history
+        await prisma.invoiceHistory.create({
+            data: {
+                invoiceId: id,
+                action: 'STATUS_CHANGE',
+                previousData: { status: oldInvoice?.status } as any,
+                newData: { status: status } as any,
+                changedFields: ['status'],
+                performedBy: 'System',
+            }
+        });
+
         return invoice;
+    }
+
+    async getInvoiceHistory(invoiceId: string, organizationId: number) {
+        return prisma.invoiceHistory.findMany({
+            where: {
+                invoiceId,
+                Invoice: {
+                    organizationId
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
     }
 
     async deleteInvoice(id: string, organizationId: number) {
