@@ -55,7 +55,7 @@ export class AssignmentService {
                 where: { id: data.assignOrderId },
                 data: {
                     status: AssignmentStatus.IN_PROGRESS,
-                    startTime: new Date()
+                    startTime: data.timeStamp ? new Date(data.timeStamp) : new Date()
                 },
                 include: {
                     Employee: true,
@@ -83,7 +83,8 @@ export class AssignmentService {
                         orderId: data.orderId,
                         status: OrderStatus.IN_PROGRESS,
                         notes: `Collection started by ${data.collectorId ? 'collector' : 'crew'}`,
-                        performedBy: data.collectorId || data.crewId || 'system'
+                        performedBy: data.collectorId || data.crewId || 'system',
+                        createdAt: data.timeStamp ? new Date(data.timeStamp) : undefined
                     }
                 });
             }
@@ -155,8 +156,8 @@ export class AssignmentService {
                 where: { id: data.assignOrderId },
                 data: {
                     status: AssignmentStatus.COMPLETED,
-                    endTime: new Date(),
-                    completedAt: new Date(),
+                    endTime: data.timeStamp ? new Date(data.timeStamp) : new Date(),
+                    completedAt: data.timeStamp ? new Date(data.timeStamp) : new Date(),
                     completionNotes: data.completionNotes,
                     completionPhotos: data.completionPhotos || []
                 },
@@ -192,7 +193,8 @@ export class AssignmentService {
                         orderId: data.orderId,
                         status: OrderStatus.COMPLETED,
                         notes: `All assignments completed. Order completed by ${data.collectorId ? 'collector' : 'crew'}`,
-                        performedBy: data.collectorId || data.crewId || 'system'
+                        performedBy: data.collectorId || data.crewId || 'system',
+                        createdAt: data.timeStamp ? new Date(data.timeStamp) : undefined
                     }
                 });
             } else {
@@ -202,7 +204,8 @@ export class AssignmentService {
                         orderId: data.orderId,
                         status: OrderStatus.IN_PROGRESS,
                         notes: `Assignment completed by ${data.collectorId ? 'collector' : 'crew'}. ${data.completionNotes || ''}`,
-                        performedBy: data.collectorId || data.crewId || 'system'
+                        performedBy: data.collectorId || data.crewId || 'system',
+                        createdAt: data.timeStamp ? new Date(data.timeStamp) : undefined
                     }
                 });
             }

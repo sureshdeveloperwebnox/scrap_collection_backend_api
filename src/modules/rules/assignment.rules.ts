@@ -17,6 +17,9 @@ const startAssignmentSchema = Joi.object({
     }),
     crewId: Joi.string().uuid().optional().messages({
         'string.uuid': 'Crew ID must be a valid UUID'
+    }),
+    timeStamp: Joi.alternatives().try(Joi.date(), Joi.string().allow('')).optional().messages({
+        'date.base': 'Invalid timestamp format'
     })
 }).or('collectorId', 'crewId').messages({
     'object.missing': 'Either collectorId or crewId must be provided'
@@ -44,6 +47,9 @@ const completeAssignmentSchema = Joi.object({
     }),
     completionPhotos: Joi.array().items(Joi.string()).optional().messages({
         'array.base': 'Completion photos must be an array of strings'
+    }),
+    timeStamp: Joi.alternatives().try(Joi.date(), Joi.string().allow('')).optional().messages({
+        'date.base': 'Invalid timestamp format'
     })
 }).or('collectorId', 'crewId').messages({
     'object.missing': 'Either collectorId or crewId must be provided'

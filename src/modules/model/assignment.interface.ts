@@ -5,6 +5,7 @@ export interface IStartAssignmentRequest {
     assignOrderId: string;
     collectorId?: string;
     crewId?: string;
+    timeStamp?: Date | string;
 }
 
 export interface ICompleteAssignmentRequest {
@@ -14,6 +15,7 @@ export interface ICompleteAssignmentRequest {
     crewId?: string;
     completionNotes?: string;
     completionPhotos?: string[];
+    timeStamp?: Date | string;
 }
 
 export interface IAssignmentStatusUpdate {
