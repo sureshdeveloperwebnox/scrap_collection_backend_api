@@ -165,7 +165,7 @@ export class OrderService {
 
   public async getOrders(query: IOrderQueryParams): Promise<ApiResult> {
     try {
-      const { page = 1, limit = 10, search, status, paymentStatus, collectorId, organizationId, dateFrom, dateTo } = query as any;
+      const { page = 1, limit = 10, search, status, paymentStatus, collectorId, customerId, organizationId, dateFrom, dateTo } = query as any;
 
       const parsedPage = typeof page === 'string' ? parseInt(page, 10) : Number(page) || 1;
       const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : Number(limit) || 10;
@@ -187,6 +187,10 @@ export class OrderService {
 
       if (collectorId) {
         where.assignedCollectorId = collectorId;
+      }
+
+      if (customerId) {
+        where.customerId = customerId;
       }
 
       if (dateFrom || dateTo) {

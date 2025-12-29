@@ -117,6 +117,7 @@ export interface IOrderQueryParams {
   dateFrom?: string;
   dateTo?: string;
   location?: string;
+  customerId?: string;
 }
 
 export interface IOrderTimeline {

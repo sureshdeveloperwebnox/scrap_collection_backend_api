@@ -28,6 +28,7 @@ import {
   ScrapCollectionRecordController,
   OrganizationController
 } from '../modules/controllers';
+import { InvoiceController } from '../modules/controllers/invoice.controller';
 import { createRoleMiddleware, ValidatorMiddleware } from '../middlewares';
 import assignmentRoutes from '../modules/routes/assignment.routes';
 
@@ -62,7 +63,8 @@ export const combineRouters = (app: Express) => {
       MobileWorkOrderController,
       MobileScrapCollectionController,
       ScrapCollectionRecordController,
-      OrganizationController
+      OrganizationController,
+      InvoiceController
     ],
     {
       middleware: {
