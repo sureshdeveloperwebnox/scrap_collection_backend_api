@@ -86,7 +86,6 @@ export interface ICollectionFormHelpers {
         id: string;
         orderNumber: string;
         customerName: string;
-        customerPhone: string;
         address: string;
     }>;
     scrapCategories: Array<{

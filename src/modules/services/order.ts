@@ -44,10 +44,6 @@ export class OrderService {
         return ApiResult.error('Customer name is required', 400);
       }
 
-      if (!data.customerPhone || data.customerPhone.trim().length === 0) {
-        return ApiResult.error('Customer phone number is required', 400);
-      }
-
       if (!data.address || data.address.trim().length === 0) {
         return ApiResult.error('Collection address is required', 400);
       }
@@ -92,7 +88,6 @@ export class OrderService {
           organizationId: data.organizationId,
           leadId: data.leadId,
           customerName: data.customerName.trim(),
-          customerPhone: data.customerPhone.trim(),
           customerEmail: data.customerEmail,
           address: data.address.trim(),
           latitude: data.latitude,
@@ -203,7 +198,7 @@ export class OrderService {
       if (search) {
         where.OR = [
           { customerName: { contains: search, mode: 'insensitive' } },
-          { customerPhone: { contains: search, mode: 'insensitive' } },
+
           { address: { contains: search, mode: 'insensitive' } }
         ];
       }
@@ -345,12 +340,6 @@ export class OrderService {
         }
       }
 
-      if (data.customerPhone !== undefined) {
-        if (!data.customerPhone || data.customerPhone.trim().length === 0) {
-          return ApiResult.error('Customer phone number cannot be empty', 400);
-        }
-      }
-
       if (data.address !== undefined) {
         if (!data.address || data.address.trim().length === 0) {
           return ApiResult.error('Collection address cannot be empty', 400);
@@ -379,7 +368,7 @@ export class OrderService {
 
       // Sanitize text fields
       if (updateData.customerName) updateData.customerName = updateData.customerName.trim();
-      if (updateData.customerPhone) updateData.customerPhone = updateData.customerPhone.trim();
+
       if (updateData.address) updateData.address = updateData.address.trim();
       if (updateData.instructions) updateData.instructions = updateData.instructions.trim();
 

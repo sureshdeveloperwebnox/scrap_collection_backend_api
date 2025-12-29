@@ -40,7 +40,7 @@ export class UploadController {
     try {
       const files = req.files as Express.Multer.File[];
       // Folder parameter: 'assignments', 'orders', 'leads', 'general', etc.
-      const folder = (req.query.folder as string) || 'general';
+      const folder = (req.query.folder as string || req.query.type as string) || 'general';
 
       if (!files || files.length === 0) {
         ApiResult.error('No files provided', 400).send(res);

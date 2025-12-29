@@ -17,11 +17,7 @@ export const createOrderSchema = Joi.object({
     'string.min': 'Customer name must be at least 2 characters long',
     'string.max': 'Customer name cannot exceed 100 characters'
   }),
-  customerPhone: Joi.string().custom(phoneCustomValidation, 'phone validation').required().messages({
-    'any.required': 'Phone number is required',
-    'string.empty': 'Phone number cannot be empty',
-    'any.custom': '{{#error.message}}'
-  }),
+
   customerEmail: Joi.string().email().optional().allow('').messages({
     'string.email': 'Please provide a valid email address'
   }),
@@ -133,10 +129,7 @@ export const updateOrderSchema = Joi.object({
     'string.min': 'Customer name must be at least 2 characters long',
     'string.max': 'Customer name cannot exceed 100 characters'
   }),
-  customerPhone: Joi.string().custom(phoneCustomValidation, 'phone validation').optional().messages({
-    'string.empty': 'Phone number cannot be empty',
-    'any.custom': '{{#error.message}}'
-  }),
+
   customerEmail: Joi.string().email().optional().allow('').messages({
     'string.email': 'Please provide a valid email address'
   }),

@@ -71,7 +71,6 @@ export class ScrapCollectionRecordService {
                     id: true,
                     orderNumber: true,
                     customerName: true,
-                    customerPhone: true,
                     address: true,
                     customerId: true,
                     customerEmail: true
@@ -123,7 +122,6 @@ export class ScrapCollectionRecordService {
                     id: wo.id,
                     orderNumber: (wo as any).orderNumber || 'N/A',
                     customerName: wo.customerName,
-                    customerPhone: wo.customerPhone,
                     address: wo.address
                 })),
                 scrapCategories: scrapCategories.map(sc => ({

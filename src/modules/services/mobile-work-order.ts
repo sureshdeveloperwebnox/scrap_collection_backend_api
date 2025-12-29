@@ -101,7 +101,6 @@ export class MobileWorkOrderService {
             orderNumber: order.orderNumber || 'N/A',
             customer: {
                 name: order.customerName,
-                phone: order.customerPhone,
                 email: order.customerEmail || undefined
             },
             location: {
@@ -242,7 +241,6 @@ export class MobileWorkOrderService {
             if (search) {
                 where.OR = [
                     { customerName: { contains: search, mode: 'insensitive' } },
-                    { customerPhone: { contains: search, mode: 'insensitive' } },
                     { address: { contains: search, mode: 'insensitive' } },
                     { orderNumber: { contains: search, mode: 'insensitive' } }
                 ];

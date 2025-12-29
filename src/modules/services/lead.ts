@@ -335,7 +335,6 @@ export class LeadService {
           organizationId: existingLead.organizationId,
           leadId: id,
           customerName: existingLead.fullName,
-          customerPhone: existingLead.phone,
           address: existingLead.locationAddress || '',
           latitude: existingLead.latitude,
           longitude: existingLead.longitude,

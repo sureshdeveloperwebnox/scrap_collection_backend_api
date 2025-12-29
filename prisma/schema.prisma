@@ -31,7 +31,7 @@ model Country {
 model Customer {
   id                       String                     @id @default(uuid())
   name                     String
-  phone                    String
+  phone                    String?
   email                    String?
   address                  String?
   latitude                 Float?
@@ -106,7 +106,7 @@ model Lead {
   locationAddress  String?
   longitude        Float?
   notes            String?
-  phone            String
+  phone            String?
   photos           Json?
   vehicleCondition VehicleConditionEnum
   vehicleMake      String?
@@ -137,7 +137,7 @@ model Order {
   assignedCollectorId      String?
   customerName             String
   customerNotes            String?
-  customerPhone            String
+
   latitude                 Float?
   longitude                Float?
   orderStatus              OrderStatus

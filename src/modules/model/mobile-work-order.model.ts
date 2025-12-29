@@ -70,7 +70,6 @@ export interface IMobileWorkOrder {
     // Customer information
     customer: {
         name: string;
-        phone: string;
         email?: string;
     };
 

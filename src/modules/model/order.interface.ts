@@ -5,7 +5,7 @@ export interface IOrder {
   orderNumber?: string; // Format: WO-DDMMYYYY-N
   leadId?: string;
   customerName: string;
-  customerPhone: string;
+
   customerEmail?: string;
   customerCountryCode?: string;
   address: string;
@@ -42,7 +42,7 @@ export interface ICreateOrderRequest {
   organizationId: number;
   leadId?: string;
   customerName: string;
-  customerPhone: string;
+
   customerEmail?: string;
   customerCountryCode?: string;
   address: string;
@@ -71,7 +71,7 @@ export interface ICreateOrderRequest {
 
 export interface IUpdateOrderRequest {
   customerName?: string;
-  customerPhone?: string;
+
   customerCountryCode?: string;
   address?: string;
   latitude?: number;
