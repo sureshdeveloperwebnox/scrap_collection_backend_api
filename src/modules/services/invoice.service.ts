@@ -3,6 +3,50 @@ import { CreateInvoiceDto, UpdateInvoiceDto } from '../model/invoice.model';
 import { InvoiceStatus } from '@prisma/client';
 
 export class InvoiceService {
+    private async checkAndUpdateOverdueInvoices(organizationId: number) {
+        const now = new Date();
+        
+        // Find all SENT invoices that are past due date
+        const overdueInvoices = await prisma.invoice.findMany({
+            where: {
+                organizationId,
+                status: 'SENT',
+                dueDate: {
+                    lt: now
+                }
+            },
+            select: { id: true }
+        });
+
+        if (overdueInvoices.length > 0) {
+            const ids = overdueInvoices.map(inv => inv.id);
+            
+            // Update them to OVERDUE
+            await prisma.invoice.updateMany({
+                where: {
+                    id: { in: ids }
+                },
+                data: {
+                    status: 'OVERDUE'
+                }
+            });
+
+            // Create history records for each
+            for (const id of ids) {
+                await prisma.invoiceHistory.create({
+                    data: {
+                        invoiceId: id,
+                        action: 'STATUS_CHANGE',
+                        previousData: { status: 'SENT' } as any,
+                        newData: { status: 'OVERDUE' } as any,
+                        changedFields: ['status'],
+                        performedBy: 'System'
+                    }
+                });
+            }
+        }
+    }
+
     async createInvoice(data: CreateInvoiceDto, organizationId: number) {
         const { items, ...invoiceData } = data;
 
@@ -62,8 +106,13 @@ export class InvoiceService {
         status?: InvoiceStatus,
         customerId?: string,
         workOrderId?: string,
-        search?: string
+        search?: string,
+        startDate?: string,
+        endDate?: string
     ) {
+        // Automatically update overdue invoices before fetching
+        await this.checkAndUpdateOverdueInvoices(organizationId);
+        
         const skip = (page - 1) * limit;
 
         const where: any = {
@@ -87,6 +136,16 @@ export class InvoiceService {
                 { invoiceNumber: { contains: search, mode: 'insensitive' } },
                 { Customer: { name: { contains: search, mode: 'insensitive' } } },
             ];
+        }
+
+        if (startDate || endDate) {
+            where.invoiceDate = {};
+            if (startDate) {
+                where.invoiceDate.gte = new Date(startDate);
+            }
+            if (endDate) {
+                where.invoiceDate.lte = new Date(endDate);
+            }
         }
 
         const [invoices, total] = await Promise.all([
@@ -254,29 +313,76 @@ export class InvoiceService {
         return invoice;
     }
 
-    async getInvoiceHistory(invoiceId: string, organizationId: number) {
-        return prisma.invoiceHistory.findMany({
-            where: {
-                invoiceId,
-                Invoice: {
-                    organizationId
+    async getInvoiceHistory(invoiceId: string, organizationId: number, page: number = 1, limit: number = 10) {
+        const skip = (page - 1) * limit;
+        const [history, total] = await Promise.all([
+            prisma.invoiceHistory.findMany({
+                where: {
+                    invoiceId,
+                    Invoice: {
+                        organizationId
+                    }
+                },
+                skip,
+                take: limit,
+                orderBy: {
+                    createdAt: 'desc'
                 }
-            },
-            orderBy: {
-                createdAt: 'desc'
+            }),
+            prisma.invoiceHistory.count({
+                where: {
+                    invoiceId,
+                    Invoice: {
+                        organizationId
+                    }
+                }
+            })
+        ]);
+
+        return {
+            history,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
             }
-        });
+        };
     }
 
-    async deleteInvoice(id: string, organizationId: number) {
-        await prisma.invoice.delete({
+    async cancelInvoice(id: string, reason: string, organizationId: number) {
+        const oldInvoice = await prisma.invoice.findFirst({
             where: { id, organizationId },
+            select: { status: true }
         });
 
-        return { message: 'Invoice deleted successfully' };
+        const invoice = await prisma.invoice.update({
+            where: { id, organizationId },
+            data: { 
+                status: 'CANCELLED',
+                cancelReason: reason
+            } as any,
+        });
+
+        // Record history
+        await prisma.invoiceHistory.create({
+            data: {
+                invoiceId: id,
+                action: 'STATUS_CHANGE',
+                previousData: { status: oldInvoice?.status } as any,
+                newData: { status: 'CANCELLED', cancelReason: reason } as any,
+                changedFields: ['status', 'cancelReason'],
+                performedBy: 'System',
+            }
+        });
+
+        return { message: 'Invoice cancelled successfully', invoice };
     }
 
     async getInvoiceStats(organizationId: number) {
+        // Automatically update overdue invoices before fetching stats
+        await this.checkAndUpdateOverdueInvoices(organizationId);
+
         const [total, draft, sent, paid, overdue, cancelled] = await Promise.all([
             prisma.invoice.count({ where: { organizationId } }),
             prisma.invoice.count({ where: { organizationId, status: 'DRAFT' } }),
@@ -561,20 +667,24 @@ export class InvoiceService {
         <table>
             <thead>
                 <tr>
-                    <th style="width: 55%;">Description</th>
+                    <th style="width: 10%; text-align: center;">S.No</th>
+                    <th style="width: 45%;">Description</th>
                     <th class="text-center" style="width: 10%;">Qty</th>
                     <th class="text-right" style="width: 15%;">Unit Price</th>
-                    <th class="text-right" style="width: 20%;">Total</th>
+                    <th class="text-right" style="width: 20%;">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                ${invoice.items.map((item: any) => `
-                    <tr>
-                        <td class="item-description">${item.description}</td>
-                        <td class="text-center">${item.quantity}</td>
-                        <td class="text-right">$${this.formatCurrency(item.unitPrice)}</td>
-                        <td class="text-right" style="font-weight: 700;">$${this.formatCurrency(item.amount)}</td>
-                    </tr>
+                ${invoice.items.map((item: any, idx: number) => `
+                <tr>
+                    <td class="text-center" style="color: #999;">${String(idx + 1).padStart(2, '0')}</td>
+                    <td>
+                        <strong>${item.description}</strong>
+                    </td>
+                    <td class="text-center">${item.quantity}</td>
+                    <td class="text-right">$${this.formatCurrency(item.unitPrice)}</td>
+                    <td class="text-right"><strong>$${this.formatCurrency(item.amount)}</strong></td>
+                </tr>
                 `).join('')}
             </tbody>
         </table>
@@ -598,7 +708,7 @@ export class InvoiceService {
                         <td class="totals-value">$${this.formatCurrency(invoice.subtotal)}</td>
                     </tr>
                     <tr class="totals-row">
-                        <td class="totals-label">G.S.T (10%)</td>
+                        <td class="totals-label">Tax</td>
                         <td class="totals-value">$${this.formatCurrency(invoice.tax)}</td>
                     </tr>
                     ${invoice.discount > 0 ? `

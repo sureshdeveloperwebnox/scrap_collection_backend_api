@@ -40,6 +40,8 @@ export class InvoiceController {
             const customerId = req.query.customerId as string;
             const workOrderId = req.query.workOrderId as string;
             const search = req.query.search as string;
+            const startDate = req.query.startDate as string;
+            const endDate = req.query.endDate as string;
 
             const result = await this.getInstance().getInvoices(
                 organizationId,
@@ -48,7 +50,9 @@ export class InvoiceController {
                 status,
                 customerId,
                 workOrderId,
-                search
+                search,
+                startDate,
+                endDate
             );
 
             return ApiResult.success(result, 'Invoices retrieved successfully');
@@ -163,9 +167,9 @@ export class InvoiceController {
         }
     }
 
-    @DELETE('/:id')
+    @POST('/:id/cancel')
     @Authenticate([UserCategory.ALL])
-    public async deleteInvoice(req: RequestX): Promise<ApiResult> {
+    public async cancelInvoice(req: RequestX): Promise<ApiResult> {
         try {
             const organizationId = req.user?.organizationId;
             if (!organizationId) {
@@ -173,10 +177,15 @@ export class InvoiceController {
             }
 
             const { id } = req.params;
-            const result = await this.getInstance().deleteInvoice(id, organizationId);
-            return ApiResult.success(null, result.message);
+            const { reason } = req.body;
+            if (!reason) {
+                return ApiResult.error('Reason is required', 400);
+            }
+
+            const result = await this.getInstance().cancelInvoice(id, reason, organizationId);
+            return ApiResult.success(result.invoice, result.message);
         } catch (error: any) {
-            return ApiResult.error(error.message || 'Failed to delete invoice', 500);
+            return ApiResult.error(error.message || 'Failed to cancel invoice', 500);
         }
     }
 
@@ -190,8 +199,11 @@ export class InvoiceController {
             }
 
             const { id } = req.params;
-            const history = await this.getInstance().getInvoiceHistory(id, organizationId);
-            return ApiResult.success(history, 'Invoice history retrieved successfully');
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+
+            const result = await this.getInstance().getInvoiceHistory(id, organizationId, page, limit);
+            return ApiResult.success(result, 'Invoice history retrieved successfully');
         } catch (error: any) {
             return ApiResult.error(error.message || 'Failed to retrieve history', 500);
         }
