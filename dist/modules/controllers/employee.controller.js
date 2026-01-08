@@ -13,6 +13,8 @@ exports.EmployeeController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
 const middleware_decorator_1 = require("../../decorators/middleware.decorator");
+const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
+const user_category_enum_1 = require("../../utils/user-category.enum");
 const employee_1 = require("../services/employee");
 const employee_rules_1 = require("../rules/employee.rules");
 const api_result_1 = require("../../utils/api-result");
@@ -21,13 +23,17 @@ let EmployeeController = class EmployeeController {
         this.employeeService = new employee_1.EmployeeService();
     }
     async getEmployeeStats(req, res) {
+        var _a;
         try {
-            const organizationId = parseInt(req.params.organizationId);
-            if (isNaN(organizationId)) {
-                api_result_1.ApiResult.error("Invalid organization ID", 400).send(res);
+            // SECURITY: Use authenticated user's organizationId, ignore URL param
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
                 return;
             }
-            const result = await this.employeeService.getEmployeeStats(organizationId);
+            const result = await this.employeeService.getEmployeeStats(userOrganizationId);
             result.send(res);
         }
         catch (error) {
@@ -46,8 +52,17 @@ let EmployeeController = class EmployeeController {
         }
     }
     async getEmployees(req, res) {
+        var _a;
         try {
-            const result = await this.employeeService.getEmployees(req.query);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            const queryWithOrgId = {
+                ...req.query,
+                organizationId: userOrganizationId
+            };
+            const result = await this.employeeService.getEmployees(queryWithOrgId);
             result.send(res);
         }
         catch (error) {
@@ -125,12 +140,14 @@ let EmployeeController = class EmployeeController {
 exports.EmployeeController = EmployeeController;
 __decorate([
     (0, method_decorator_1.GET)('/stats/:organizationId'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], EmployeeController.prototype, "getEmployeeStats", null);
 __decorate([
     (0, method_decorator_1.POST)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([employee_rules_1.createEmployeeSchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -138,6 +155,7 @@ __decorate([
 ], EmployeeController.prototype, "createEmployee", null);
 __decorate([
     (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([employee_rules_1.employeeQuerySchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),

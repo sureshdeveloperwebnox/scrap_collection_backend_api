@@ -9,17 +9,18 @@ class RoleService {
         var _a;
         try {
             // Check if role name already exists
-            const existingRole = await config_1.prisma.role.findUnique({
+            const existingRole = await config_1.prisma.roles.findUnique({
                 where: { name: data.name }
             });
             if (existingRole) {
                 return api_result_1.ApiResult.error("Role with this name already exists", 400);
             }
-            const role = await config_1.prisma.role.create({
+            const role = await config_1.prisma.roles.create({
                 data: {
                     name: data.name,
                     description: data.description,
-                    isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
+                    isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true,
+                    updatedAt: new Date()
                 }
             });
             // Invalidate roles cache
@@ -93,7 +94,7 @@ class RoleService {
             const orderBy = {};
             orderBy[finalSortBy] = finalSortOrder;
             const [roles, total] = await Promise.all([
-                config_1.prisma.role.findMany({
+                config_1.prisma.roles.findMany({
                     where,
                     skip,
                     take: parsedLimit,
@@ -101,12 +102,12 @@ class RoleService {
                     include: {
                         _count: {
                             select: {
-                                employees: true
+                                Employee: true
                             }
                         }
                     }
                 }),
-                config_1.prisma.role.count({ where })
+                config_1.prisma.roles.count({ where })
             ]);
             const totalPages = Math.ceil(total / parsedLimit);
             const hasNextPage = parsedPage < totalPages;
@@ -133,12 +134,12 @@ class RoleService {
     }
     async getRoleById(id) {
         try {
-            const role = await config_1.prisma.role.findUnique({
+            const role = await config_1.prisma.roles.findUnique({
                 where: { id },
                 include: {
                     _count: {
                         select: {
-                            employees: true
+                            Employee: true
                         }
                     }
                 }
@@ -155,7 +156,7 @@ class RoleService {
     }
     async updateRole(id, data) {
         try {
-            const existingRole = await config_1.prisma.role.findUnique({
+            const existingRole = await config_1.prisma.roles.findUnique({
                 where: { id }
             });
             if (!existingRole) {
@@ -163,14 +164,14 @@ class RoleService {
             }
             // If name is being updated, check if it already exists
             if (data.name && data.name !== existingRole.name) {
-                const duplicateRole = await config_1.prisma.role.findUnique({
+                const duplicateRole = await config_1.prisma.roles.findUnique({
                     where: { name: data.name }
                 });
                 if (duplicateRole) {
                     return api_result_1.ApiResult.error("Role with this name already exists", 400);
                 }
             }
-            const role = await config_1.prisma.role.update({
+            const role = await config_1.prisma.roles.update({
                 where: { id },
                 data
             });
@@ -185,12 +186,12 @@ class RoleService {
     }
     async deleteRole(id) {
         try {
-            const existingRole = await config_1.prisma.role.findUnique({
+            const existingRole = await config_1.prisma.roles.findUnique({
                 where: { id },
                 include: {
                     _count: {
                         select: {
-                            employees: true
+                            Employee: true
                         }
                     }
                 }
@@ -199,10 +200,10 @@ class RoleService {
                 return api_result_1.ApiResult.error("Role not found", 404);
             }
             // Check if any employees are assigned to this role
-            if (existingRole._count.employees > 0) {
-                return api_result_1.ApiResult.error(`Cannot delete role. There are ${existingRole._count.employees} employee(s) assigned to this role. Please reassign or remove those employees first.`, 400);
+            if (existingRole._count.Employee > 0) {
+                return api_result_1.ApiResult.error(`Cannot delete role. There are ${existingRole._count.Employee} employee(s) assigned to this role. Please reassign or remove those employees first.`, 400);
             }
-            await config_1.prisma.role.delete({
+            await config_1.prisma.roles.delete({
                 where: { id }
             });
             // Invalidate roles cache
@@ -216,7 +217,7 @@ class RoleService {
     }
     async activateRole(id) {
         try {
-            const role = await config_1.prisma.role.update({
+            const role = await config_1.prisma.roles.update({
                 where: { id },
                 data: { isActive: true }
             });
@@ -231,7 +232,7 @@ class RoleService {
     }
     async deactivateRole(id) {
         try {
-            const role = await config_1.prisma.role.update({
+            const role = await config_1.prisma.roles.update({
                 where: { id },
                 data: { isActive: false }
             });
@@ -247,9 +248,9 @@ class RoleService {
     async getRoleStats() {
         try {
             const [total, active, inactive] = await Promise.all([
-                config_1.prisma.role.count(),
-                config_1.prisma.role.count({ where: { isActive: true } }),
-                config_1.prisma.role.count({ where: { isActive: false } })
+                config_1.prisma.roles.count(),
+                config_1.prisma.roles.count({ where: { isActive: true } }),
+                config_1.prisma.roles.count({ where: { isActive: false } })
             ]);
             return api_result_1.ApiResult.success({
                 total,

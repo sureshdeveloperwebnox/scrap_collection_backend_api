@@ -13,6 +13,8 @@ exports.OrderController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
 const middleware_decorator_1 = require("../../decorators/middleware.decorator");
+const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
+const user_category_enum_1 = require("../../utils/user-category.enum");
 const order_1 = require("../services/order");
 const order_rules_1 = require("../rules/order.rules");
 const api_result_1 = require("../../utils/api-result");
@@ -30,9 +32,33 @@ let OrderController = class OrderController {
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
-    async getOrders(req, res) {
+    async getOrderStats(req, res) {
+        var _a;
         try {
-            const result = await this.orderService.getOrders(req.query);
+            // Extract organizationId from user if available (assuming it might be attached to req.user)
+            const organizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId) ? parseInt(req.user.organizationId) : undefined;
+            const result = await this.orderService.getOrderStats(organizationId);
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getOrderStats", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
+    async getOrders(req, res) {
+        var _a;
+        try {
+            // SECURITY: Extract organizationId from authenticated user, not from query params
+            // This prevents users from accessing other organizations' data
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            // Override any organizationId from query params with the authenticated user's organizationId
+            const queryWithOrgId = {
+                ...req.query,
+                organizationId: userOrganizationId
+            };
+            const result = await this.orderService.getOrders(queryWithOrgId);
             result.send(res);
         }
         catch (error) {
@@ -99,13 +125,22 @@ let OrderController = class OrderController {
 exports.OrderController = OrderController;
 __decorate([
     (0, method_decorator_1.POST)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([order_rules_1.createOrderSchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], OrderController.prototype, "createOrder", null);
 __decorate([
+    (0, method_decorator_1.GET)('/stats'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], OrderController.prototype, "getOrderStats", null);
+__decorate([
     (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([order_rules_1.orderQuerySchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),

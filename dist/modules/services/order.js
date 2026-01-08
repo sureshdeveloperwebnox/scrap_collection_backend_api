@@ -34,7 +34,30 @@ class OrderService {
         return `WO-${datePrefix}-${sequentialNumber}`;
     }
     async createOrder(data) {
+        var _a;
         try {
+            // Additional service-level validation
+            if (!data.customerName || data.customerName.trim().length === 0) {
+                return api_result_1.ApiResult.error('Customer name is required', 400);
+            }
+            if (!data.address || data.address.trim().length === 0) {
+                return api_result_1.ApiResult.error('Collection address is required', 400);
+            }
+            if (data.address.trim().length < 5) {
+                return api_result_1.ApiResult.error('Collection address must be at least 5 characters long', 400);
+            }
+            if (!data.vehicleDetails) {
+                return api_result_1.ApiResult.error('Vehicle details are required', 400);
+            }
+            // Validate description only if provided
+            if (data.vehicleDetails.description && data.vehicleDetails.description.trim().length > 0) {
+                if (data.vehicleDetails.description.trim().length < 5) {
+                    return api_result_1.ApiResult.error('Scrap description must be at least 5 characters long', 400);
+                }
+            }
+            if (!data.pickupTime) {
+                return api_result_1.ApiResult.error('Pickup date and time is required', 400);
+            }
             // Generate unique order number
             const orderNumber = await this.generateOrderNumber(data.organizationId);
             // If leadId is provided, fetch lead data to copy photos
@@ -53,10 +76,9 @@ class OrderService {
                     orderNumber,
                     organizationId: data.organizationId,
                     leadId: data.leadId,
-                    customerName: data.customerName,
-                    customerPhone: data.customerPhone,
+                    customerName: data.customerName.trim(),
                     customerEmail: data.customerEmail,
-                    address: data.address,
+                    address: data.address.trim(),
                     latitude: data.latitude,
                     longitude: data.longitude,
                     vehicleDetails: data.vehicleDetails,
@@ -73,22 +95,22 @@ class OrderService {
                     customerNotes: data.customerNotes,
                     adminNotes: data.adminNotes,
                     customerId: data.customerId,
-                    instructions: data.instructions
+                    instructions: (_a = data.instructions) === null || _a === void 0 ? void 0 : _a.trim()
                 },
                 include: {
-                    assignedCollector: true,
-                    yard: true,
-                    customer: true,
-                    lead: true,
-                    crew: {
+                    Employee: true,
+                    scrap_yards: true,
+                    Customer: true,
+                    Lead: true,
+                    crews: {
                         include: {
-                            members: true
+                            Employee: true
                         }
                     }
                 }
             });
             // Create timeline entry
-            await config_1.prisma.orderTimeline.create({
+            await config_1.prisma.order_timelines.create({
                 data: {
                     orderId: order.id,
                     status: order.orderStatus,
@@ -96,11 +118,32 @@ class OrderService {
                     performedBy: 'system'
                 }
             });
-            return api_result_1.ApiResult.success(order, "Order created successfully", 201);
+            // Transform the response to match frontend expectations
+            const transformedOrder = {
+                ...order,
+                collector: order.Employee,
+                yard: order.scrap_yards,
+                crew: order.crews ? {
+                    ...order.crews,
+                    members: order.crews.Employee || []
+                } : null,
+                // Keep original fields for backward compatibility
+                Employee: order.Employee,
+                scrap_yards: order.scrap_yards,
+                crews: order.crews
+            };
+            return api_result_1.ApiResult.success(transformedOrder, "Order created successfully", 201);
         }
         catch (error) {
             console.log("Error in createOrder", error);
-            return api_result_1.ApiResult.error(error.message);
+            // Provide more specific error messages
+            if (error.code === 'P2002') {
+                return api_result_1.ApiResult.error('A unique constraint violation occurred. Please check your data.', 400);
+            }
+            if (error.code === 'P2003') {
+                return api_result_1.ApiResult.error('Invalid reference: One or more related records do not exist.', 400);
+            }
+            return api_result_1.ApiResult.error(error.message || 'Failed to create order', 500);
         }
     }
     async getOrders(query) {
@@ -132,7 +175,6 @@ class OrderService {
             if (search) {
                 where.OR = [
                     { customerName: { contains: search, mode: 'insensitive' } },
-                    { customerPhone: { contains: search, mode: 'insensitive' } },
                     { address: { contains: search, mode: 'insensitive' } }
                 ];
             }
@@ -142,13 +184,13 @@ class OrderService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        assignedCollector: true,
-                        yard: true,
-                        customer: true,
-                        lead: true,
-                        crew: {
+                        Employee: true,
+                        scrap_yards: true,
+                        Customer: true,
+                        Lead: true,
+                        crews: {
                             include: {
-                                members: true
+                                Employee: true
                             }
                         }
                     },
@@ -158,8 +200,22 @@ class OrderService {
                 }),
                 config_1.prisma.order.count({ where })
             ]);
+            // Transform orders to match frontend expectations
+            const transformedOrders = orders.map((order) => ({
+                ...order,
+                collector: order.Employee,
+                yard: order.scrap_yards,
+                crew: order.crews ? {
+                    ...order.crews,
+                    members: order.crews.Employee || []
+                } : null,
+                // Keep original fields for backward compatibility
+                Employee: order.Employee,
+                scrap_yards: order.scrap_yards,
+                crews: order.crews
+            }));
             return api_result_1.ApiResult.success({
-                orders,
+                orders: transformedOrders,
                 pagination: {
                     page: parsedPage,
                     limit: parsedLimit,
@@ -174,19 +230,30 @@ class OrderService {
         }
     }
     async getOrderById(id) {
+        var _a;
         try {
             const order = await config_1.prisma.order.findUnique({
                 where: { id },
                 include: {
-                    assignedCollector: true,
-                    yard: true,
-                    customer: true,
-                    lead: true,
-                    payment: true,
-                    review: true,
-                    crew: {
+                    Employee: true,
+                    scrap_yards: true,
+                    Customer: true,
+                    Lead: true,
+                    Payment: true,
+                    Review: true,
+                    crews: {
                         include: {
-                            members: true
+                            Employee: true
+                        }
+                    },
+                    assign_orders: {
+                        include: {
+                            Employee: true,
+                            crews: {
+                                include: {
+                                    Employee: true
+                                }
+                            }
                         }
                     }
                 }
@@ -194,7 +261,30 @@ class OrderService {
             if (!order) {
                 return api_result_1.ApiResult.error("Order not found", 404);
             }
-            return api_result_1.ApiResult.success(order, "Order retrieved successfully");
+            // Transform the response to match frontend expectations
+            const transformedOrder = {
+                ...order,
+                collector: order.Employee,
+                yard: order.scrap_yards,
+                crew: order.crews ? {
+                    ...order.crews,
+                    members: order.crews.Employee || []
+                } : null,
+                assignOrders: ((_a = order.assign_orders) === null || _a === void 0 ? void 0 : _a.map((ao) => ({
+                    ...ao,
+                    collector: ao.Employee,
+                    crew: ao.crews ? {
+                        ...ao.crews,
+                        members: ao.crews.Employee || []
+                    } : null
+                }))) || [],
+                // Keep original fields for backward compatibility
+                Employee: order.Employee,
+                scrap_yards: order.scrap_yards,
+                crews: order.crews,
+                assign_orders: order.assign_orders
+            };
+            return api_result_1.ApiResult.success(transformedOrder, "Order retrieved successfully");
         }
         catch (error) {
             console.log("Error in getOrderById", error);
@@ -209,26 +299,56 @@ class OrderService {
             if (!existingOrder) {
                 return api_result_1.ApiResult.error("Order not found", 404);
             }
+            // Validate updated fields
+            if (data.customerName !== undefined) {
+                if (!data.customerName || data.customerName.trim().length === 0) {
+                    return api_result_1.ApiResult.error('Customer name cannot be empty', 400);
+                }
+                if (data.customerName.trim().length < 2) {
+                    return api_result_1.ApiResult.error('Customer name must be at least 2 characters long', 400);
+                }
+            }
+            if (data.address !== undefined) {
+                if (!data.address || data.address.trim().length === 0) {
+                    return api_result_1.ApiResult.error('Collection address cannot be empty', 400);
+                }
+                if (data.address.trim().length < 5) {
+                    return api_result_1.ApiResult.error('Collection address must be at least 5 characters long', 400);
+                }
+            }
+            if (data.quotedPrice !== undefined && data.quotedPrice !== null && data.quotedPrice < 0) {
+                return api_result_1.ApiResult.error('Quoted price cannot be negative', 400);
+            }
+            if (data.actualPrice !== undefined && data.actualPrice !== null && data.actualPrice < 0) {
+                return api_result_1.ApiResult.error('Actual price cannot be negative', 400);
+            }
             // Remove only core relation fields that should never be updated
             // Allow assignment fields (assignedCollectorId, yardId, crewId) to be updated
             const { organizationId, customerId, leadId, ...updateData } = data;
+            // Sanitize text fields
+            if (updateData.customerName)
+                updateData.customerName = updateData.customerName.trim();
+            if (updateData.address)
+                updateData.address = updateData.address.trim();
+            if (updateData.instructions)
+                updateData.instructions = updateData.instructions.trim();
             const order = await config_1.prisma.order.update({
                 where: { id },
                 data: updateData,
                 include: {
-                    assignedCollector: true,
-                    yard: true,
-                    customer: true,
-                    crew: {
+                    Employee: true,
+                    scrap_yards: true,
+                    Customer: true,
+                    crews: {
                         include: {
-                            members: true
+                            Employee: true
                         }
                     }
                 }
             });
             // Create timeline entry if status changed
             if (data.orderStatus && data.orderStatus !== existingOrder.orderStatus) {
-                await config_1.prisma.orderTimeline.create({
+                await config_1.prisma.order_timelines.create({
                     data: {
                         orderId: id,
                         status: data.orderStatus,
@@ -237,11 +357,35 @@ class OrderService {
                     }
                 });
             }
-            return api_result_1.ApiResult.success(order, "Order updated successfully");
+            // Transform the response to match frontend expectations
+            const transformedOrder = {
+                ...order,
+                collector: order.Employee,
+                yard: order.scrap_yards,
+                crew: order.crews ? {
+                    ...order.crews,
+                    members: order.crews.Employee || []
+                } : null,
+                // Keep original fields for backward compatibility
+                Employee: order.Employee,
+                scrap_yards: order.scrap_yards,
+                crews: order.crews
+            };
+            return api_result_1.ApiResult.success(transformedOrder, "Order updated successfully");
         }
         catch (error) {
             console.log("Error in updateOrder", error);
-            return api_result_1.ApiResult.error(error.message);
+            // Provide more specific error messages
+            if (error.code === 'P2002') {
+                return api_result_1.ApiResult.error('A unique constraint violation occurred. Please check your data.', 400);
+            }
+            if (error.code === 'P2003') {
+                return api_result_1.ApiResult.error('Invalid reference: One or more related records do not exist.', 400);
+            }
+            if (error.code === 'P2025') {
+                return api_result_1.ApiResult.error('Order not found', 404);
+            }
+            return api_result_1.ApiResult.error(error.message || 'Failed to update order', 500);
         }
     }
     async deleteOrder(id) {
@@ -263,17 +407,48 @@ class OrderService {
         }
     }
     async assignOrder(id, data) {
+        var _a;
         try {
             const updateData = {
                 orderStatus: enum_1.OrderStatus.ASSIGNED
             };
+            // Clear existing assignments for this order
+            await config_1.prisma.assign_orders.deleteMany({
+                where: { orderId: id }
+            });
             // Handle collector assignment
-            if (data.collectorId) {
-                updateData.assignedCollectorId = data.collectorId;
+            const collectorIds = data.collectorIds || [];
+            if (data.collectorId && !collectorIds.includes(data.collectorId)) {
+                collectorIds.push(data.collectorId);
+            }
+            if (collectorIds.length > 0) {
+                // Create new assignments for collectors
+                await Promise.all(collectorIds.map(cid => config_1.prisma.assign_orders.create({
+                    data: {
+                        orderId: id,
+                        collectorId: cid,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        notes: data.notes
+                    }
+                })));
+                // Update Order with primary collector (first one) for backward compatibility
+                updateData.assignedCollectorId = collectorIds[0];
             }
             // Handle crew assignment (if provided in the request)
-            if (data.crewId) {
-                updateData.crewId = data.crewId;
+            const crewId = data.crewId;
+            if (crewId) {
+                updateData.crewId = crewId;
+                // Add crew assignment record
+                await config_1.prisma.assign_orders.create({
+                    data: {
+                        orderId: id,
+                        crewId: crewId,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        notes: data.notes
+                    }
+                });
             }
             // Handle yard assignment (if provided in the request)
             if (data.yardId) {
@@ -290,26 +465,59 @@ class OrderService {
                 where: { id },
                 data: updateData,
                 include: {
-                    assignedCollector: true,
-                    yard: true,
-                    customer: true,
-                    lead: true,
-                    crew: {
+                    Employee: true,
+                    scrap_yards: true,
+                    Customer: true,
+                    Lead: true,
+                    assign_orders: {
                         include: {
-                            members: true
+                            Employee: true,
+                            crews: {
+                                include: {
+                                    Employee: true
+                                }
+                            }
+                        }
+                    },
+                    crews: {
+                        include: {
+                            Employee: true
                         }
                     }
                 }
             });
-            await config_1.prisma.orderTimeline.create({
+            await config_1.prisma.order_timelines.create({
                 data: {
                     orderId: id,
                     status: enum_1.OrderStatus.ASSIGNED,
-                    notes: `Order assigned`,
+                    notes: `Order assigned to ${collectorIds.length} collectors and/or crew`,
                     performedBy: 'system'
                 }
             });
-            return api_result_1.ApiResult.success(order, "Order assigned successfully");
+            // Transform the response to match frontend expectations
+            const transformedOrder = {
+                ...order,
+                collector: order.Employee,
+                yard: order.scrap_yards,
+                crew: order.crews ? {
+                    ...order.crews,
+                    members: order.crews.Employee || []
+                } : null,
+                assignOrders: ((_a = order.assign_orders) === null || _a === void 0 ? void 0 : _a.map((ao) => ({
+                    ...ao,
+                    collector: ao.Employee,
+                    crew: ao.crews ? {
+                        ...ao.crews,
+                        members: ao.crews.Employee || []
+                    } : null
+                }))) || [],
+                // Keep original fields for backward compatibility
+                Employee: order.Employee,
+                scrap_yards: order.scrap_yards,
+                crews: order.crews,
+                assign_orders: order.assign_orders
+            };
+            return api_result_1.ApiResult.success(transformedOrder, "Order assigned successfully");
         }
         catch (error) {
             console.log("Error in assignOrder", error);
@@ -318,7 +526,7 @@ class OrderService {
     }
     async getOrderTimeline(id) {
         try {
-            const timeline = await config_1.prisma.orderTimeline.findMany({
+            const timeline = await config_1.prisma.order_timelines.findMany({
                 where: { orderId: id },
                 orderBy: {
                     createdAt: 'asc'
@@ -328,6 +536,34 @@ class OrderService {
         }
         catch (error) {
             console.log("Error in getOrderTimeline", error);
+            return api_result_1.ApiResult.error(error.message);
+        }
+    }
+    async getOrderStats(organizationId) {
+        try {
+            const where = {};
+            if (organizationId) {
+                where.organizationId = organizationId;
+            }
+            const [total, pending, assigned, inProgress, completed, cancelled] = await Promise.all([
+                config_1.prisma.order.count({ where }),
+                config_1.prisma.order.count({ where: { ...where, orderStatus: enum_1.OrderStatus.PENDING } }),
+                config_1.prisma.order.count({ where: { ...where, orderStatus: enum_1.OrderStatus.ASSIGNED } }),
+                config_1.prisma.order.count({ where: { ...where, orderStatus: enum_1.OrderStatus.IN_PROGRESS } }),
+                config_1.prisma.order.count({ where: { ...where, orderStatus: enum_1.OrderStatus.COMPLETED } }),
+                config_1.prisma.order.count({ where: { ...where, orderStatus: enum_1.OrderStatus.CANCELLED } })
+            ]);
+            return api_result_1.ApiResult.success({
+                total,
+                pending,
+                assigned,
+                inProgress,
+                completed,
+                cancelled
+            }, "Order stats retrieved successfully");
+        }
+        catch (error) {
+            console.log("Error in getOrderStats", error);
             return api_result_1.ApiResult.error(error.message);
         }
     }

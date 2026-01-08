@@ -20,6 +20,16 @@ let CountryController = class CountryController {
     constructor() {
         this.countryService = new country_1.CountryService();
     }
+    async getCountries(req, res) {
+        try {
+            const result = await this.countryService.getCountries();
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in getCountries", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
     async createCountry(req, res) {
         try {
             const result = await this.countryService.createCountry(req.body);
@@ -32,6 +42,12 @@ let CountryController = class CountryController {
     }
 };
 exports.CountryController = CountryController;
+__decorate([
+    (0, method_decorator_1.GET)('/'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CountryController.prototype, "getCountries", null);
 __decorate([
     (0, method_decorator_1.POST)('/'),
     (0, middleware_decorator_1.Validate)([country_rules_1.createCountrySchema]),

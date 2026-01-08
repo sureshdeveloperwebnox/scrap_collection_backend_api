@@ -19,7 +19,13 @@ const ValidatorMiddleware = (req, res, next, rules = []) => {
             }));
             return response_generator_1.ResponseGenerator.send(res, response_generator_1.ResponseGenerator.error('Validation error', 400, validationErrors));
         }
-        req.body = value;
+        // Assign validated body
+        Object.defineProperty(req, 'body', {
+            value: value,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        });
     }
     // Validate params if params rule exists
     if (rule.params) {
@@ -32,7 +38,13 @@ const ValidatorMiddleware = (req, res, next, rules = []) => {
             return response_generator_1.ResponseGenerator.send(res, response_generator_1.ResponseGenerator.error('Validation error', 400, validationErrors));
         }
         // Assign coerced params back
-        req.params = value;
+        // Assign coerced params back
+        Object.defineProperty(req, 'params', {
+            value: value,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        });
     }
     // Validate query if query rule exists
     if (rule.query) {
@@ -45,7 +57,13 @@ const ValidatorMiddleware = (req, res, next, rules = []) => {
             return response_generator_1.ResponseGenerator.send(res, response_generator_1.ResponseGenerator.error('Validation error', 400, validationErrors));
         }
         // Assign coerced query back
-        req.query = value;
+        // Assign coerced query back
+        Object.defineProperty(req, 'query', {
+            value: value,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        });
     }
     // Store validated data in the request object
     req.validatedData = {

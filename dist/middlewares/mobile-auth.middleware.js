@@ -26,8 +26,8 @@ const mobileAuthMiddleware = async (req, res, next) => {
         if (!decoded) {
             return api_result_1.ApiResult.error('Invalid or expired token', 401).send(res);
         }
-        // Attach collector data to request
-        req.collector = {
+        // Attach collector data to request (both formats for compatibility)
+        const collectorData = {
             id: decoded.id,
             email: decoded.email,
             phone: decoded.phone,
@@ -38,6 +38,8 @@ const mobileAuthMiddleware = async (req, res, next) => {
             scrapYardId: decoded.scrapYardId,
             crewId: decoded.crewId
         };
+        req.collector = collectorData;
+        req.user = collectorData; // Also attach to req.user for consistency
         next();
     }
     catch (error) {

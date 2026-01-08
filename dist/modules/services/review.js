@@ -16,9 +16,9 @@ class ReviewService {
                     organizationId: data.organizationId
                 },
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true
                 }
             });
             // Update collector rating
@@ -62,9 +62,9 @@ class ReviewService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        order: true,
-                        customer: true,
-                        collector: true
+                        Order: true,
+                        Customer: true,
+                        Employee: true
                     },
                     orderBy: {
                         createdAt: 'desc'
@@ -92,9 +92,9 @@ class ReviewService {
             const review = await config_1.prisma.review.findUnique({
                 where: { id },
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true
                 }
             });
             if (!review) {
@@ -113,9 +113,9 @@ class ReviewService {
                 where: { id },
                 data,
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true
                 }
             });
             // Recalculate collector rating

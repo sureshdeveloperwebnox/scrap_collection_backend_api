@@ -16,7 +16,7 @@ class VehicleNameService {
                 return api_result_1.ApiResult.error("Organization not found", 404);
             }
             // Check if vehicle type exists
-            const vehicleType = await config_1.prisma.vehicleType.findUnique({
+            const vehicleType = await config_1.prisma.vehicle_types.findUnique({
                 where: { id: data.vehicleTypeId }
             });
             if (!vehicleType) {
@@ -24,7 +24,7 @@ class VehicleNameService {
             }
             // Check if scrap yard exists (if provided)
             if (data.scrapYardId) {
-                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                const scrapYard = await config_1.prisma.scrap_yards.findUnique({
                     where: { id: data.scrapYardId }
                 });
                 if (!scrapYard) {
@@ -32,7 +32,7 @@ class VehicleNameService {
                 }
             }
             // Check if vehicle name already exists for this combination
-            const existingVehicleName = await config_1.prisma.vehicleName.findFirst({
+            const existingVehicleName = await config_1.prisma.vehicle_names.findFirst({
                 where: {
                     name: data.name,
                     vehicleTypeId: data.vehicleTypeId,
@@ -42,7 +42,7 @@ class VehicleNameService {
             if (existingVehicleName) {
                 return api_result_1.ApiResult.error("Vehicle name already exists in this organization", 400);
             }
-            const vehicleName = await config_1.prisma.vehicleName.create({
+            const vehicleName = await config_1.prisma.vehicle_names.create({
                 data: {
                     organizationId: data.organizationId,
                     name: data.name,
@@ -55,21 +55,21 @@ class VehicleNameService {
                     year: data.year
                 },
                 include: {
-                    vehicleType: {
+                    vehicle_types: {
                         select: {
                             id: true,
                             name: true,
                             icon: true
                         }
                     },
-                    scrapYard: {
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true,
                             address: true
                         }
                     },
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -153,8 +153,8 @@ class VehicleNameService {
             if (search) {
                 where.OR = [
                     { name: { contains: search, mode: 'insensitive' } },
-                    { vehicleType: { name: { contains: search, mode: 'insensitive' } } },
-                    { scrapYard: { yardName: { contains: search, mode: 'insensitive' } } }
+                    { vehicle_types: { name: { contains: search, mode: 'insensitive' } } },
+                    { scrap_yards: { yardName: { contains: search, mode: 'insensitive' } } }
                 ];
             }
             // Validate sort fields
@@ -165,26 +165,26 @@ class VehicleNameService {
             const orderBy = {};
             orderBy[finalSortBy] = finalSortOrder;
             const [vehicleNames, total] = await Promise.all([
-                config_1.prisma.vehicleName.findMany({
+                config_1.prisma.vehicle_names.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        vehicleType: {
+                        vehicle_types: {
                             select: {
                                 id: true,
                                 name: true,
                                 icon: true
                             }
                         },
-                        scrapYard: {
+                        scrap_yards: {
                             select: {
                                 id: true,
                                 yardName: true,
                                 address: true
                             }
                         },
-                        organization: {
+                        Organization: {
                             select: {
                                 name: true
                             }
@@ -192,7 +192,7 @@ class VehicleNameService {
                     },
                     orderBy
                 }),
-                config_1.prisma.vehicleName.count({ where })
+                config_1.prisma.vehicle_names.count({ where })
             ]);
             const totalPages = Math.ceil(total / parsedLimit);
             const hasNextPage = parsedPage < totalPages;
@@ -219,24 +219,24 @@ class VehicleNameService {
     }
     async getVehicleNameById(id) {
         try {
-            const vehicleName = await config_1.prisma.vehicleName.findUnique({
+            const vehicleName = await config_1.prisma.vehicle_names.findUnique({
                 where: { id },
                 include: {
-                    vehicleType: {
+                    vehicle_types: {
                         select: {
                             id: true,
                             name: true,
                             icon: true
                         }
                     },
-                    scrapYard: {
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true,
                             address: true
                         }
                     },
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -256,7 +256,7 @@ class VehicleNameService {
     async updateVehicleName(id, data) {
         var _a, _b;
         try {
-            const existingVehicleName = await config_1.prisma.vehicleName.findUnique({
+            const existingVehicleName = await config_1.prisma.vehicle_names.findUnique({
                 where: { id }
             });
             if (!existingVehicleName) {
@@ -264,7 +264,7 @@ class VehicleNameService {
             }
             // Check if vehicle type exists (if being updated)
             if (data.vehicleTypeId) {
-                const vehicleType = await config_1.prisma.vehicleType.findUnique({
+                const vehicleType = await config_1.prisma.vehicle_types.findUnique({
                     where: { id: data.vehicleTypeId }
                 });
                 if (!vehicleType) {
@@ -273,7 +273,7 @@ class VehicleNameService {
             }
             // Check if scrap yard exists (if being updated)
             if (data.scrapYardId) {
-                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                const scrapYard = await config_1.prisma.scrap_yards.findUnique({
                     where: { id: data.scrapYardId }
                 });
                 if (!scrapYard) {
@@ -284,7 +284,7 @@ class VehicleNameService {
             const finalVehicleTypeId = (_a = data.vehicleTypeId) !== null && _a !== void 0 ? _a : existingVehicleName.vehicleTypeId;
             const finalName = (_b = data.name) !== null && _b !== void 0 ? _b : existingVehicleName.name;
             if (data.name || data.vehicleTypeId) {
-                const duplicateVehicleName = await config_1.prisma.vehicleName.findFirst({
+                const duplicateVehicleName = await config_1.prisma.vehicle_names.findFirst({
                     where: {
                         name: finalName,
                         vehicleTypeId: finalVehicleTypeId,
@@ -296,7 +296,7 @@ class VehicleNameService {
                     return api_result_1.ApiResult.error("Vehicle name already exists in this organization", 400);
                 }
             }
-            const vehicleName = await config_1.prisma.vehicleName.update({
+            const vehicleName = await config_1.prisma.vehicle_names.update({
                 where: { id },
                 data: {
                     name: data.name,
@@ -309,21 +309,21 @@ class VehicleNameService {
                     year: data.year
                 },
                 include: {
-                    vehicleType: {
+                    vehicle_types: {
                         select: {
                             id: true,
                             name: true,
                             icon: true
                         }
                     },
-                    scrapYard: {
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true,
                             address: true
                         }
                     },
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -341,10 +341,10 @@ class VehicleNameService {
     }
     async deleteVehicleName(id) {
         try {
-            const existingVehicleName = await config_1.prisma.vehicleName.findUnique({
+            const existingVehicleName = await config_1.prisma.vehicle_names.findUnique({
                 where: { id },
                 include: {
-                    collectorAssignments: {
+                    collector_assignments: {
                         take: 1
                     }
                 }
@@ -353,10 +353,10 @@ class VehicleNameService {
                 return api_result_1.ApiResult.error("Vehicle name not found", 404);
             }
             // Check if vehicle name is being used in collector assignments
-            if (existingVehicleName.collectorAssignments.length > 0) {
+            if (existingVehicleName.collector_assignments.length > 0) {
                 return api_result_1.ApiResult.error("Cannot delete vehicle name as it is assigned to collectors", 400);
             }
-            await config_1.prisma.vehicleName.delete({
+            await config_1.prisma.vehicle_names.delete({
                 where: { id }
             });
             // Invalidate vehicle names cache
@@ -371,7 +371,7 @@ class VehicleNameService {
     async getVehicleNameStats(organizationId) {
         var _a, _b;
         try {
-            const stats = await config_1.prisma.vehicleName.groupBy({
+            const stats = await config_1.prisma.vehicle_names.groupBy({
                 by: ['isActive'],
                 where: {
                     organizationId

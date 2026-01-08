@@ -9,13 +9,13 @@ class CityService {
         var _a;
         try {
             // Check if city name already exists
-            const existingCity = await config_1.prisma.city.findUnique({
+            const existingCity = await config_1.prisma.cities.findUnique({
                 where: { name: data.name }
             });
             if (existingCity) {
                 return api_result_1.ApiResult.error("City with this name already exists", 400);
             }
-            const city = await config_1.prisma.city.create({
+            const city = await config_1.prisma.cities.create({
                 data: {
                     name: data.name,
                     latitude: data.latitude,
@@ -93,13 +93,13 @@ class CityService {
             const orderBy = {};
             orderBy[finalSortBy] = finalSortOrder;
             const [cities, total] = await Promise.all([
-                config_1.prisma.city.findMany({
+                config_1.prisma.cities.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     orderBy
                 }),
-                config_1.prisma.city.count({ where })
+                config_1.prisma.cities.count({ where })
             ]);
             const totalPages = Math.ceil(total / parsedLimit);
             const hasNextPage = parsedPage < totalPages;
@@ -126,7 +126,7 @@ class CityService {
     }
     async getCityById(id) {
         try {
-            const city = await config_1.prisma.city.findUnique({
+            const city = await config_1.prisma.cities.findUnique({
                 where: { id }
             });
             if (!city) {
@@ -141,7 +141,7 @@ class CityService {
     }
     async updateCity(id, data) {
         try {
-            const existingCity = await config_1.prisma.city.findUnique({
+            const existingCity = await config_1.prisma.cities.findUnique({
                 where: { id }
             });
             if (!existingCity) {
@@ -149,14 +149,14 @@ class CityService {
             }
             // If name is being updated, check if it already exists
             if (data.name && data.name !== existingCity.name) {
-                const duplicateCity = await config_1.prisma.city.findUnique({
+                const duplicateCity = await config_1.prisma.cities.findUnique({
                     where: { name: data.name }
                 });
                 if (duplicateCity) {
                     return api_result_1.ApiResult.error("City with this name already exists", 400);
                 }
             }
-            const city = await config_1.prisma.city.update({
+            const city = await config_1.prisma.cities.update({
                 where: { id },
                 data
             });
@@ -171,12 +171,12 @@ class CityService {
     }
     async deleteCity(id) {
         try {
-            const existingCity = await config_1.prisma.city.findUnique({
+            const existingCity = await config_1.prisma.cities.findUnique({
                 where: { id },
                 include: {
                     _count: {
                         select: {
-                            employees: true
+                            Employee: true
                         }
                     }
                 }
@@ -185,10 +185,10 @@ class CityService {
                 return api_result_1.ApiResult.error("City not found", 404);
             }
             // Check if any employees are assigned to this city
-            if (existingCity._count.employees > 0) {
-                return api_result_1.ApiResult.error(`Cannot delete city. There are ${existingCity._count.employees} employee(s) assigned to this workzone. Please reassign or remove those employees first.`, 400);
+            if (existingCity._count.Employee > 0) {
+                return api_result_1.ApiResult.error(`Cannot delete city. There are ${existingCity._count.Employee} employee(s) assigned to this workzone. Please reassign or remove those employees first.`, 400);
             }
-            await config_1.prisma.city.delete({
+            await config_1.prisma.cities.delete({
                 where: { id }
             });
             // Invalidate cities cache

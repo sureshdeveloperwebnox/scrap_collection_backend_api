@@ -11,7 +11,7 @@ class EmployeeService {
     async createEmployee(data) {
         try {
             // Verify role exists
-            const role = await config_1.prisma.role.findUnique({
+            const role = await config_1.prisma.roles.findUnique({
                 where: { id: data.roleId }
             });
             if (!role) {
@@ -22,7 +22,7 @@ class EmployeeService {
             }
             // Verify city exists if provided
             if (data.cityId) {
-                const city = await config_1.prisma.city.findUnique({
+                const city = await config_1.prisma.cities.findUnique({
                     where: { id: data.cityId }
                 });
                 if (!city) {
@@ -31,7 +31,7 @@ class EmployeeService {
             }
             // Verify scrap yard exists if provided
             if (data.scrapYardId) {
-                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                const scrapYard = await config_1.prisma.scrap_yards.findUnique({
                     where: { id: data.scrapYardId }
                 });
                 if (!scrapYard) {
@@ -58,10 +58,10 @@ class EmployeeService {
                     rating: 0
                 },
                 include: {
-                    organization: true,
-                    scrapYard: true,
-                    role: true,
-                    city: true
+                    Organization: true,
+                    scrap_yards: true,
+                    roles: true,
+                    cities: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee created successfully", 201);
@@ -85,7 +85,7 @@ class EmployeeService {
                 where.roleId = typeof roleId === 'string' ? parseInt(roleId, 10) : roleId;
             }
             if (role) {
-                where.role = {
+                where.roles = {
                     name: {
                         equals: role,
                         mode: 'insensitive'
@@ -117,10 +117,10 @@ class EmployeeService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        organization: true,
-                        scrapYard: true,
-                        role: true,
-                        city: true
+                        Organization: true,
+                        scrap_yards: true,
+                        roles: true,
+                        cities: true
                     },
                     orderBy: {
                         createdAt: 'desc'
@@ -148,10 +148,10 @@ class EmployeeService {
             const employee = await config_1.prisma.employee.findUnique({
                 where: { id },
                 include: {
-                    organization: true,
-                    scrapYard: true,
-                    role: true,
-                    city: true
+                    Organization: true,
+                    scrap_yards: true,
+                    roles: true,
+                    cities: true
                 }
             });
             if (!employee) {
@@ -174,7 +174,7 @@ class EmployeeService {
             }
             // Verify role exists if being updated
             if (data.roleId) {
-                const role = await config_1.prisma.role.findUnique({
+                const role = await config_1.prisma.roles.findUnique({
                     where: { id: data.roleId }
                 });
                 if (!role) {
@@ -186,7 +186,7 @@ class EmployeeService {
             }
             // Verify city exists if being updated
             if (data.cityId !== undefined && data.cityId !== null) {
-                const city = await config_1.prisma.city.findUnique({
+                const city = await config_1.prisma.cities.findUnique({
                     where: { id: data.cityId }
                 });
                 if (!city) {
@@ -195,7 +195,7 @@ class EmployeeService {
             }
             // Verify scrap yard exists if being updated
             if (data.scrapYardId !== undefined && data.scrapYardId !== null) {
-                const scrapYard = await config_1.prisma.scrapYard.findUnique({
+                const scrapYard = await config_1.prisma.scrap_yards.findUnique({
                     where: { id: data.scrapYardId }
                 });
                 if (!scrapYard) {
@@ -211,10 +211,10 @@ class EmployeeService {
                 where: { id },
                 data: updateData,
                 include: {
-                    organization: true,
-                    scrapYard: true,
-                    role: true,
-                    city: true
+                    Organization: true,
+                    scrap_yards: true,
+                    roles: true,
+                    cities: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee updated successfully");
@@ -248,7 +248,7 @@ class EmployeeService {
                 where: { id },
                 data: { isActive: true },
                 include: {
-                    organization: true
+                    Organization: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee activated successfully");
@@ -264,7 +264,7 @@ class EmployeeService {
                 where: { id },
                 data: { isActive: false },
                 include: {
-                    organization: true
+                    Organization: true
                 }
             });
             return api_result_1.ApiResult.success(employee, "Employee deactivated successfully");
@@ -279,19 +279,19 @@ class EmployeeService {
             const employee = await config_1.prisma.employee.findUnique({
                 where: { id },
                 include: {
-                    orders: {
+                    Order: {
                         where: {
                             orderStatus: 'COMPLETED'
                         }
                     },
-                    reviews: true
+                    Review: true
                 }
             });
             if (!employee) {
                 return api_result_1.ApiResult.error("Employee not found", 404);
             }
             const totalPickups = employee.completedPickups;
-            const completedOrders = employee.orders.length;
+            const completedOrders = employee.Order.length;
             const cancelledOrders = await config_1.prisma.order.count({
                 where: {
                     assignedCollectorId: id,
@@ -307,8 +307,8 @@ class EmployeeService {
                     amount: true
                 }
             });
-            const avgRating = employee.reviews.length > 0
-                ? employee.reviews.reduce((sum, r) => sum + r.rating, 0) / employee.reviews.length
+            const avgRating = employee.Review.length > 0
+                ? employee.Review.reduce((sum, r) => sum + r.rating, 0) / employee.Review.length
                 : 0;
             return api_result_1.ApiResult.success({
                 employeeId: id,

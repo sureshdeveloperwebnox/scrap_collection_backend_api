@@ -13,6 +13,8 @@ exports.LeadController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
 const middleware_decorator_1 = require("../../decorators/middleware.decorator");
+const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
+const user_category_enum_1 = require("../../utils/user-category.enum");
 const lead_1 = require("../services/lead");
 const lead_rules_1 = require("../rules/lead.rules");
 const api_result_1 = require("../../utils/api-result");
@@ -31,8 +33,17 @@ let LeadController = class LeadController {
         }
     }
     async getLeads(req, res) {
+        var _a;
         try {
-            const result = await this.leadService.getLeads(req.query);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            const queryWithOrgId = {
+                ...req.query,
+                organizationId: userOrganizationId
+            };
+            const result = await this.leadService.getLeads(queryWithOrgId);
             result.send(res);
         }
         catch (error) {
@@ -96,9 +107,17 @@ let LeadController = class LeadController {
         }
     }
     async getLeadStats(req, res) {
+        var _a;
         try {
-            const organizationId = parseInt(req.params.organizationId);
-            const result = await this.leadService.getLeadStats(organizationId);
+            // SECURITY: Use authenticated user's organizationId, ignore URL param
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
+                return;
+            }
+            const result = await this.leadService.getLeadStats(userOrganizationId);
             result.send(res);
         }
         catch (error) {
@@ -106,10 +125,22 @@ let LeadController = class LeadController {
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
+    async convertLeadToCustomer(req, res) {
+        try {
+            const id = req.params.id;
+            const result = await this.leadService.convertLeadToCustomer(id);
+            result.send(res);
+        }
+        catch (error) {
+            console.log("Error in convertLeadToCustomer", error);
+            api_result_1.ApiResult.error(error.message, 500).send(res);
+        }
+    }
 };
 exports.LeadController = LeadController;
 __decorate([
     (0, method_decorator_1.POST)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([lead_rules_1.createLeadSchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -117,6 +148,7 @@ __decorate([
 ], LeadController.prototype, "createLead", null);
 __decorate([
     (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([lead_rules_1.leadQuerySchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -159,10 +191,18 @@ __decorate([
 ], LeadController.prototype, "getLeadTimeline", null);
 __decorate([
     (0, method_decorator_1.GET)('/stats/:organizationId'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], LeadController.prototype, "getLeadStats", null);
+__decorate([
+    (0, method_decorator_1.POST)('/:id/convert-to-customer'),
+    (0, middleware_decorator_1.Validate)([lead_rules_1.leadIdSchema]),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], LeadController.prototype, "convertLeadToCustomer", null);
 exports.LeadController = LeadController = __decorate([
     (0, controller_decorator_1.Controller)('/leads'),
     __metadata("design:paramtypes", [])

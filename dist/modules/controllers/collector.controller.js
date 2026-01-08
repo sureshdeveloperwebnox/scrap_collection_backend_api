@@ -9,30 +9,46 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ScrapYardController = void 0;
+exports.CollectorController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
 const middleware_decorator_1 = require("../../decorators/middleware.decorator");
 const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
 const user_category_enum_1 = require("../../utils/user-category.enum");
-const scrapyard_1 = require("../services/scrapyard");
-const scrapyard_rules_1 = require("../rules/scrapyard.rules");
+const employee_1 = require("../services/employee");
+const employee_rules_1 = require("../rules/employee.rules");
 const api_result_1 = require("../../utils/api-result");
-let ScrapYardController = class ScrapYardController {
+let CollectorController = class CollectorController {
     constructor() {
-        this.scrapYardService = new scrapyard_1.ScrapYardService();
+        this.employeeService = new employee_1.EmployeeService();
     }
-    async createScrapYard(req, res) {
+    async getCollectorStats(req, res) {
+        var _a;
         try {
-            const result = await this.scrapYardService.createScrapYard(req.body);
-            result.send(res);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
+                return;
+            }
+            // Get employee stats filtered by collector role
+            const result = await this.employeeService.getEmployeeStats(userOrganizationId);
+            // Rename the response for collectors context
+            if (result && typeof result.send === 'function') {
+                result.send(res);
+            }
+            else {
+                api_result_1.ApiResult.success(result, 'Collector statistics retrieved successfully').send(res);
+            }
         }
         catch (error) {
-            console.log("Error in createScrapYard", error);
+            console.log("Error in getCollectorStats", error);
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
-    async getScrapYards(req, res) {
+    async getCollectors(req, res) {
         var _a;
         try {
             // SECURITY: Extract organizationId from authenticated user
@@ -43,113 +59,68 @@ let ScrapYardController = class ScrapYardController {
                 ...req.query,
                 organizationId: userOrganizationId
             };
-            const result = await this.scrapYardService.getScrapYards(queryWithOrgId);
+            const result = await this.employeeService.getEmployees(queryWithOrgId);
             result.send(res);
         }
         catch (error) {
-            console.log("Error in getScrapYards", error);
+            console.log("Error in getCollectors", error);
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
-    async getScrapYardStats(req, res) {
-        var _a;
-        try {
-            // SECURITY: Extract organizationId from authenticated user
-            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
-                ? parseInt(req.user.organizationId)
-                : undefined;
-            const queryWithOrgId = {
-                ...req.query,
-                organizationId: userOrganizationId
-            };
-            const result = await this.scrapYardService.getScrapYardStats(queryWithOrgId);
-            result.send(res);
-        }
-        catch (error) {
-            console.log("Error in getScrapYardStats", error);
-            api_result_1.ApiResult.error(error.message, 500).send(res);
-        }
-    }
-    async getScrapYardById(req, res) {
+    async getCollectorById(req, res) {
         try {
             const id = req.params.id;
-            const result = await this.scrapYardService.getScrapYardById(id);
+            const result = await this.employeeService.getEmployeeById(id);
             result.send(res);
         }
         catch (error) {
-            console.log("Error in getScrapYardById", error);
+            console.log("Error in getCollectorById", error);
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
-    async updateScrapYard(req, res) {
+    async getCollectorPerformance(req, res) {
         try {
             const id = req.params.id;
-            const result = await this.scrapYardService.updateScrapYard(id, req.body);
+            const result = await this.employeeService.getEmployeePerformance(id);
             result.send(res);
         }
         catch (error) {
-            console.log("Error in updateScrapYard", error);
-            api_result_1.ApiResult.error(error.message, 500).send(res);
-        }
-    }
-    async deleteScrapYard(req, res) {
-        try {
-            const id = req.params.id;
-            const result = await this.scrapYardService.deleteScrapYard(id);
-            result.send(res);
-        }
-        catch (error) {
-            console.log("Error in deleteScrapYard", error);
+            console.log("Error in getCollectorPerformance", error);
             api_result_1.ApiResult.error(error.message, 500).send(res);
         }
     }
 };
-exports.ScrapYardController = ScrapYardController;
-__decorate([
-    (0, method_decorator_1.POST)('/'),
-    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
-    (0, middleware_decorator_1.Validate)([scrapyard_rules_1.createScrapYardSchema]),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "createScrapYard", null);
-__decorate([
-    (0, method_decorator_1.GET)('/'),
-    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
-    (0, middleware_decorator_1.Validate)([scrapyard_rules_1.scrapYardQuerySchema]),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "getScrapYards", null);
+exports.CollectorController = CollectorController;
 __decorate([
     (0, method_decorator_1.GET)('/stats'),
     (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "getScrapYardStats", null);
+], CollectorController.prototype, "getCollectorStats", null);
+__decorate([
+    (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
+    (0, middleware_decorator_1.Validate)([employee_rules_1.employeeQuerySchema]),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], CollectorController.prototype, "getCollectors", null);
 __decorate([
     (0, method_decorator_1.GET)('/:id'),
-    (0, middleware_decorator_1.Validate)([scrapyard_rules_1.scrapYardIdSchema]),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "getScrapYardById", null);
+], CollectorController.prototype, "getCollectorById", null);
 __decorate([
-    (0, method_decorator_1.PUT)('/:id'),
-    (0, middleware_decorator_1.Validate)([scrapyard_rules_1.scrapYardIdSchema, scrapyard_rules_1.updateScrapYardSchema]),
+    (0, method_decorator_1.GET)('/:id/performance'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "updateScrapYard", null);
-__decorate([
-    (0, method_decorator_1.DELETE)('/:id'),
-    (0, middleware_decorator_1.Validate)([scrapyard_rules_1.scrapYardIdSchema]),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], ScrapYardController.prototype, "deleteScrapYard", null);
-exports.ScrapYardController = ScrapYardController = __decorate([
-    (0, controller_decorator_1.Controller)('/scrap-yards'),
+], CollectorController.prototype, "getCollectorPerformance", null);
+exports.CollectorController = CollectorController = __decorate([
+    (0, controller_decorator_1.Controller)('/collectors'),
     __metadata("design:paramtypes", [])
-], ScrapYardController);
+], CollectorController);

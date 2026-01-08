@@ -7,7 +7,7 @@ const enum_1 = require("../model/enum");
 class PickupRequestService {
     async createPickupRequest(data) {
         try {
-            const pickupRequest = await config_1.prisma.pickupRequest.create({
+            const pickupRequest = await config_1.prisma.pickup_requests.create({
                 data: {
                     customerId: data.customerId,
                     vehicleDetails: data.vehicleDetails,
@@ -18,8 +18,8 @@ class PickupRequestService {
                     status: enum_1.PickupRequestStatus.PENDING
                 },
                 include: {
-                    customer: true,
-                    assignedCollector: true
+                    Customer: true,
+                    Employee: true
                 }
             });
             return api_result_1.ApiResult.success(pickupRequest, "Pickup request created successfully", 201);
@@ -54,20 +54,20 @@ class PickupRequestService {
                 ];
             }
             const [pickupRequests, total] = await Promise.all([
-                config_1.prisma.pickupRequest.findMany({
+                config_1.prisma.pickup_requests.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        customer: true,
-                        assignedCollector: true,
-                        order: true
+                        Customer: true,
+                        Employee: true,
+                        Order: true
                     },
                     orderBy: {
                         createdAt: 'desc'
                     }
                 }),
-                config_1.prisma.pickupRequest.count({ where })
+                config_1.prisma.pickup_requests.count({ where })
             ]);
             return api_result_1.ApiResult.success({
                 pickupRequests,
@@ -86,12 +86,12 @@ class PickupRequestService {
     }
     async getPickupRequestById(id) {
         try {
-            const pickupRequest = await config_1.prisma.pickupRequest.findUnique({
+            const pickupRequest = await config_1.prisma.pickup_requests.findUnique({
                 where: { id },
                 include: {
-                    customer: true,
-                    assignedCollector: true,
-                    order: true
+                    Customer: true,
+                    Employee: true,
+                    Order: true
                 }
             });
             if (!pickupRequest) {
@@ -106,12 +106,12 @@ class PickupRequestService {
     }
     async updatePickupRequest(id, data) {
         try {
-            const pickupRequest = await config_1.prisma.pickupRequest.update({
+            const pickupRequest = await config_1.prisma.pickup_requests.update({
                 where: { id },
                 data,
                 include: {
-                    customer: true,
-                    assignedCollector: true
+                    Customer: true,
+                    Employee: true
                 }
             });
             return api_result_1.ApiResult.success(pickupRequest, "Pickup request updated successfully");
@@ -123,7 +123,7 @@ class PickupRequestService {
     }
     async deletePickupRequest(id) {
         try {
-            await config_1.prisma.pickupRequest.delete({
+            await config_1.prisma.pickup_requests.delete({
                 where: { id }
             });
             return api_result_1.ApiResult.success(null, "Pickup request deleted successfully");
@@ -135,15 +135,15 @@ class PickupRequestService {
     }
     async assignPickupRequest(id, data) {
         try {
-            const pickupRequest = await config_1.prisma.pickupRequest.update({
+            const pickupRequest = await config_1.prisma.pickup_requests.update({
                 where: { id },
                 data: {
                     assignedTo: data.collectorId,
                     status: enum_1.PickupRequestStatus.ASSIGNED
                 },
                 include: {
-                    assignedCollector: true,
-                    customer: true
+                    Employee: true,
+                    Customer: true
                 }
             });
             return api_result_1.ApiResult.success(pickupRequest, "Pickup request assigned successfully");

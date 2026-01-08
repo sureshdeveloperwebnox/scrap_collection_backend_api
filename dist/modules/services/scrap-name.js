@@ -15,14 +15,14 @@ class ScrapNameService {
                 return api_result_1.ApiResult.error("Organization not found", 404);
             }
             // Ensure scrap category exists and belongs to the same organization
-            const category = await config_1.prisma.scrapCategory.findUnique({
+            const category = await config_1.prisma.scrap_categories.findUnique({
                 where: { id: data.scrapCategoryId },
             });
             if (!category || category.organizationId !== data.organizationId) {
                 return api_result_1.ApiResult.error("Scrap category not found or does not belong to this organization", 400);
             }
             // Unique name within category + organization
-            const existing = await config_1.prisma.scrapName.findFirst({
+            const existing = await config_1.prisma.scrap_names.findFirst({
                 where: {
                     name: data.name,
                     scrapCategoryId: data.scrapCategoryId,
@@ -32,7 +32,7 @@ class ScrapNameService {
             if (existing) {
                 return api_result_1.ApiResult.error("Scrap name with this name already exists in this category for this organization", 400);
             }
-            const scrapName = await config_1.prisma.scrapName.create({
+            const scrapName = await config_1.prisma.scrap_names.create({
                 data: {
                     name: data.name,
                     scrapCategoryId: data.scrapCategoryId,
@@ -40,8 +40,8 @@ class ScrapNameService {
                     isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true,
                 },
                 include: {
-                    scrapCategory: true,
-                    organization: true,
+                    scrap_categories: true,
+                    Organization: true,
                 },
             });
             return api_result_1.ApiResult.success(scrapName, "Scrap name created successfully", 201);
@@ -81,18 +81,18 @@ class ScrapNameService {
                 where.name = { contains: search, mode: "insensitive" };
             }
             const [scrapNames, total] = await Promise.all([
-                config_1.prisma.scrapName.findMany({
+                config_1.prisma.scrap_names.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        scrapCategory: true,
+                        scrap_categories: true,
                     },
                     orderBy: {
                         createdAt: "desc",
                     },
                 }),
-                config_1.prisma.scrapName.count({ where }),
+                config_1.prisma.scrap_names.count({ where }),
             ]);
             return api_result_1.ApiResult.success({
                 scrapNames,
@@ -111,11 +111,11 @@ class ScrapNameService {
     }
     async getScrapNameById(id) {
         try {
-            const scrapName = await config_1.prisma.scrapName.findUnique({
+            const scrapName = await config_1.prisma.scrap_names.findUnique({
                 where: { id },
                 include: {
-                    scrapCategory: true,
-                    organization: true,
+                    scrap_categories: true,
+                    Organization: true,
                 },
             });
             if (!scrapName) {
@@ -130,7 +130,7 @@ class ScrapNameService {
     }
     async updateScrapName(id, data) {
         try {
-            const existing = await config_1.prisma.scrapName.findUnique({
+            const existing = await config_1.prisma.scrap_names.findUnique({
                 where: { id },
             });
             if (!existing) {
@@ -138,7 +138,7 @@ class ScrapNameService {
             }
             let scrapCategoryId = existing.scrapCategoryId;
             if (data.scrapCategoryId && data.scrapCategoryId !== existing.scrapCategoryId) {
-                const category = await config_1.prisma.scrapCategory.findUnique({
+                const category = await config_1.prisma.scrap_categories.findUnique({
                     where: { id: data.scrapCategoryId },
                 });
                 if (!category || category.organizationId !== existing.organizationId) {
@@ -147,7 +147,7 @@ class ScrapNameService {
                 scrapCategoryId = data.scrapCategoryId;
             }
             if (data.name && (data.name !== existing.name || scrapCategoryId !== existing.scrapCategoryId)) {
-                const duplicate = await config_1.prisma.scrapName.findFirst({
+                const duplicate = await config_1.prisma.scrap_names.findFirst({
                     where: {
                         name: data.name,
                         scrapCategoryId,
@@ -159,12 +159,12 @@ class ScrapNameService {
                     return api_result_1.ApiResult.error("Scrap name with this name already exists in this category for this organization", 400);
                 }
             }
-            const scrapName = await config_1.prisma.scrapName.update({
+            const scrapName = await config_1.prisma.scrap_names.update({
                 where: { id },
                 data,
                 include: {
-                    scrapCategory: true,
-                    organization: true,
+                    scrap_categories: true,
+                    Organization: true,
                 },
             });
             return api_result_1.ApiResult.success(scrapName, "Scrap name updated successfully");
@@ -176,13 +176,13 @@ class ScrapNameService {
     }
     async deleteScrapName(id) {
         try {
-            const existing = await config_1.prisma.scrapName.findUnique({
+            const existing = await config_1.prisma.scrap_names.findUnique({
                 where: { id },
             });
             if (!existing) {
                 return api_result_1.ApiResult.error("Scrap name not found", 404);
             }
-            await config_1.prisma.scrapName.delete({
+            await config_1.prisma.scrap_names.delete({
                 where: { id },
             });
             return api_result_1.ApiResult.success(null, "Scrap name deleted successfully");

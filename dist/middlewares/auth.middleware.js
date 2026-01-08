@@ -9,9 +9,14 @@ const api_result_1 = require("../utils/api-result");
 const user_category_enum_1 = require("../utils/user-category.enum");
 const createRoleMiddleware = (allowedCategories) => {
     return (req, res, next) => {
-        // Get token from header
-        const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.split(' ')[1];
+        var _a;
+        // Get token from cookie first, fallback to header for backward compatibility
+        let token = (_a = req.cookies) === null || _a === void 0 ? void 0 : _a.accessToken;
+        if (!token) {
+            // Fallback to Authorization header
+            const authHeader = req.headers.authorization;
+            token = authHeader && authHeader.split(' ')[1];
+        }
         if (!token) {
             return api_result_1.ApiResult.error('No token provided, authorization denied', 401).send(res);
         }
@@ -21,7 +26,7 @@ const createRoleMiddleware = (allowedCategories) => {
             const decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
             // Check if user category is allowed
             const hasAccess = allowedCategories.includes(user_category_enum_1.UserCategory.ALL) ||
-                allowedCategories.includes(decoded.category);
+                allowedCategories.includes(decoded.role);
             if (!hasAccess) {
                 return api_result_1.ApiResult.error('Insufficient permissions to access this resource', 403).send(res);
             }

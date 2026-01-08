@@ -40,16 +40,16 @@ class LeadService {
                     ...(data.customerId && { customerId: data.customerId })
                 },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    customer: true
+                    Customer: true
                 }
             });
             // Create timeline entry
-            await config_1.prisma.leadTimeline.create({
+            await config_1.prisma.lead_timelines.create({
                 data: {
                     leadId: lead.id,
                     activity: 'Lead created',
@@ -123,12 +123,12 @@ class LeadService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        organization: {
+                        Organization: {
                             select: {
                                 name: true
                             }
                         },
-                        customer: true
+                        Customer: true
                     },
                     orderBy
                 }),
@@ -154,13 +154,13 @@ class LeadService {
             const lead = await config_1.prisma.lead.findUnique({
                 where: { id },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    customer: true,
-                    order: true
+                    Customer: true,
+                    Order: true
                 }
             });
             if (!lead) {
@@ -241,17 +241,17 @@ class LeadService {
                 where: { id },
                 data: updateData,
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    customer: true
+                    Customer: true
                 }
             });
             console.log('Update lead - updated lead:', lead);
             // Create timeline entry
-            await config_1.prisma.leadTimeline.create({
+            await config_1.prisma.lead_timelines.create({
                 data: {
                     leadId: id,
                     activity: 'Lead updated',
@@ -313,7 +313,6 @@ class LeadService {
                     organizationId: existingLead.organizationId,
                     leadId: id,
                     customerName: existingLead.fullName,
-                    customerPhone: existingLead.phone,
                     address: existingLead.locationAddress || '',
                     latitude: existingLead.latitude,
                     longitude: existingLead.longitude,
@@ -343,14 +342,14 @@ class LeadService {
             cache_1.cacheService.deletePattern('^leads:');
             cache_1.cacheService.deletePattern('^lead-stats:');
             // Create timeline entries
-            await config_1.prisma.leadTimeline.create({
+            await config_1.prisma.lead_timelines.create({
                 data: {
                     leadId: id,
                     activity: 'Lead converted to order',
                     performedBy: 'system'
                 }
             });
-            await config_1.prisma.orderTimeline.create({
+            await config_1.prisma.order_timelines.create({
                 data: {
                     orderId: order.id,
                     status: 'PENDING',
@@ -367,7 +366,7 @@ class LeadService {
     }
     async getLeadTimeline(id) {
         try {
-            const timeline = await config_1.prisma.leadTimeline.findMany({
+            const timeline = await config_1.prisma.lead_timelines.findMany({
                 where: { leadId: id },
                 orderBy: {
                     createdAt: 'asc'
@@ -417,6 +416,97 @@ class LeadService {
         }
         catch (error) {
             console.log("Error in getLeadStats", error);
+            return api_result_1.ApiResult.error(error.message);
+        }
+    }
+    async convertLeadToCustomer(id) {
+        try {
+            const existingLead = await config_1.prisma.lead.findUnique({
+                where: { id }
+            });
+            if (!existingLead) {
+                return api_result_1.ApiResult.error("Lead not found", 404);
+            }
+            if (existingLead.status === enum_1.LeadStatus.CONVERTED) {
+                return api_result_1.ApiResult.error("Lead is already converted", 400);
+            }
+            // Check if customer already exists for this phone in this organization
+            const existingCustomer = await config_1.prisma.customer.findFirst({
+                where: {
+                    phone: existingLead.phone,
+                    organizationId: existingLead.organizationId
+                }
+            });
+            if (existingCustomer) {
+                // Update lead status to CONVERTED and link to existing customer
+                await config_1.prisma.lead.update({
+                    where: { id },
+                    data: {
+                        status: enum_1.LeadStatus.CONVERTED,
+                        customerId: existingCustomer.id
+                    }
+                });
+                // Create timeline entry
+                await config_1.prisma.lead_timelines.create({
+                    data: {
+                        leadId: id,
+                        activity: 'Lead converted to existing customer',
+                        performedBy: 'system'
+                    }
+                });
+                // Invalidate leads cache and stats cache
+                cache_1.cacheService.deletePattern('^leads:');
+                cache_1.cacheService.deletePattern('^lead-stats:');
+                return api_result_1.ApiResult.success({
+                    leadId: id,
+                    customerId: existingCustomer.id,
+                    message: 'Lead linked to existing customer'
+                }, "Lead converted to existing customer successfully");
+            }
+            // Create new customer from lead
+            const customer = await config_1.prisma.customer.create({
+                data: {
+                    organizationId: existingLead.organizationId,
+                    name: existingLead.fullName,
+                    phone: existingLead.phone,
+                    email: existingLead.email,
+                    address: existingLead.locationAddress,
+                    latitude: existingLead.latitude,
+                    longitude: existingLead.longitude,
+                    vehicleType: existingLead.vehicleType,
+                    vehicleMake: existingLead.vehicleMake,
+                    vehicleModel: existingLead.vehicleModel,
+                    vehicleYear: existingLead.vehicleYear,
+                    vehicleCondition: existingLead.vehicleCondition,
+                    accountStatus: 'ACTIVE'
+                }
+            });
+            // Update lead status to CONVERTED and link to new customer
+            await config_1.prisma.lead.update({
+                where: { id },
+                data: {
+                    status: enum_1.LeadStatus.CONVERTED,
+                    customerId: customer.id
+                }
+            });
+            // Create timeline entry
+            await config_1.prisma.lead_timelines.create({
+                data: {
+                    leadId: id,
+                    activity: 'Lead converted to customer',
+                    performedBy: 'system'
+                }
+            });
+            // Invalidate leads cache and stats cache
+            cache_1.cacheService.deletePattern('^leads:');
+            cache_1.cacheService.deletePattern('^lead-stats:');
+            return api_result_1.ApiResult.success({
+                leadId: id,
+                customerId: customer.id
+            }, "Lead converted to customer successfully");
+        }
+        catch (error) {
+            console.log("Error in convertLeadToCustomer", error);
             return api_result_1.ApiResult.error(error.message);
         }
     }

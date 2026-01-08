@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuoteResponseEnum = exports.PickupRequestStatus = exports.CustomerStatus = exports.NotificationType = exports.PaymentStatus = exports.PaymentTypeEnum = exports.PaymentStatusEnum = exports.OrderStatus = exports.ScrapCategory = exports.LeadSourceEnum = exports.VehicleConditionEnum = exports.VehicleTypeEnum = exports.LeadStatus = exports.EmployeeRole = exports.AdminRoleType = exports.UserRole = void 0;
+exports.AssignmentStatus = exports.CollectionRecordStatus = exports.PaymentMethodEnum = exports.ScrapConditionEnum = exports.QuoteResponseEnum = exports.PickupRequestStatus = exports.CustomerStatus = exports.NotificationType = exports.PaymentStatus = exports.PaymentTypeEnum = exports.PaymentStatusEnum = exports.OrderStatus = exports.ScrapCategory = exports.LeadSourceEnum = exports.VehicleConditionEnum = exports.VehicleTypeEnum = exports.LeadStatus = exports.EmployeeRole = exports.AdminRoleType = exports.UserRole = void 0;
 var UserRole;
 (function (UserRole) {
     UserRole["USER"] = "USER";
@@ -115,3 +115,34 @@ var QuoteResponseEnum;
     QuoteResponseEnum["SMS"] = "SMS";
     QuoteResponseEnum["CHATBOT"] = "CHATBOT";
 })(QuoteResponseEnum || (exports.QuoteResponseEnum = QuoteResponseEnum = {}));
+var ScrapConditionEnum;
+(function (ScrapConditionEnum) {
+    ScrapConditionEnum["JUNK"] = "JUNK";
+    ScrapConditionEnum["DAMAGED"] = "DAMAGED";
+    ScrapConditionEnum["WRECKED"] = "WRECKED";
+    ScrapConditionEnum["ACCIDENTAL"] = "ACCIDENTAL";
+    ScrapConditionEnum["FULLY_SCRAP"] = "FULLY_SCRAP";
+})(ScrapConditionEnum || (exports.ScrapConditionEnum = ScrapConditionEnum = {}));
+var PaymentMethodEnum;
+(function (PaymentMethodEnum) {
+    PaymentMethodEnum["CASH"] = "CASH";
+    PaymentMethodEnum["CARD"] = "CARD";
+    PaymentMethodEnum["UPI"] = "UPI";
+    PaymentMethodEnum["BANK_TRANSFER"] = "BANK_TRANSFER";
+    PaymentMethodEnum["CHEQUE"] = "CHEQUE";
+    PaymentMethodEnum["ONLINE"] = "ONLINE";
+})(PaymentMethodEnum || (exports.PaymentMethodEnum = PaymentMethodEnum = {}));
+var CollectionRecordStatus;
+(function (CollectionRecordStatus) {
+    CollectionRecordStatus["DRAFT"] = "DRAFT";
+    CollectionRecordStatus["SUBMITTED"] = "SUBMITTED";
+    CollectionRecordStatus["APPROVED"] = "APPROVED";
+    CollectionRecordStatus["REJECTED"] = "REJECTED";
+    CollectionRecordStatus["COMPLETED"] = "COMPLETED";
+})(CollectionRecordStatus || (exports.CollectionRecordStatus = CollectionRecordStatus = {}));
+var AssignmentStatus;
+(function (AssignmentStatus) {
+    AssignmentStatus["PENDING"] = "PENDING";
+    AssignmentStatus["IN_PROGRESS"] = "IN_PROGRESS";
+    AssignmentStatus["COMPLETED"] = "COMPLETED";
+})(AssignmentStatus || (exports.AssignmentStatus = AssignmentStatus = {}));

@@ -33,8 +33,8 @@ let UploadController = class UploadController {
     async uploadImages(req, res) {
         try {
             const files = req.files;
-            // Default folder structure: lead/vehicles/images
-            const folder = req.query.type || 'lead/vehicles/images';
+            // Folder parameter: 'assignments', 'orders', 'leads', 'general', etc.
+            const folder = (req.query.folder || req.query.type) || 'general';
             if (!files || files.length === 0) {
                 api_result_1.ApiResult.error('No files provided', 400).send(res);
                 return;

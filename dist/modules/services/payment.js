@@ -20,9 +20,9 @@ class PaymentService {
                     organizationId: ((_a = (await config_1.prisma.order.findUnique({ where: { id: data.orderId } }))) === null || _a === void 0 ? void 0 : _a.organizationId) || 0
                 },
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true
                 }
             });
             // Update order payment status
@@ -72,10 +72,10 @@ class PaymentService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        order: true,
-                        customer: true,
-                        collector: true,
-                        refund: true
+                        Order: true,
+                        Customer: true,
+                        Employee: true,
+                        refunds: true
                     },
                     orderBy: {
                         createdAt: 'desc'
@@ -103,10 +103,10 @@ class PaymentService {
             const payment = await config_1.prisma.payment.findUnique({
                 where: { id },
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true,
-                    refund: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true,
+                    refunds: true
                 }
             });
             if (!payment) {
@@ -125,9 +125,9 @@ class PaymentService {
                 where: { id },
                 data,
                 include: {
-                    order: true,
-                    customer: true,
-                    collector: true
+                    Order: true,
+                    Customer: true,
+                    Employee: true
                 }
             });
             return api_result_1.ApiResult.success(payment, "Payment updated successfully");
@@ -145,7 +145,7 @@ class PaymentService {
             if (!payment) {
                 return api_result_1.ApiResult.error("Payment not found", 404);
             }
-            const refund = await config_1.prisma.refund.create({
+            const refund = await config_1.prisma.refunds.create({
                 data: {
                     paymentId,
                     amount: data.amount,
@@ -153,7 +153,7 @@ class PaymentService {
                     processedByAdmin: data.processedByAdmin
                 },
                 include: {
-                    payment: true
+                    Payment: true
                 }
             });
             // Update payment status

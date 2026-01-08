@@ -6,13 +6,16 @@ const api_result_1 = require("../../utils/api-result");
 class CrewService {
     async createCrew(data) {
         try {
-            const { name, description, memberIds } = data;
-            // Check if crew name already exists
-            const existing = await config_1.prisma.crew.findUnique({
-                where: { name }
+            const { name, description, memberIds, organizationId } = data;
+            // Check if crew name already exists in this organization
+            const existing = await config_1.prisma.crews.findFirst({
+                where: {
+                    name,
+                    organizationId
+                }
             });
             if (existing) {
-                return api_result_1.ApiResult.error('Crew with this name already exists', 400);
+                return api_result_1.ApiResult.error('Crew with this name already exists in your organization', 400);
             }
             // Verify all members exist if provided
             if (memberIds && memberIds.length > 0) {
@@ -25,16 +28,18 @@ class CrewService {
                     return api_result_1.ApiResult.error('One or more members not found', 400);
                 }
             }
-            const crew = await config_1.prisma.crew.create({
+            const crew = await config_1.prisma.crews.create({
                 data: {
+                    updatedAt: new Date(),
                     name,
                     description,
-                    members: {
+                    organizationId,
+                    Employee: {
                         connect: (memberIds === null || memberIds === void 0 ? void 0 : memberIds.map((id) => ({ id }))) || [],
                     },
                 },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -51,12 +56,15 @@ class CrewService {
             return api_result_1.ApiResult.error(error.message || "Failed to create crew");
         }
     }
-    async getAllCrews() {
+    async getAllCrews(organizationId) {
         try {
-            const crews = await config_1.prisma.crew.findMany({
-                where: { isActive: true },
+            const crews = await config_1.prisma.crews.findMany({
+                where: {
+                    isActive: true,
+                    organizationId
+                },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -65,7 +73,7 @@ class CrewService {
                         }
                     },
                     _count: {
-                        select: { members: true },
+                        select: { Employee: true },
                     },
                 },
                 orderBy: { createdAt: 'desc' },
@@ -79,10 +87,10 @@ class CrewService {
     }
     async getCrewById(id) {
         try {
-            const crew = await config_1.prisma.crew.findUnique({
+            const crew = await config_1.prisma.crews.findUnique({
                 where: { id },
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -112,11 +120,11 @@ class CrewService {
                     set: memberIds.map((mid) => ({ id: mid })),
                 };
             }
-            const crew = await config_1.prisma.crew.update({
+            const crew = await config_1.prisma.crews.update({
                 where: { id },
                 data: updateData,
                 include: {
-                    members: {
+                    Employee: {
                         select: {
                             id: true,
                             fullName: true,
@@ -135,9 +143,9 @@ class CrewService {
     }
     async deleteCrew(id) {
         try {
-            await config_1.prisma.crew.update({
+            await config_1.prisma.crews.update({
                 where: { id },
-                data: { isActive: false },
+                data: { updatedAt: new Date(), isActive: false },
             });
             return api_result_1.ApiResult.success(null, "Crew deleted successfully");
         }

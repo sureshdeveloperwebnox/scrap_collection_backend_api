@@ -16,6 +16,19 @@ class ApiResult {
         const response = response_generator_1.ResponseGenerator.generate(statusCode, data, message, validationErrors);
         return new ApiResult(response);
     }
+    // Getter methods for accessing response properties
+    get success() {
+        return this.apiResponse.status === 'success';
+    }
+    get data() {
+        return this.apiResponse.data;
+    }
+    get message() {
+        return this.apiResponse.message;
+    }
+    get statusCode() {
+        return this.apiResponse.code;
+    }
     send(res) {
         console.log('ApiResult.send called with apiResponse:', this.apiResponse);
         if (!this.apiResponse) {

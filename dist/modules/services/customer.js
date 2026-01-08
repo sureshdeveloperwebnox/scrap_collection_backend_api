@@ -4,6 +4,7 @@ exports.CustomerService = void 0;
 const config_1 = require("../../config");
 const api_result_1 = require("../../utils/api-result");
 const enum_1 = require("../model/enum");
+const cache_1 = require("../../utils/cache");
 class CustomerService {
     async createCustomer(data) {
         try {
@@ -51,12 +52,12 @@ class CustomerService {
                     accountStatus: accountStatus
                 },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    user: {
+                    users: {
                         select: {
                             id: true,
                             email: true,
@@ -69,6 +70,34 @@ class CustomerService {
                     }
                 }
             });
+            // Check if there's a lead associated with this phone number and update its status to CONVERTED
+            const associatedLead = await config_1.prisma.lead.findFirst({
+                where: {
+                    phone: data.phone,
+                    organizationId: data.organizationId,
+                    status: { not: 'CONVERTED' }
+                }
+            });
+            if (associatedLead) {
+                await config_1.prisma.lead.update({
+                    where: { id: associatedLead.id },
+                    data: {
+                        status: 'CONVERTED',
+                        customerId: customer.id
+                    }
+                });
+                // Create timeline entry for the lead
+                await config_1.prisma.lead_timelines.create({
+                    data: {
+                        leadId: associatedLead.id,
+                        activity: 'Lead automatically converted when customer was created',
+                        performedBy: 'system'
+                    }
+                });
+                // Invalidate leads cache and stats cache
+                cache_1.cacheService.deletePattern('^leads:');
+                cache_1.cacheService.deletePattern('^lead-stats:');
+            }
             return api_result_1.ApiResult.success(customer, "Customer created successfully", 201);
         }
         catch (error) {
@@ -107,12 +136,12 @@ class CustomerService {
                     skip,
                     take: parsedLimit,
                     include: {
-                        organization: {
+                        Organization: {
                             select: {
                                 name: true
                             }
                         },
-                        user: {
+                        users: {
                             select: {
                                 id: true,
                                 email: true,
@@ -150,12 +179,12 @@ class CustomerService {
             const customer = await config_1.prisma.customer.findUnique({
                 where: { id },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    user: {
+                    users: {
                         select: {
                             id: true,
                             email: true,
@@ -166,13 +195,13 @@ class CustomerService {
                             isActive: true
                         }
                     },
-                    orders: {
+                    Order: {
                         take: 10,
                         orderBy: {
                             createdAt: 'desc'
                         }
                     },
-                    payments: {
+                    Payment: {
                         take: 10,
                         orderBy: {
                             createdAt: 'desc'
@@ -212,12 +241,12 @@ class CustomerService {
                 where: { id },
                 data: updateData,
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
                     },
-                    user: {
+                    users: {
                         select: {
                             id: true,
                             email: true,
@@ -230,6 +259,36 @@ class CustomerService {
                     }
                 }
             });
+            // Check if there's a lead associated with this phone number and update its status to CONVERTED
+            if (customer.phone) {
+                const associatedLead = await config_1.prisma.lead.findFirst({
+                    where: {
+                        phone: customer.phone,
+                        organizationId: existingCustomer.organizationId,
+                        status: { not: 'CONVERTED' }
+                    }
+                });
+                if (associatedLead) {
+                    await config_1.prisma.lead.update({
+                        where: { id: associatedLead.id },
+                        data: {
+                            status: 'CONVERTED',
+                            customerId: customer.id
+                        }
+                    });
+                    // Create timeline entry for the lead
+                    await config_1.prisma.lead_timelines.create({
+                        data: {
+                            leadId: associatedLead.id,
+                            activity: 'Lead automatically converted when customer was updated',
+                            performedBy: 'system'
+                        }
+                    });
+                    // Invalidate leads cache and stats cache
+                    cache_1.cacheService.deletePattern('^leads:');
+                    cache_1.cacheService.deletePattern('^lead-stats:');
+                }
+            }
             return api_result_1.ApiResult.success(customer, "Customer updated successfully");
         }
         catch (error) {

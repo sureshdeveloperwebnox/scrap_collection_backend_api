@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CrewController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
+const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
+const user_category_enum_1 = require("../../utils/user-category.enum");
 const crew_1 = require("../services/crew");
 const api_result_1 = require("../../utils/api-result");
 let CrewController = class CrewController {
@@ -19,8 +21,20 @@ let CrewController = class CrewController {
         this.crewService = new crew_1.CrewService();
     }
     async create(req, res) {
+        var _a;
         try {
-            const data = req.body;
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
+                return;
+            }
+            const data = {
+                ...req.body,
+                organizationId: userOrganizationId
+            };
             const result = await this.crewService.createCrew(data);
             result.send(res);
         }
@@ -29,8 +43,17 @@ let CrewController = class CrewController {
         }
     }
     async getAll(req, res) {
+        var _a;
         try {
-            const result = await this.crewService.getAllCrews();
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
+                return;
+            }
+            const result = await this.crewService.getAllCrews(userOrganizationId);
             result.send(res);
         }
         catch (error) {
@@ -72,30 +95,35 @@ let CrewController = class CrewController {
 exports.CrewController = CrewController;
 __decorate([
     (0, method_decorator_1.POST)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], CrewController.prototype, "create", null);
 __decorate([
     (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], CrewController.prototype, "getAll", null);
 __decorate([
     (0, method_decorator_1.GET)('/:id'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], CrewController.prototype, "getById", null);
 __decorate([
     (0, method_decorator_1.PUT)('/:id'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], CrewController.prototype, "update", null);
 __decorate([
     (0, method_decorator_1.DELETE)('/:id'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)

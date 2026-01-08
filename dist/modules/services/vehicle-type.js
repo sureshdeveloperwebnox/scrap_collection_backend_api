@@ -18,7 +18,7 @@ class VehicleTypeService {
                 }
             }
             // Check if vehicle type name already exists for this organization
-            const existingVehicleType = await config_1.prisma.vehicleType.findFirst({
+            const existingVehicleType = await config_1.prisma.vehicle_types.findFirst({
                 where: {
                     name: data.name,
                     organizationId: data.organizationId || null
@@ -27,14 +27,14 @@ class VehicleTypeService {
             if (existingVehicleType) {
                 return api_result_1.ApiResult.error("Vehicle type with this name already exists for this organization", 400);
             }
-            const vehicleType = await config_1.prisma.vehicleType.create({
+            const vehicleType = await config_1.prisma.vehicle_types.create({
                 data: {
-                    organizationId: data.organizationId,
+                    organizationId: data.organizationId || null,
                     name: data.name,
                     isActive: (_a = data.isActive) !== null && _a !== void 0 ? _a : true
                 },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -120,12 +120,12 @@ class VehicleTypeService {
             const orderBy = {};
             orderBy[finalSortBy] = finalSortOrder;
             const [vehicleTypes, total] = await Promise.all([
-                config_1.prisma.vehicleType.findMany({
+                config_1.prisma.vehicle_types.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        organization: {
+                        Organization: {
                             select: {
                                 name: true
                             }
@@ -133,7 +133,7 @@ class VehicleTypeService {
                     },
                     orderBy
                 }),
-                config_1.prisma.vehicleType.count({ where })
+                config_1.prisma.vehicle_types.count({ where })
             ]);
             const totalPages = Math.ceil(total / parsedLimit);
             const hasNextPage = parsedPage < totalPages;
@@ -160,10 +160,10 @@ class VehicleTypeService {
     }
     async getVehicleTypeById(id) {
         try {
-            const vehicleType = await config_1.prisma.vehicleType.findUnique({
+            const vehicleType = await config_1.prisma.vehicle_types.findUnique({
                 where: { id },
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -182,7 +182,7 @@ class VehicleTypeService {
     }
     async updateVehicleType(id, data) {
         try {
-            const existingVehicleType = await config_1.prisma.vehicleType.findUnique({
+            const existingVehicleType = await config_1.prisma.vehicle_types.findUnique({
                 where: { id }
             });
             if (!existingVehicleType) {
@@ -190,7 +190,7 @@ class VehicleTypeService {
             }
             // If name is being updated, check if it already exists for this organization
             if (data.name && data.name !== existingVehicleType.name) {
-                const duplicateVehicleType = await config_1.prisma.vehicleType.findFirst({
+                const duplicateVehicleType = await config_1.prisma.vehicle_types.findFirst({
                     where: {
                         name: data.name,
                         organizationId: existingVehicleType.organizationId,
@@ -201,11 +201,11 @@ class VehicleTypeService {
                     return api_result_1.ApiResult.error("Vehicle type with this name already exists for this organization", 400);
                 }
             }
-            const vehicleType = await config_1.prisma.vehicleType.update({
+            const vehicleType = await config_1.prisma.vehicle_types.update({
                 where: { id },
                 data,
                 include: {
-                    organization: {
+                    Organization: {
                         select: {
                             name: true
                         }
@@ -224,18 +224,24 @@ class VehicleTypeService {
     }
     async deleteVehicleType(id) {
         try {
-            const existingVehicleType = await config_1.prisma.vehicleType.findUnique({
+            const existingVehicleType = await config_1.prisma.vehicle_types.findUnique({
                 where: { id }
             });
             if (!existingVehicleType) {
                 return api_result_1.ApiResult.error("Vehicle type not found", 404);
             }
+            // Check if this vehicle type is being used by any vehicle names
+            const vehicleNamesCount = await config_1.prisma.vehicle_names.count({
+                where: { vehicleTypeId: id }
+            });
+            if (vehicleNamesCount > 0) {
+                return api_result_1.ApiResult.error(`Cannot delete vehicle type. It is currently being used by ${vehicleNamesCount} vehicle name(s). Please remove or reassign these vehicle names first.`, 400);
+            }
             // Note: Since the schema changed:
             // - Leads now use vehicleType enum (VehicleTypeEnum) which is independent of VehicleType table
             // - Orders use vehicleDetails JSON which doesn't reference VehicleType table
-            // So we can't check if a VehicleType is being used in leads or orders
-            // VehicleType is now more of a master/reference table for UI purposes
-            await config_1.prisma.vehicleType.delete({
+            // So we only need to check VehicleNames table for foreign key constraints
+            await config_1.prisma.vehicle_types.delete({
                 where: { id }
             });
             // Invalidate vehicle types cache and stats cache
@@ -245,6 +251,10 @@ class VehicleTypeService {
         }
         catch (error) {
             console.log("Error in deleteVehicleType", error);
+            // Handle Prisma foreign key constraint errors
+            if (error.code === 'P2003') {
+                return api_result_1.ApiResult.error("Cannot delete vehicle type due to existing references. Please remove all associated records first.", 400);
+            }
             return api_result_1.ApiResult.error(error.message);
         }
     }
@@ -257,14 +267,14 @@ class VehicleTypeService {
             if (cachedResult) {
                 return api_result_1.ApiResult.success(cachedResult, "Vehicle type statistics retrieved successfully (cached)");
             }
-            const stats = await config_1.prisma.vehicleType.groupBy({
+            const stats = await config_1.prisma.vehicle_types.groupBy({
                 by: ['isActive'],
                 where: { organizationId },
                 _count: {
                     isActive: true
                 }
             });
-            const totalVehicleTypes = await config_1.prisma.vehicleType.count({
+            const totalVehicleTypes = await config_1.prisma.vehicle_types.count({
                 where: { organizationId }
             });
             const statsMap = {

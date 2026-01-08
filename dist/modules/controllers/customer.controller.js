@@ -13,6 +13,8 @@ exports.CustomerController = void 0;
 const controller_decorator_1 = require("../../decorators/controller.decorator");
 const method_decorator_1 = require("../../decorators/method.decorator");
 const middleware_decorator_1 = require("../../decorators/middleware.decorator");
+const authenticate_decorator_1 = require("../../decorators/authenticate.decorator");
+const user_category_enum_1 = require("../../utils/user-category.enum");
 const customer_1 = require("../services/customer");
 const customer_rules_1 = require("../rules/customer.rules");
 const api_result_1 = require("../../utils/api-result");
@@ -32,8 +34,17 @@ let CustomerController = class CustomerController {
         }
     }
     async getCustomers(req, res) {
+        var _a;
         try {
-            const result = await this.customerService.getCustomers(req.query);
+            // SECURITY: Extract organizationId from authenticated user
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            const queryWithOrgId = {
+                ...req.query,
+                organizationId: userOrganizationId
+            };
+            const result = await this.customerService.getCustomers(queryWithOrgId);
             result.send(res);
         }
         catch (error) {
@@ -58,8 +69,8 @@ let CustomerController = class CustomerController {
             const customer = await config_1.prisma.customer.findFirst({
                 where: { userId },
                 include: {
-                    organization: true,
-                    user: true
+                    Organization: true,
+                    users: true
                 }
             });
             if (!customer) {
@@ -96,9 +107,17 @@ let CustomerController = class CustomerController {
         }
     }
     async getCustomerStats(req, res) {
+        var _a;
         try {
-            const organizationId = parseInt(req.params.organizationId);
-            const result = await this.customerService.getCustomerStats(organizationId);
+            // SECURITY: Use authenticated user's organizationId, ignore URL param
+            const userOrganizationId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.organizationId)
+                ? parseInt(req.user.organizationId)
+                : undefined;
+            if (!userOrganizationId) {
+                api_result_1.ApiResult.error("Organization ID not found", 400).send(res);
+                return;
+            }
+            const result = await this.customerService.getCustomerStats(userOrganizationId);
             result.send(res);
         }
         catch (error) {
@@ -112,9 +131,9 @@ let CustomerController = class CustomerController {
             const orders = await config_1.prisma.order.findMany({
                 where: { customerId: id },
                 include: {
-                    assignedCollector: true,
-                    yard: true,
-                    payment: true
+                    Employee: true,
+                    scrap_yards: true,
+                    Payment: true
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -133,9 +152,9 @@ let CustomerController = class CustomerController {
             const payments = await config_1.prisma.payment.findMany({
                 where: { customerId: id },
                 include: {
-                    order: true,
-                    collector: true,
-                    refund: true
+                    Order: true,
+                    Employee: true,
+                    refunds: true
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -154,8 +173,8 @@ let CustomerController = class CustomerController {
             const reviews = await config_1.prisma.review.findMany({
                 where: { customerId: id },
                 include: {
-                    order: true,
-                    collector: true
+                    Order: true,
+                    Employee: true
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -172,6 +191,7 @@ let CustomerController = class CustomerController {
 exports.CustomerController = CustomerController;
 __decorate([
     (0, method_decorator_1.POST)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([customer_rules_1.createCustomerSchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -179,6 +199,7 @@ __decorate([
 ], CustomerController.prototype, "createCustomer", null);
 __decorate([
     (0, method_decorator_1.GET)('/'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     (0, middleware_decorator_1.Validate)([customer_rules_1.customerQuerySchema]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
@@ -213,6 +234,7 @@ __decorate([
 ], CustomerController.prototype, "deleteCustomer", null);
 __decorate([
     (0, method_decorator_1.GET)('/stats/:organizationId'),
+    (0, authenticate_decorator_1.Authenticate)([user_category_enum_1.UserCategory.ALL]),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)

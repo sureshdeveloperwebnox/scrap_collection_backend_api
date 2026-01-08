@@ -27,33 +27,20 @@ class MobileAuth {
         try {
             // Check if identifier is email or phone
             const isEmail = identifier.includes('@');
-            // Find user by email or phone
-            const user = await config_1.prisma.user.findFirst({
+            // Find employee by email or phone
+            const employee = await config_1.prisma.employee.findFirst({
                 where: isEmail
                     ? { email: identifier }
-                    : { phone: identifier }
-            });
-            if (!user) {
-                return api_result_1.ApiResult.error('Invalid credentials', 401);
-            }
-            // Check if user has EMPLOYEE role
-            if (user.role !== 'EMPLOYEE') {
-                return api_result_1.ApiResult.error('Access denied. Only collectors can login to mobile app', 403);
-            }
-            // Get employee details
-            const employee = await config_1.prisma.employee.findFirst({
-                where: {
-                    userId: user.id
-                },
+                    : { phone: identifier },
                 include: {
-                    role: true,
-                    scrapYard: {
+                    roles: true,
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true
                         }
                     },
-                    crew: {
+                    crews: {
                         select: {
                             id: true,
                             name: true
@@ -62,21 +49,21 @@ class MobileAuth {
                 }
             });
             if (!employee) {
-                return api_result_1.ApiResult.error('Employee record not found', 404);
+                return api_result_1.ApiResult.error('Invalid credentials', 401);
             }
             // Check if employee role is COLLECTOR
-            if (employee.role.name.toLowerCase() !== 'collector') {
+            if (employee.roles.name.toLowerCase() !== 'collector') {
                 return api_result_1.ApiResult.error('Access denied. Only collectors can login to mobile app', 403);
             }
             // Check if collector is active
             if (!employee.isActive) {
                 return api_result_1.ApiResult.error('Your account is inactive. Please contact administrator', 403);
             }
-            // Verify password
-            if (!user.hashPassword) {
+            // Verify password using employee.passwordHash
+            if (!employee.passwordHash) {
                 return api_result_1.ApiResult.error('Invalid credentials', 401);
             }
-            const hashFromDB = String(user.hashPassword).replace(/^\$2y\$/, '$2a$');
+            const hashFromDB = String(employee.passwordHash).replace(/^\$2y\$/, '$2a$');
             const isPasswordValid = await bcrypt_1.default.compare(password, hashFromDB);
             if (!isPasswordValid) {
                 return api_result_1.ApiResult.error('Invalid credentials', 401);
@@ -84,10 +71,10 @@ class MobileAuth {
             // Generate access token and refresh token
             const accessToken = this.generateAccessToken({
                 id: employee.id,
-                email: user.email,
-                phone: user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -96,10 +83,10 @@ class MobileAuth {
             });
             const refreshToken = this.generateRefreshToken({
                 id: employee.id,
-                email: user.email,
-                phone: user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -111,17 +98,17 @@ class MobileAuth {
                 collector: {
                     id: employee.id,
                     fullName: employee.fullName,
-                    email: user.email,
-                    phone: user.phone || '',
+                    email: employee.email,
+                    phone: employee.phone || '',
                     role: {
-                        id: employee.role.id,
-                        name: employee.role.name
+                        id: employee.roles.id,
+                        name: employee.roles.name
                     },
                     profilePhoto: employee.profilePhoto || undefined,
                     rating: employee.rating || 0,
                     completedPickups: employee.completedPickups,
-                    scrapYard: employee.scrapYard || undefined,
-                    crew: employee.crew || undefined
+                    scrapYard: employee.scrap_yards || undefined,
+                    crew: employee.crews || undefined
                 },
                 accessToken,
                 refreshToken
@@ -153,15 +140,15 @@ class MobileAuth {
             const employee = await config_1.prisma.employee.findUnique({
                 where: { id: decoded.id },
                 include: {
-                    role: true,
-                    user: true,
-                    scrapYard: {
+                    roles: true,
+                    users: true,
+                    scrap_yards: {
                         select: {
                             id: true,
                             yardName: true
                         }
                     },
-                    crew: {
+                    crews: {
                         select: {
                             id: true,
                             name: true
@@ -177,16 +164,16 @@ class MobileAuth {
                 return api_result_1.ApiResult.error('Your account is inactive. Please contact administrator', 403);
             }
             // Check if user is still active
-            if (!((_a = employee.user) === null || _a === void 0 ? void 0 : _a.isActive)) {
+            if (!((_a = employee.users) === null || _a === void 0 ? void 0 : _a.isActive)) {
                 return api_result_1.ApiResult.error('Your account is inactive. Please contact administrator', 403);
             }
             // Generate new tokens
             const newAccessToken = this.generateAccessToken({
                 id: employee.id,
-                email: employee.user.email,
-                phone: employee.user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,
@@ -195,10 +182,10 @@ class MobileAuth {
             });
             const newRefreshToken = this.generateRefreshToken({
                 id: employee.id,
-                email: employee.user.email,
-                phone: employee.user.phone || '',
+                email: employee.email,
+                phone: employee.phone || '',
                 fullName: employee.fullName,
-                role: employee.role.name,
+                role: employee.roles.name,
                 roleId: employee.roleId,
                 organizationId: employee.organizationId,
                 scrapYardId: employee.scrapYardId || undefined,

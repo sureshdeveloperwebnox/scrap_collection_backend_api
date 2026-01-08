@@ -6,7 +6,7 @@ const api_result_1 = require("../../utils/api-result");
 class ScrapYardService {
     async createScrapYard(data) {
         try {
-            const scrapYard = await config_1.prisma.scrapYard.create({
+            const scrapYard = await config_1.prisma.scrap_yards.create({
                 data: {
                     organizationId: data.organizationId,
                     yardName: data.yardName,
@@ -19,8 +19,8 @@ class ScrapYardService {
                     isActive: data.isActive !== undefined ? data.isActive : true
                 },
                 include: {
-                    organization: true,
-                    employees: true
+                    Organization: true,
+                    Employee: true
                 }
             });
             return api_result_1.ApiResult.success(scrapYard, "Scrap yard created successfully", 201);
@@ -57,19 +57,19 @@ class ScrapYardService {
                 ];
             }
             const [scrapYards, total] = await Promise.all([
-                config_1.prisma.scrapYard.findMany({
+                config_1.prisma.scrap_yards.findMany({
                     where,
                     skip,
                     take: parsedLimit,
                     include: {
-                        organization: true,
-                        employees: true
+                        Organization: true,
+                        Employee: true
                     },
                     orderBy: {
                         createdAt: 'desc'
                     }
                 }),
-                config_1.prisma.scrapYard.count({ where })
+                config_1.prisma.scrap_yards.count({ where })
             ]);
             // Fetch assigned employees (managers) based on assignedEmployeeIds
             const scrapYardsWithEmployees = await Promise.all(scrapYards.map(async (yard) => {
@@ -90,7 +90,7 @@ class ScrapYardService {
                                     id: true,
                                     fullName: true,
                                     email: true,
-                                    role: {
+                                    roles: {
                                         select: {
                                             id: true,
                                             name: true,
@@ -129,12 +129,12 @@ class ScrapYardService {
     }
     async getScrapYardById(id) {
         try {
-            const scrapYard = await config_1.prisma.scrapYard.findUnique({
+            const scrapYard = await config_1.prisma.scrap_yards.findUnique({
                 where: { id },
                 include: {
-                    organization: true,
-                    employees: true,
-                    orders: true
+                    Organization: true,
+                    Employee: true,
+                    Order: true
                 }
             });
             if (!scrapYard) {
@@ -156,7 +156,7 @@ class ScrapYardService {
                                 id: true,
                                 fullName: true,
                                 email: true,
-                                role: {
+                                roles: {
                                     select: {
                                         id: true,
                                         name: true,
@@ -186,12 +186,12 @@ class ScrapYardService {
     }
     async updateScrapYard(id, data) {
         try {
-            const scrapYard = await config_1.prisma.scrapYard.update({
+            const scrapYard = await config_1.prisma.scrap_yards.update({
                 where: { id },
                 data,
                 include: {
-                    organization: true,
-                    employees: true
+                    Organization: true,
+                    Employee: true
                 }
             });
             return api_result_1.ApiResult.success(scrapYard, "Scrap yard updated successfully");
@@ -203,7 +203,7 @@ class ScrapYardService {
     }
     async deleteScrapYard(id) {
         try {
-            await config_1.prisma.scrapYard.delete({
+            await config_1.prisma.scrap_yards.delete({
                 where: { id }
             });
             return api_result_1.ApiResult.success(null, "Scrap yard deleted successfully");
@@ -220,14 +220,14 @@ class ScrapYardService {
             if (organizationId) {
                 where.organizationId = typeof organizationId === 'string' ? parseInt(organizationId, 10) : organizationId;
             }
-            const stats = await config_1.prisma.scrapYard.groupBy({
+            const stats = await config_1.prisma.scrap_yards.groupBy({
                 by: ['isActive'],
                 where,
                 _count: {
                     isActive: true
                 }
             });
-            const totalValue = await config_1.prisma.scrapYard.count({ where });
+            const totalValue = await config_1.prisma.scrap_yards.count({ where });
             const statsMap = {
                 total: totalValue,
                 active: 0,
@@ -235,7 +235,7 @@ class ScrapYardService {
                 maintenance: 0,
                 byState: {}
             };
-            stats.forEach(stat => {
+            stats.forEach((stat) => {
                 if (stat.isActive) {
                     statsMap.active = stat._count.isActive;
                 }

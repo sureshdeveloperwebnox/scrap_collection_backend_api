@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadService = void 0;
-const storage_service_1 = require("../../utils/storage.service");
+const local_storage_service_1 = require("../../utils/local-storage.service");
 const api_result_1 = require("../../utils/api-result");
 class UploadService {
     constructor() {
@@ -50,9 +50,12 @@ class UploadService {
         return { valid: true };
     }
     /**
-     * Upload images
+     * Upload images to local storage
+     * @param files - Array of files to upload
+     * @param folder - Folder to store files (e.g., 'assignments', 'orders', 'leads')
+     * @returns Relative paths that should be stored in database
      */
-    async uploadImages(files, folder = 'lead/vehicles/images') {
+    async uploadImages(files, folder = 'general') {
         try {
             if (!files || files.length === 0) {
                 return api_result_1.ApiResult.error('No files provided', 400);
@@ -75,16 +78,16 @@ class UploadService {
             if (validFiles.length === 0) {
                 return api_result_1.ApiResult.error(`All files failed validation: ${validationErrors.join('; ')}`, 400);
             }
-            // Upload valid files
+            // Upload valid files to local storage
             const fileObjects = validFiles.map((file) => ({
                 buffer: file.buffer,
                 originalname: file.originalname,
                 mimetype: file.mimetype,
             }));
-            // Upload files and get relative paths (not full URLs)
-            const paths = await storage_service_1.storageService.uploadFiles(fileObjects, folder);
+            // Upload files and get relative paths (e.g., 'assignments/uuid.jpg')
+            const paths = await local_storage_service_1.localStorageService.uploadFiles(fileObjects, folder);
             return api_result_1.ApiResult.success({
-                paths, // Return relative paths
+                paths, // Return relative paths to store in database
                 count: paths.length,
                 errors: validationErrors.length > 0 ? validationErrors : undefined,
             }, `Successfully uploaded ${paths.length} file(s)${validationErrors.length > 0 ? `, ${validationErrors.length} failed` : ''}`);
@@ -95,15 +98,15 @@ class UploadService {
         }
     }
     /**
-     * Delete a single image
-     * @param imagePath - Relative path or full URL of the image
+     * Delete a single image from local storage
+     * @param imagePath - Relative path of the image (e.g., 'assignments/uuid.jpg')
      */
     async deleteImage(imagePath) {
         try {
             if (!imagePath || typeof imagePath !== 'string') {
                 return api_result_1.ApiResult.error('Invalid image path', 400);
             }
-            const deleted = await storage_service_1.storageService.deleteFile(imagePath);
+            const deleted = await local_storage_service_1.localStorageService.deleteFile(imagePath);
             if (deleted) {
                 return api_result_1.ApiResult.success(null, 'Image deleted successfully');
             }
@@ -117,21 +120,29 @@ class UploadService {
         }
     }
     /**
-     * Delete multiple images
-     * @param imagePaths - Array of relative paths or full URLs
+     * Delete multiple images from local storage
+     * @param imagePaths - Array of relative paths
      */
     async deleteImages(imagePaths) {
         try {
             if (!imagePaths || !Array.isArray(imagePaths) || imagePaths.length === 0) {
                 return api_result_1.ApiResult.error('Invalid image paths', 400);
             }
-            const result = await storage_service_1.storageService.deleteFiles(imagePaths);
+            const result = await local_storage_service_1.localStorageService.deleteFiles(imagePaths);
             return api_result_1.ApiResult.success(result, `Deleted ${result.deleted.length} image(s)${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}`);
         }
         catch (error) {
             console.error('Error in deleteImages:', error);
             return api_result_1.ApiResult.error(error.message || 'Failed to delete images', 500);
         }
+    }
+    /**
+     * Get full URL for a relative path
+     * @param relativePath - Relative path from database (e.g., 'assignments/uuid.jpg')
+     * @returns Full URL for frontend access (e.g., '/uploads/assignments/uuid.jpg')
+     */
+    getFileUrl(relativePath) {
+        return local_storage_service_1.localStorageService.getFullUrl(relativePath);
     }
 }
 exports.UploadService = UploadService;
