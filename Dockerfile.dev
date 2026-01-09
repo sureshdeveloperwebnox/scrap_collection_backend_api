@@ -1,0 +1,27 @@
+# Development Dockerfile with hot-reload support
+
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development tools
+RUN apk add --no-cache git
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm install
+
+# Copy prisma schema
+COPY prisma ./prisma/
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Expose backend port
+EXPOSE 7001
+
+# Start in development mode with hot-reload
+CMD ["npm", "run", "dev"]
