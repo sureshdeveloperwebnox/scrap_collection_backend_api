@@ -22,11 +22,15 @@ export class StorageService {
     this.folderName = (process.env.FOLDER_NAME || 'Scrap_Service').trim();
 
     if (!process.env.ACCESS_KEY || !process.env.SECRET_ACCESS_KEY) {
-      throw new Error('Digital Ocean Spaces credentials are not configured');
+      console.warn('WARNING: Digital Ocean Spaces credentials are not configured. File uploads will fail.');
+      this.s3Client = null as any;
+      return;
     }
 
     if (!this.bucketName || !this.baseUrl) {
-      throw new Error('BUCKET_NAME and BASE_URL must be configured in environment variables');
+      console.warn('WARNING: BUCKET_NAME and BASE_URL are not configured. File uploads will fail.');
+      this.s3Client = null as any;
+      return;
     }
 
     this.s3Client = new S3Client({
@@ -38,6 +42,12 @@ export class StorageService {
       },
       forcePathStyle: false,
     });
+  }
+
+  private checkConfig() {
+    if (!this.s3Client) {
+      throw new Error('Digital Ocean Spaces credentials are not configured');
+    }
   }
 
   /**
@@ -98,6 +108,7 @@ export class StorageService {
     folder: string = 'lead/vehicles/images',
     contentType: string = 'image/jpeg'
   ): Promise<string> {
+    this.checkConfig();
     try {
       // Generate unique filename
       const fileExtension = path.extname(fileName);
@@ -133,6 +144,7 @@ export class StorageService {
     files: Array<{ buffer: Buffer; originalname: string; mimetype: string }>,
     folder: string = 'lead/vehicles/images'
   ): Promise<string[]> {
+    this.checkConfig();
     const uploadPromises = files.map((file) =>
       this.uploadFile(file.buffer, file.originalname, folder, file.mimetype)
     );
@@ -152,6 +164,7 @@ export class StorageService {
    * @returns true if successful
    */
   async deleteFile(filePath: string): Promise<boolean> {
+    this.checkConfig();
     try {
       // Extract relative path (handle both full URL and relative path)
       const key = this.getRelativePath(filePath);
@@ -202,6 +215,7 @@ export class StorageService {
    * @returns true if file exists
    */
   async fileExists(filePath: string): Promise<boolean> {
+    this.checkConfig();
     try {
       const key = this.getRelativePath(filePath);
 
