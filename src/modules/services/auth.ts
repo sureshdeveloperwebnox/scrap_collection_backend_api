@@ -31,22 +31,36 @@ export class Auth {
     return { accessToken, refreshToken };
   }
   public async signIn(data: ISignInData): Promise<ApiResult> {
-    const { email, password } = data;
+    const emailStr = typeof data?.email === 'string' ? data.email.trim() : '';
+    const password = data?.password;
 
-    // check Email
-    const checkEmail = await prisma.users.findUnique({
-      where: {
-        email: email
-      }
-    });
+    if (!emailStr) {
+      return ApiResult.error('Email is required', 400);
+    }
+    if (!password || typeof password !== 'string') {
+      return ApiResult.error('Password is required', 400);
+    }
 
+    let checkEmail;
+    try {
+      checkEmail = await prisma.users.findUnique({
+        where: { email: emailStr },
+      });
+    } catch (err: any) {
+      console.error('SignIn findUnique error:', err?.message ?? err);
+      return ApiResult.error('Invalid email or password', 401);
+    }
 
     if (!checkEmail) {
-      return ApiResult.error('Invalid email', 401);
+      return ApiResult.error('Invalid email or password', 401);
     }
     const user = checkEmail;
-    // Check password 
-    const hashFromDB = String(user?.hashPassword).replace(/^\$2y\$/, '$2a$');
+    const hashFromDB = user?.hashPassword
+      ? String(user.hashPassword).replace(/^\$2y\$/, '$2a$')
+      : '';
+    if (!hashFromDB) {
+      return ApiResult.error('Invalid email or password', 401);
+    }
     const isMatch = await bcrypt.compare(password, hashFromDB);
 
     if (!isMatch) {
@@ -81,73 +95,102 @@ export class Auth {
   }
 
   public async signUp(data: ISignUpData): Promise<ApiResult> {
-    const { name, firstName, lastName, phone, email, password, countryId, role = 'ADMIN' } = data;
+    const emailStr = typeof data?.email === 'string' ? data.email.trim() : '';
+    if (!emailStr) {
+      return ApiResult.error('Email is required', 400);
+    }
 
-    // Check if user already exists
-    const userExists = await prisma.users.findUnique({
-      where: {
-        email: email
-      }
-    });
+    let userExists;
+    try {
+      userExists = await prisma.users.findUnique({
+        where: { email: emailStr },
+      });
+    } catch (err: any) {
+      console.error('SignUp findUnique error:', err?.message ?? err);
+      return ApiResult.error('Registration failed. Please try again.', 500);
+    }
 
     if (userExists) {
       return ApiResult.error('User with this email already exists', 400);
     }
 
+    const name = typeof data?.name === 'string' ? data.name.trim() : '';
+    const phoneStr = data?.phone != null ? String(data.phone).trim() : '';
+    const password = data?.password;
+    if (!name) return ApiResult.error('Name is required', 400);
+    if (!password || typeof password !== 'string') return ApiResult.error('Password is required', 400);
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const countryId = typeof data?.countryId === 'number' && data.countryId > 0 ? data.countryId : undefined;
+    const firstName = data?.firstName;
+    const lastName = data?.lastName;
+    const role = data?.role ?? 'ADMIN';
 
-    // create new organization
-    const newOrganization = await prisma.organization.create({
-      data: {
-        name: name,
-        email: email,
-        phone: phone,
-        isActive: true,
-        ...(countryId && { countryId: countryId })
-      }
-    });
+    let newOrganization;
+    let newUser;
 
-    // Create new user
-    const newUser = await prisma.users.create({
-      data: {
-        organizationId: newOrganization.id,
-        firstName: firstName || name.split(' ')[0] || name,
-        lastName: lastName || name.split(' ').slice(1).join(' ') || '',
-        email: email,
-        hashPassword: hashedPassword,
-        phone: phone,
-        role: role as UserRole
-      }
-    });
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create JWT tokens
+      newOrganization = await prisma.organization.create({
+        data: {
+          name,
+          email: emailStr,
+          phone: phoneStr || undefined,
+          isActive: true,
+          ...(countryId != null && { countryId }),
+        },
+      });
+
+      newUser = await prisma.users.create({
+        data: {
+          organizationId: newOrganization.id,
+          firstName: firstName ?? name.split(' ')[0] ?? name,
+          lastName: lastName ?? name.split(' ').slice(1).join(' ') ?? '',
+          email: emailStr,
+          hashPassword: hashedPassword,
+          phone: phoneStr || undefined,
+          role: role as UserRole,
+        },
+      });
+    } catch (err: any) {
+      console.error('SignUp create error:', err?.message ?? err);
+      return ApiResult.error(
+        err?.code === 'P2003'
+          ? 'Invalid reference (e.g. country). Please check your details.'
+          : 'Registration failed. Please check your details and try again.',
+        400
+      );
+    }
+
     const tokenPayload: TokenPayload = {
       id: newUser.id,
-      email: email,
-      firstName: firstName,
-      role: role,
-      organizationId: newOrganization.id
+      email: emailStr,
+      firstName: newUser.firstName ?? '',
+      role: newUser.role,
+      organizationId: newOrganization.id,
     };
 
     const { accessToken, refreshToken } = this.generateTokens(tokenPayload);
 
-    return ApiResult.success({
-      user: {
-        id: newUser.id,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        email: newUser.email,
-        phone: newUser.phone,
-        profileImg: newUser.profileImg,
-        role: newUser.role,
-        organizationId: newOrganization.id
+    return ApiResult.success(
+      {
+        user: {
+          id: newUser.id,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          email: newUser.email,
+          phone: newUser.phone,
+          profileImg: newUser.profileImg,
+          role: newUser.role,
+          organizationId: newOrganization.id,
+        },
+        accessToken,
+        refreshToken,
       },
-      accessToken,
-      refreshToken
-    }, 'User registered successfully', 201);
+      'User registered successfully',
+      201
+    );
   }
 
   public async signInWithGoogle(idToken: string): Promise<ApiResult> {

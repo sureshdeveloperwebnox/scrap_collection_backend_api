@@ -41,8 +41,11 @@ export class AuthController {
 
     if (result.success && result.data) {
       this.setCookies(req.res, result.data.accessToken, result.data.refreshToken);
-      // Don't send tokens in response body, only user data
-      return ApiResult.success({ user: result.data.user }, result.message);
+      // Include accessToken in body so cross-origin clients (different port) can send it in Authorization header (cookies not sent cross-origin)
+      return ApiResult.success(
+        { user: result.data.user, accessToken: result.data.accessToken },
+        result.message
+      );
     }
 
     return result;
@@ -55,8 +58,11 @@ export class AuthController {
 
     if (result.success && result.data) {
       this.setCookies(req.res, result.data.accessToken, result.data.refreshToken);
-      // Don't send tokens in response body, only user data
-      return ApiResult.success({ user: result.data.user }, result.message, result.statusCode);
+      return ApiResult.success(
+        { user: result.data.user, accessToken: result.data.accessToken },
+        result.message,
+        result.statusCode
+      );
     }
 
     return result;
@@ -69,8 +75,10 @@ export class AuthController {
 
     if (result.success && result.data) {
       this.setCookies(req.res, result.data.accessToken, result.data.refreshToken);
-      // Don't send tokens in response body, only user data
-      return ApiResult.success({ user: result.data.user }, result.message);
+      return ApiResult.success(
+        { user: result.data.user, accessToken: result.data.accessToken },
+        result.message
+      );
     }
 
     return result;

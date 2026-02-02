@@ -27,19 +27,35 @@ class Auth {
         return { accessToken, refreshToken };
     }
     async signIn(data) {
-        const { email, password } = data;
-        // check Email
-        const checkEmail = await config_1.prisma.users.findUnique({
-            where: {
-                email: email
-            }
-        });
+        var _a;
+        const emailStr = typeof (data === null || data === void 0 ? void 0 : data.email) === 'string' ? data.email.trim() : '';
+        const password = data === null || data === void 0 ? void 0 : data.password;
+        if (!emailStr) {
+            return api_result_1.ApiResult.error('Email is required', 400);
+        }
+        if (!password || typeof password !== 'string') {
+            return api_result_1.ApiResult.error('Password is required', 400);
+        }
+        let checkEmail;
+        try {
+            checkEmail = await config_1.prisma.users.findUnique({
+                where: { email: emailStr },
+            });
+        }
+        catch (err) {
+            console.error('SignIn findUnique error:', (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : err);
+            return api_result_1.ApiResult.error('Invalid email or password', 401);
+        }
         if (!checkEmail) {
-            return api_result_1.ApiResult.error('Invalid email', 401);
+            return api_result_1.ApiResult.error('Invalid email or password', 401);
         }
         const user = checkEmail;
-        // Check password 
-        const hashFromDB = String(user === null || user === void 0 ? void 0 : user.hashPassword).replace(/^\$2y\$/, '$2a$');
+        const hashFromDB = (user === null || user === void 0 ? void 0 : user.hashPassword)
+            ? String(user.hashPassword).replace(/^\$2y\$/, '$2a$')
+            : '';
+        if (!hashFromDB) {
+            return api_result_1.ApiResult.error('Invalid email or password', 401);
+        }
         const isMatch = await bcrypt_1.default.compare(password, hashFromDB);
         if (!isMatch) {
             return api_result_1.ApiResult.error('Invalid password', 401);

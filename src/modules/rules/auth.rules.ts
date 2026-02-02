@@ -27,9 +27,7 @@ export const forSignUp = {
     name: Joi.string().required().messages({
       'any.required': 'Name is required'
     }),
-    address: Joi.string().required().messages({
-      'any.required': 'Address is required'
-    }),
+    address: Joi.string().optional().allow(''),
     phone: Joi.string().custom(phoneCustomValidation, 'phone validation').required().messages({
       'any.required': 'Phone is required',
       'any.custom': '{{#error.message}}'

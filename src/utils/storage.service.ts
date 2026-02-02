@@ -222,6 +222,75 @@ export class StorageService {
   }
 }
 
-// Export singleton instance
-export const storageService = new StorageService();
+const STORAGE_NOT_CONFIGURED =
+  'Digital Ocean Spaces credentials are not configured. Set ACCESS_KEY, SECRET_ACCESS_KEY, BUCKET_NAME, and BASE_URL.';
+
+/**
+ * No-op storage when DO Spaces credentials are missing.
+ * Allows the backend to start; upload/delete will throw if used.
+ */
+class NoOpStorageService {
+  getBaseUrl(): string {
+    return '';
+  }
+
+  getFullUrl(relativePath: string): string {
+    if (!relativePath) return '';
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+      return relativePath;
+    }
+    return relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+  }
+
+  getRelativePath(fullUrl: string): string {
+    if (!fullUrl) return '';
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+      return fullUrl;
+    }
+    try {
+      const url = new URL(fullUrl);
+      return url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
+    } catch {
+      return fullUrl;
+    }
+  }
+
+  async uploadFile(): Promise<string> {
+    throw new Error(STORAGE_NOT_CONFIGURED);
+  }
+
+  async uploadFiles(): Promise<string[]> {
+    throw new Error(STORAGE_NOT_CONFIGURED);
+  }
+
+  async deleteFile(): Promise<boolean> {
+    throw new Error(STORAGE_NOT_CONFIGURED);
+  }
+
+  async deleteFiles(): Promise<{ deleted: string[]; failed: string[] }> {
+    throw new Error(STORAGE_NOT_CONFIGURED);
+  }
+
+  async fileExists(): Promise<boolean> {
+    return false;
+  }
+}
+
+function hasStorageConfig(): boolean {
+  const access = (process.env.ACCESS_KEY || '').trim();
+  const secret = (process.env.SECRET_ACCESS_KEY || '').trim();
+  const bucket = (process.env.BUCKET_NAME || '').trim();
+  const base = (process.env.BASE_URL || '').trim();
+  return Boolean(access && secret && bucket && base);
+}
+
+// Export singleton: real StorageService when configured, no-op otherwise so backend can start
+export const storageService = hasStorageConfig()
+  ? new StorageService()
+  : (() => {
+      console.warn(
+        'Storage: Digital Ocean Spaces not configured (ACCESS_KEY, SECRET_ACCESS_KEY, BUCKET_NAME, BASE_URL). File uploads will fail until configured.'
+      );
+      return new NoOpStorageService();
+    })();
 
