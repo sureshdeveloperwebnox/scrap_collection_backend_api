@@ -18,15 +18,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Add cookie parser middleware
 
-// Allow multiple origins (e.g. http://localhost:7002,http://192.168.0.21:7002) for login from different hosts
-const corsOrigin = process.env.CORS_ORIGINS?.trim()
-  ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-  : (process.env.FRONTEND_URL || 'http://localhost:7002');
+// CORS: allow multiple origins (normalize: no trailing slash for consistent matching)
+const corsOriginList: string[] = process.env.CORS_ORIGINS?.trim()
+  ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim().replace(/\/$/, '')).filter(Boolean)
+  : [(process.env.FRONTEND_URL || 'http://localhost:7002').replace(/\/$/, '')];
+
+function normalizeOrigin(origin: string): string {
+  return origin ? origin.replace(/\/$/, '') : '';
+}
+
 app.use(cors({
-  origin: Array.isArray(corsOrigin) ? corsOrigin : corsOrigin,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true, // Important for cookies
+  origin(origin, callback) {
+    // Allow requests with no origin (e.g. same-origin, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    const normalized = normalizeOrigin(origin);
+    const allowed = corsOriginList.some((o) => normalizeOrigin(o) === normalized);
+    if (allowed) return callback(null, true);
+    callback(null, false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Content-Disposition'],
+  credentials: true,
+  optionsSuccessStatus: 204,
 }));
 
 // Serve static files from uploads directory
